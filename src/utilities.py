@@ -9,10 +9,6 @@ def is_number(n) -> bool:
         return False
     return True
 
-def test_is_number() -> Union[int,int]:
-    # TODO
-    return 0,0
-
 # dummy consistency probabilistic fact
 def check_consistent_prob_fact(line) -> Union[str,str]:
     line = line.split("::")
@@ -27,10 +23,6 @@ def check_consistent_prob_fact(line) -> Union[str,str]:
     
     return line
 
-def test_check_consistent_prob_fact() -> Union[int,int]:
-    # TODO
-    return 0,0
-
 # from f(12) returns 12, does some basic checks
 # returns also True if range, false otherwise
 def extract_atom_between_brackets(fact) -> Union[list, bool]:
@@ -44,10 +36,6 @@ def extract_atom_between_brackets(fact) -> Union[list, bool]:
         print("Error in extracting arguments in " + fact)
         sys.exit()
 
-def test_extract_atom_between_brackets() -> Union[int,int]:
-    # TODO
-    return 0,0
-
 # from fa(32) returns fa
 def get_functor(fact) -> str:
     r = ""
@@ -57,10 +45,6 @@ def get_functor(fact) -> str:
         r = r + fact[i]
         i = i + 1
     return r
-
-def test_get_functor() -> Union[int,int]:
-    # TODO
-    return 0,0
 
 # generates the dom fact
 # dom_f(1..3). from f(1..3).
@@ -84,67 +68,3 @@ def generate_dom_fact(functor,arguments) -> str:
     dom = dom + dom_args + "."
 
     return dom
-
-def test_generate_dom_fact() -> Union[int,int]:
-    failed = 0
-    passed = 0
-
-    print("test_generate_dom_fact")
-
-    functor = "f"
-    arguments = [['1', '3'], True]
-    expected = "dom_f(1..3)."
-    dom = generate_dom_fact(functor,arguments)
-
-    if dom != expected:
-        print("Error: expected\n" + expected + "\nfound\n" + str(dom))
-        failed = failed + 1
-    else:
-        passed = passed + 1
-
-    functor = "g"
-    arguments = [['a'], False]
-    expected = "dom_g(a)."
-    dom = generate_dom_fact(functor,arguments)
-
-    if dom != expected:
-        print("Error: expected\n" + expected + "\nfound\n" + str(dom))
-        failed = failed + 1
-    else:
-        passed = passed + 1
-
-    if failed == 0:
-        print("passed")
-    else:
-        print("failed")
-
-    return failed,passed
-        
-def test_utilities():
-    n_function_tested = 0
-    total = 0
-
-    failed,passed = test_generate_dom_fact()
-    total = total + failed + passed
-    n_function_tested = n_function_tested + 1
-
-    failed,passed = test_get_functor()
-    total = total + failed + passed
-    n_function_tested = n_function_tested + 1
-
-    failed,passed = test_extract_atom_between_brackets()
-    total = total + failed + passed
-    n_function_tested = n_function_tested + 1
-
-    failed,passed = test_check_consistent_prob_fact()
-    total = total + failed + passed
-    n_function_tested = n_function_tested + 1
-
-    failed,passed = test_is_number()
-    total = total + failed + passed
-    n_function_tested = n_function_tested + 1
-
-    print("Tested " + str(n_function_tested) + " functions")
-    print("Executed " + str(total) + " tests")
-    print("Passed: " + str(passed))
-    print("Failed: " + str(failed))
