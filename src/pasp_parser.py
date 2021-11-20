@@ -23,6 +23,7 @@ class PaspParser:
         self.precision = precision
         self.lines_original = []
         self.lines_log_prob = []
+
     '''
     Parameters:
         - verbose: default 0
@@ -75,13 +76,13 @@ class PaspParser:
 
         where P1 = -log(P)*precision
     '''
-    def insert_worlds_generator(self):
+    def insert_worlds_generator(self) -> bool:
         # TODO: handle 0.5::f(1), 0.5::f(2)
         # i.e., probabilistic facts with the same functor, for the
         # domain generation (dom = dom + ...)
-        print(self.lines_original)
+        # print(self.lines_original)
         for line in self.lines_original:
-            if "::" in line:
+            if "::" in line and not line.startswith('%'):
                 # line with probability value
                 # for example: line = ['0.5', 'f(1).']
                 probability, fact = utilities.check_consistent_prob_fact(line)
@@ -91,69 +92,26 @@ class PaspParser:
 
                 functor = utilities.get_functor(fact)
 
-                print(functor)
-                print(arguments)
+                # print(functor)
+                # print(arguments)
 
-                dom = utilities.generate_dom_fact(functor,arguments)
-                # TODO: return also args? needed below
+                dom,args = utilities.generate_dom_fact(functor,arguments)
+                self.lines_log_prob.append([dom])
+                # print(dom)
+                # print(args)
 
-                # generates the dom fact
-                # dom_f(1..3). from f(1..3).
-                # dom = "dom_" + functor + "("
+                generator, clauses = utilities.generate_generator(functor,args,arguments,probability,self.precision)
 
-                # args = ""
-                # if arguments[1] is False: # single fact
-                #     for a in arguments[0]:
-                #         args = args + a + ","
-                #     args = args[:-1] # remove last ,
-                #     args = args + ")"
-                # else: # range
-                #     # args = args + arguments[0][0] + ".." + arguments[0][1] + ")"
-                #     args = "I)"
-
-                # if arguments[1] is False: # single fact
-                #     dom_args = args
-                # else: # range
-                #     dom_args = arguments[0][0] + ".." + arguments[0][1] + ")"
-                    
-
-                # dom = dom + dom_args + "."
-
-                print(dom)
-
-                # generates the generator
-                # 0{v_f_(I):dom_f(I)}3. from f(1..3)
-                vt = "v_" + functor + "_(" + args
-
-                generator = ""
-                generator = generator + "0{"
-                if arguments[1] is False:
-                    number = 1
-                else:
-                    number = int(arguments[0][1]) - int(arguments[0][0]) + 1
-                
-                generator = generator + vt + ":dom_" + functor + "(" + args + "}" + str(number) + "."
-                
-                print(generator)
-
-                # generate the two clauses for true and false
-                # f = ""
-                # nf = ""
-                # if arguments[1] is False: # single fact
-                #     f = functor + "(" + args + ":- " + vt + "."
-                #     nf = "not_" + functor + "(" + args + ":- not " + vt + "."
-                # else: # range
-                #     for i in range(int(arguments[0][0]),int(arguments[0][1])):
-                #         f = functor + "(" + args + ":- " + vt + "."
-                #         nf = "not_" + functor + "(" + args + ":- not " + vt + "."
-
-
-                
-
-
-
-                    
-
+                # print(generator)
+                # print(clauses)
+                clauses.append(generator)
+                self.lines_log_prob.append(clauses)
+            else:
+                self.lines_log_prob.append([line])
+        
+        # flatten the list, maybe try to avoid this
+        self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
+        return True
 
     '''
     Parameters:
@@ -164,18 +122,30 @@ class PaspParser:
     Behavior:
         adds a string with :- not query.
     '''
-    def add_query_constraint(program,query) -> list:
-        return program.append(query)
+    def add_query_constraint(self,query) -> bool:
+        self.lines_log_prob.append(query)
+        return True
+
+    '''
+    Parameters:
+        - self
+        - filename
+    Return:
+        - None
+    Behavior:
+        dumps the content of the string self.log_probabilities_file on 
+        the file named filename
+    '''
+    def create_log_probabilities_file(self,filename) -> None:
+        pass
     
     '''
     string representation of the current class
     '''
     def __repr__(self) -> str:
-        print("filename: " + self.filename)
-        print("precision: " + str(self.precision))
-        print("original file")
-        print(self.lines_original)
-        print("log probabilities file")
-        print(self.lines_log_prob)
+        return "filename: " + self.filename + "\n" + \
+        "precision: " + str(self.precision) + "\n" + \
+        "original file:\n" + str(self.lines_original) + "\n" + \
+        "log probabilities file:\n" + str(self.lines_log_prob)
 
         

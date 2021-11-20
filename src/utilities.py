@@ -1,5 +1,6 @@
 import sys
 import re
+import math
 from typing import Union
 
 def is_number(n) -> bool:
@@ -40,7 +41,6 @@ def extract_atom_between_brackets(fact) -> Union[list, bool]:
 def get_functor(fact) -> str:
     r = ""
     i = 0
-    print(fact)
     while fact[i] and fact[i] != '(':
         r = r + fact[i]
         i = i + 1
@@ -48,23 +48,73 @@ def get_functor(fact) -> str:
 
 # generates the dom fact
 # dom_f(1..3). from f(1..3).
-def generate_dom_fact(functor,arguments) -> str:
+def generate_dom_fact(functor,arguments) -> Union[str,str]:
     dom = "dom_" + functor + "("
     args = ""
     if arguments[1] is False: # single fact
         for a in arguments[0]:
             args = args + a + ","
         args = args[:-1] # remove last ,
-        args = args + ")"
     else: # range
         # args = args + arguments[0][0] + ".." + arguments[0][1] + ")"
-        args = "I)"
+        args = "I"
 
     if arguments[1] is False: # single fact
         dom_args = args
     else: # range
-        dom_args = arguments[0][0] + ".." + arguments[0][1] + ")"
+        dom_args = arguments[0][0] + ".." + arguments[0][1]
         
-    dom = dom + dom_args + "."
+    dom = dom + dom_args + ")."
 
-    return dom
+    return dom,args
+
+def generate_generator(functor,args,arguments,prob,precision) -> Union[str,list]:
+    vt = "v_" + functor + "_(" + args + ")"
+    generator = ""
+    generator = generator + "0{"
+    if arguments[1] is False:
+        number = 1
+    else:
+        number = int(arguments[0][1]) - int(arguments[0][0]) + 1
+    
+    generator = generator + vt + ":dom_" + functor + "(" + args + ")}" + str(number) + "."
+
+    # generate the two clauses
+    clauses = []
+    log_prob = -int(math.log(float(prob))*precision)
+
+    if number != 1: # clauses for range
+        start = int(arguments[0][0])
+        end = int(arguments[0][1])
+
+        for i in range(start,end + 1):
+            vt = "v_" + functor + "_(" + str(i) + ")"
+            clause_true = functor + "(" + str(i) + "," + str(log_prob) + ")" + ":-" + vt + "."
+            clause_false = "not_" + functor + "(" + str(i) + "," + str(log_prob) + ")" + ":- not " + vt + "."
+            clauses.append(clause_true)
+            clauses.append(clause_false)
+
+        # add show declaration
+        auxiliary_clause_true = functor + "(I) :- " + functor + "(I,_)."
+        clauses.append(auxiliary_clause_true)
+        auxiliary_clause_false = "not_" + functor + "(I) :- not_" + functor + "(I,_)."
+        clauses.append(auxiliary_clause_false)
+
+        show_declaration = "#show " + functor + "/1."
+        clauses.append(show_declaration)
+    else:
+        clause_true = functor + "(" + args + "," + str(log_prob) + ")" + ":-" + vt + "."
+        clause_false = "not_" + functor + "(" + args + "," + str(log_prob) + ")" + ":- not " + vt + "."
+        clauses.append(clause_true)
+        clauses.append(clause_false)
+
+        auxiliary_clause_true = functor + "(" + args + ") :- " + functor + "(" + args + ",_)."
+        clauses.append(auxiliary_clause_true)
+        auxiliary_clause_false = "not_" + functor + "(" + args + ") :- not_" + functor + "(" + args + ",_)."
+        clauses.append(auxiliary_clause_false)
+
+        show_declaration = "#show " + functor + "/" + str(args.count(',') + 1)
+
+        clauses.append(show_declaration)
+
+    return generator,clauses
