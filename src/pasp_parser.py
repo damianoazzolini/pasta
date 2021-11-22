@@ -43,19 +43,38 @@ class PaspParser:
             print("Empty file")
             sys.exit()
 
+        # eat possible white spaces or empty lines
+        while utilities.endline_content(char):
+            char = f.read(1)
+
         char1 = f.read(1)
+
+        comment = False
+        if char == '%':
+            comment = True
+        
         while char1:
             l0 = ""
-            while char1 and not((char == '.') and (char1 == '\n' or char1 == '\r\n' or char1 == ' ')):
+            while char1 and not(((char == '.' and not comment) and utilities.endline_content(char1)) or (comment and utilities.endline_comment(char1))):
                 # look for a . followed by \n
                 l0 = l0 + char
                 char = char1
                 char1 = f.read(1)
             # new line
             l0 = l0 + char
-            self.lines_original.append(l0.replace('\n','').replace('\r','').replace(' ',''))
+            if not comment:
+                self.lines_original.append(l0.replace('\n','').replace('\r','').replace(' ',''))
             char = char1
+            # eat white spaces or empty lines
             char1 = f.read(1)
+            while utilities.endline_content(char1):
+                char1 = f.read(1)
+            if char1 == '%':
+                comment = True
+            else:
+                comment = False
+            # print(char)
+            # print(char1)
         
         self.insert_worlds_generator()
 

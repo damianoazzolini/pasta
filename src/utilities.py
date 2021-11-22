@@ -3,6 +3,15 @@ import re
 import math
 from typing import Union
 
+# TODO: write test for this
+def endline_content(char1) -> bool:
+    return char1 == '\n' or char1 == '\r\n' or char1 == ' '
+
+# TODO: write test for this
+def endline_comment(char1) -> bool:
+    return char1 == '\n' or char1 == '\r\n'
+
+
 def is_number(n) -> bool:
     try:
         float(n)
@@ -102,6 +111,9 @@ def generate_generator(functor,args,arguments,prob,precision) -> Union[str,list]
 
         show_declaration = "#show " + functor + "/1."
         clauses.append(show_declaration)
+        show_declaration = "#show not_" + functor + "/1."
+        clauses.append(show_declaration)
+
     else:
         clause_true = functor + "(" + args + "," + str(log_prob) + ")" + ":-" + vt + "."
         clause_false = "not_" + functor + "(" + args + "," + str(log_prob) + ")" + ":- not " + vt + "."
@@ -114,7 +126,8 @@ def generate_generator(functor,args,arguments,prob,precision) -> Union[str,list]
         clauses.append(auxiliary_clause_false)
 
         show_declaration = "#show " + functor + "/" + str(args.count(',') + 1)
-
+        clauses.append(show_declaration)
+        show_declaration = "#show not_" + functor + "/" + str(args.count(',') + 1)
         clauses.append(show_declaration)
 
     return generator,clauses
