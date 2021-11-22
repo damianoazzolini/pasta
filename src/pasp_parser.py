@@ -23,6 +23,9 @@ class PaspParser:
         self.precision = precision
         self.lines_original = []
         self.lines_log_prob = []
+        self.query = ""
+        self.model_query_clause = ""
+        self.model_not_query_clause = ""
 
     '''
     Parameters:
@@ -100,34 +103,42 @@ class PaspParser:
         # i.e., probabilistic facts with the same functor, for the
         # domain generation (dom = dom + ...)
         # print(self.lines_original)
+        functors_list = [] # needed to store the extracted functors
         for line in self.lines_original:
             if "::" in line and not line.startswith('%'):
                 # line with probability value
                 # for example: line = ['0.5', 'f(1).']
                 probability, fact = utilities.check_consistent_prob_fact(line)
-                # print(fact)
                 # extract the value between brackets, 1 in the example
                 arguments = utilities.extract_atom_between_brackets(fact)
 
                 functor = utilities.get_functor(fact)
-
-                # print(functor)
-                # print(arguments)
-
-                dom,args = utilities.generate_dom_fact(functor,arguments)
+                dom, args = utilities.generate_dom_fact(functor,arguments)
+                
                 self.lines_log_prob.append([dom])
-                # print(dom)
-                # print(args)
 
-                generator, clauses = utilities.generate_generator(functor,args,arguments,probability,self.precision)
+                generator, clauses, functor = utilities.generate_generator(functor,args,arguments,probability,self.precision)
 
-                # print(generator)
-                # print(clauses)
+                # the variable functor is updated: now it contains the
+                # functor for a range or the whole probabilistic fact for
+                # a probabilistic fact
+                # For example:
+                # bird(1..2) -> functor = "bird"
+                # bird(1) -> functor = "bird(1)"
+                functors_list.append(functor)
+
                 clauses.append(generator)
                 self.lines_log_prob.append(clauses)
             else:
                 self.lines_log_prob.append([line])
+            
+            # generate the model clause
+            # Do here since i need to know how the number of probabilistic facts
+        self.model_query_clause, self.model_not_query_clause = utilities.generate_model_clause(functors_list,self.query)
         
+        # print("----- model clauses ")
+        # print(model_clauses)
+
         # flatten the list, maybe try to avoid this
         self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
         return True
@@ -141,9 +152,45 @@ class PaspParser:
     Behavior:
         adds a string with :- not query.
     '''
-    def add_query_constraint(self,query) -> bool:
-        self.lines_log_prob.append(query)
+    def add_query(self, query : str) -> bool:
+        if query.endswith('.'):
+            query = query[:-1]
+        self.query = query
         return True
+
+    '''
+    Parameters:
+        - None
+    Returns:
+        - str: program used to compute the minimal set of probabilistic
+        facts to make the query true
+    Behavior:
+        generate the file to pass to ASP to compute the minimal set
+        of probabilistic facts to make the query true
+    '''
+    def get_content_to_compute_minimal_prob_facts(self) -> str:
+        l1 = self.lines_log_prob
+        l1.append(":- not " + self.query + ".")
+        return l1
+    
+    '''
+    Parameters:
+        - None
+    Returns:
+        - str: string representing the program that can be used to 
+        compute lower and upper probability
+    Behavior:
+        returns a string that represent the ASP program where models 
+        need to be computed
+    '''
+    def get_asp_program(self) -> str:
+        res = self.lines_log_prob
+
+        res.append(self.model_query_clause)
+        res.append(self.model_not_query_clause)
+        
+        return res
+
 
     '''
     Parameters:
@@ -159,12 +206,29 @@ class PaspParser:
         pass
     
     '''
+    Parameters:
+        - self
+    Return:
+        - str
+    Behavior:
+        returns the parsed file in a string
+    '''
+    def get_parsed_file(self) -> str:
+        return self.lines_log_prob
+
+    def get_n_prob_facts(self) -> int:
+        return self.n_prob_facts
+
+    '''
     string representation of the current class
     '''
     def __repr__(self) -> str:
         return "filename: " + self.filename + "\n" + \
         "precision: " + str(self.precision) + "\n" + \
+        "query: " + str(self.query) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
-        "log probabilities file:\n" + str(self.lines_log_prob)
+        "log probabilities file:\n" + str(self.lines_log_prob) + "\n" \
+        "model query:\n" + str(self.model_query_clause) + "\n" \
+        "model not query:\n" + str(self.model_not_query_clause)
 
         

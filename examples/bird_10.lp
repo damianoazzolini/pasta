@@ -1,6 +1,6 @@
-% There are 4 birds (indexed with 1,2,3, and 4), each one with 
+% There are 10 birds (indexed with 1,2,...,10), each one with 
 % probability 0.5
-0.5::bird(1..4).
+0.5::bird(1..10).
 
 % A bird can fly or not fly
 fly(X);nofly(X):- bird(X).
@@ -10,4 +10,8 @@ fly(X);nofly(X):- bird(X).
 
 % Example query: fly(1)
 % What is the lower and the upper bound of the probability for fly(1)?
-% Expected: lower: 0, upper: 0.25
+% Expected: lower: 0.127, upper: 0.5
+
+% Example query: nofly(1)
+% What is the lower and the upper bound of the probability for nofly(1)?
+% Expected: lower: 0, upper: 0.373

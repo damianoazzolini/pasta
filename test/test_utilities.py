@@ -57,7 +57,11 @@ def test_extract_atom_between_brackets() -> Union[int,int]:
 def test_get_functor() -> Union[int,int]:
     # TODO
     return 0,0
-    
+
+def test_generate_model_clause() -> Union[int,int]:
+    # TODO
+    return 0,0
+
 def test_generate_dom_fact() -> Union[int,int]:
     failed = 0
     passed = 0

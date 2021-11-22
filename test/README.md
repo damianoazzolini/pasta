@@ -11,4 +11,4 @@ python3 test_module_name.py
 python3 test_utilities.py
 ```
 
-Note: python3.5+ is required.
+Note: python3.5 is required (for type hint for arguments of functions and testing).
