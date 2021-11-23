@@ -57,11 +57,11 @@ Each model is a line of the form
 bird_a(2) bird_b(1) bird_b(2) nobird_a(1) model_not_query(1,693,1,693,2,1832,0,0)
 '''
 class ModelsHandler():
-    def __init__(self) -> None:
+    def __init__(self,precision) -> None:
         self.worlds_list = []
         self.lower_probability = 0
         self.upper_probability = 0
-        self.precision = 1000
+        self.precision = precision
 
     def increment_lower_prob(self, p : float) -> None:
         self.lower_probability = self.lower_probability + p 
@@ -114,7 +114,7 @@ class ModelsHandler():
     # computes the lower and upper probability
     def compute_lower_upper_probability(self) -> Union[float,float]:
         for w in self.worlds_list:
-            p = math.exp(-w.get_prob()/self.precision) * w.get_upper()
+            p = math.exp(-w.get_prob()/(10**self.precision)) * w.get_upper()
             if w.get_lower() == 0:
                 self.increment_lower_prob(p)
             self.increment_upper_prob(p)

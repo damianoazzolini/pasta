@@ -1,7 +1,6 @@
 '''
 Class defining a parser for a PASP program.
 '''
-import math
 import os
 import sys
 
@@ -18,12 +17,12 @@ class PaspParser:
         - lines_log_prob: lines obtained by replacing probabilities 
           with log probabilities
     '''
-    def __init__(self,filename,precision=1000) -> None:
+    def __init__(self,filename,precision,query="") -> None:
         self.filename = filename
         self.precision = precision
         self.lines_original = []
         self.lines_log_prob = []
-        self.query = ""
+        self.query = query
         self.model_query_clause = ""
         self.model_not_query_clause = ""
 
@@ -96,7 +95,7 @@ class PaspParser:
         f(n,P1):- v(n).
         not_f(n,P0):- not v(n).
 
-        where P1 = -log(P)*precision
+        where P1 = -log(P)*(10**precision)
     '''
     def insert_worlds_generator(self) -> bool:
         # TODO: handle 0.5::f(1), 0.5::f(2)
@@ -129,6 +128,11 @@ class PaspParser:
 
                 clauses.append(generator)
                 self.lines_log_prob.append(clauses)
+            elif line.startswith("query"):
+                if line[-1] == ".":
+                    self.query = line.split("query")[1][:-2][1:]
+                else:
+                    self.query = line.split("query")[1][:-1][1:]
             else:
                 self.lines_log_prob.append([line])
             
@@ -145,21 +149,6 @@ class PaspParser:
 
     '''
     Parameters:
-        - program: program stored as a list of strings
-        - query: query to add in the program
-    Return:
-        - list of strings modified as explained below
-    Behavior:
-        adds a string with :- not query.
-    '''
-    def add_query(self, query : str) -> bool:
-        if query.endswith('.'):
-            query = query[:-1]
-        self.query = query
-        return True
-
-    '''
-    Parameters:
         - None
     Returns:
         - str: program used to compute the minimal set of probabilistic
@@ -169,6 +158,10 @@ class PaspParser:
         of probabilistic facts to make the query true
     '''
     def get_content_to_compute_minimal_prob_facts(self) -> str:
+        if self.query == "":
+            print("Missing query")
+            sys.exit()
+
         return self.lines_log_prob + [":- not " + self.query + "."]
     
     '''
@@ -189,27 +182,6 @@ class PaspParser:
         
         return res
 
-    # '''
-    # Parameters:
-    #     - self
-    #     - filename
-    # Return:
-    #     - None
-    # Behavior:
-    #     dumps the content of the string self.log_probabilities_file on 
-    #     the file named filename
-    # '''
-    # def create_log_probabilities_file(self,filename) -> None:
-    #     pass
-    
-    '''
-    Parameters:
-        - self
-    Return:
-        - str
-    Behavior:
-        returns the parsed file in a string
-    '''
     def get_parsed_file(self) -> str:
         return self.lines_log_prob
 

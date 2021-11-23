@@ -169,8 +169,8 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
 
     # generate the two clauses
     clauses = []
-    log_prob_true = -int(math.log(prob)*precision)
-    log_prob_false = -int(math.log(1 - prob)*precision)
+    log_prob_true = -int(math.log(prob)*(10**precision))
+    log_prob_false = -int(math.log(1 - prob)*(10**precision))
 
     if number != 1: # clauses for range
         start = int(arguments[0][0])
@@ -225,3 +225,50 @@ def get_id_prob_world(line : str) -> Union[str,int]:
     w = line.split(',')[::2] # only even positions
     p = line.split(',')[1::2] # only even positions
     return ''.join(w), sum(int(x) for x in p)
+
+def parse_command_line(args : str) -> Union[bool,bool,str,int,str]:
+    verbose = False
+    pedantic = False
+    filename = ""
+    precision = 3 # default value
+    query = ""
+    # for i in range(0,len(args)):
+    i = 0
+    while i < len(args):
+        if args[i] == "--verbose" or args[i] == "-v":
+            verbose = True
+        elif args[i] == "--pedantic":
+            verbose = True
+            pedantic = True
+        elif args[i].startswith("--precision=") or args[i].startswith("-p="):
+            precision = int(args[i].split('=')[1])
+        elif args[i] == "--help" or args[i] == "-h":
+            print_help()
+            sys.exit()
+        elif args[i].startswith("--query=") or args[i].startswith("-q="):
+            query = args[i].split("=")[1].replace("\"","")
+        else:
+            if i + 1 < len(args):
+                filename = args[i+1]
+                i = i + 1
+        i = i + 1
+
+    if filename == "":
+        print("Missing filename")
+        sys.exit()
+    
+    return verbose,pedantic,filename,precision,query
+
+def print_help() -> None:
+    print("paspsp: probabilistic answer set programming statistical probabilities")
+    print("Compute lower and upper bound for a query in")
+    print("a probabilistic answer set program")
+    print("Example: paspsp ../../examples/bird_4.lp -q=\"fly(1)\"")
+    print("Example programs: see example folder.")
+    print("Issues: https://github.com/damianoazzolini/PaspStatsProb/issues")
+    print("Available commands:")
+    print("\t--query=,-q: specifies a query. Example: -q=\"fly(1)\".")
+    print("\t--verbose,-v: verbose mode. Default: off.")
+    print("\t--pedantic: pedantic mode (more verbose than --verbose). Default: off.")
+    print("\t--precision=,-p=: set the required precision. Example: --precision=3. Default = 3.")
+    print("\t--help,-h: print this help page")

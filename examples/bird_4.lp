@@ -8,6 +8,9 @@ fly(X);nofly(X):- bird(X).
 % Constraint: at least 60% of the birds fly
 :- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<6*B.
 
+% A query can also be specified into the program with query/1
+% query(fly(1)).
+
 % Example query: fly(1)
 % What is the lower and the upper bound of the probability for fly(1)?
 % Expected: lower: 0.25, upper: 0.5

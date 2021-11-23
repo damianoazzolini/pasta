@@ -19,12 +19,13 @@ class AspInterface:
     Parameters:
         - content: list with the program
     '''
-    def __init__(self,program_minimal_set : list, asp_program : list) -> None:
+    def __init__(self,program_minimal_set : list, asp_program : list, precision = 3) -> None:
         self.cautious_consequences = ""
         self.program_minimal_set = program_minimal_set
         self.asp_program = asp_program
         self.lower_probability = 0
         self.upper_probability = 0
+        self.precision = precision
 
     def get_cautious_consequences(self) -> str:
         return self.cautious_consequences
@@ -92,7 +93,7 @@ class AspInterface:
 
         n_models = 0
         start_time = time.time()
-        model_handler = models_handler.ModelsHandler()
+        model_handler = models_handler.ModelsHandler(self.precision)
 
         with ctl.solve(yield_=True) as handle:
             for m in handle:
