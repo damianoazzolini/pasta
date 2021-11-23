@@ -7,9 +7,10 @@ to the list
 
 from typing import Union
 from utilities import get_id_prob_world
+import math
 
 
-class World():
+class World(object):
     '''
     id is the string composed by the occurrences of the variables
     For example, for
@@ -25,11 +26,23 @@ class World():
     def get_id(self) -> str:
         return self.id
     
-    def increment_lower(self) -> str:
+    def get_prob(self) -> int:
+        return self.prob
+
+    def get_upper(self) -> int:
+        return self.upper
+    
+    def get_lower(self) -> int:
+        return self.lower
+
+    def increment_lower_count(self) -> str:
         self.lower = self.lower + 1
 
-    def increment_upper(self) -> str:
-        self.lower = self.upper + 1
+    def increment_upper_count(self) -> str:
+        self.upper = self.upper + 1
+    
+    def __str__(self) -> str:
+        return "id: " + self.id + " prob: " + str(self.prob) + " l: " + str(self.lower) + " u: " + str(self.upper)
 
     # used to keep the list of worlds sorted
     def __eq__(self, o: object) -> bool:
@@ -46,6 +59,15 @@ bird_a(2) bird_b(1) bird_b(2) nobird_a(1) model_not_query(1,693,1,693,2,1832,0,0
 class ModelsHandler():
     def __init__(self) -> None:
         self.worlds_list = []
+        self.lower_probability = 0
+        self.upper_probability = 0
+        self.precision = 1000
+
+    def increment_lower_prob(self, p : float) -> None:
+        self.lower_probability = self.lower_probability + p 
+
+    def increment_upper_prob(self, p : float) -> None:
+        self.upper_probability = self.upper_probability + p
 
     # checks if the id is in the worlds list
     # query = True -> model_query
@@ -54,27 +76,28 @@ class ModelsHandler():
         for el in self.worlds_list:
             if el.get_id() == id:
                 if query == True:
-                    el.increment_upper()
+                    el.increment_upper_count()
                 else:
-                    el.increment_lower()
+                    el.increment_lower_count()
                 return
         
         # element not found -> add a new world
         w = World(id,prob)
         if query == True:
-            w.increment_upper()
+            w.increment_upper_count()
         else:
-            w.increment_lower()
+            w.increment_lower_count()
 
         self.worlds_list.append(w)
         self.worlds_list = sorted(self.worlds_list) # keep the list sorted
 
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
+        # print(line)
         line = line.split(' ')
         to_analyse = None
         for el in line:
-            if "model_query" or "model_not_query" in el:
+            if ("model_query" in el) or ("model_not_query" in el):
                 to_analyse = el
                 break
         
@@ -90,5 +113,16 @@ class ModelsHandler():
     
     # computes the lower and upper probability
     def compute_lower_upper_probability(self) -> Union[float,float]:
-        # TODO
-        return 0,0
+        for w in self.worlds_list:
+            p = math.exp(-w.get_prob()/self.precision) * w.get_upper()
+            if w.get_lower() == 0:
+                self.increment_lower_prob(p)
+            self.increment_upper_prob(p)
+        
+        return self.lower_probability, self.upper_probability
+
+    def __repr__(self) -> str:
+        s = ""
+        for el in self.worlds_list:
+            s = s + str(el) + "\n"
+        return s

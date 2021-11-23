@@ -10,4 +10,4 @@ fly(X);nofly(X):- bird(X).
 
 % Example query: fly(1)
 % What is the lower and the upper bound of the probability for fly(1)?
-% Expected: lower: 0, upper: 0.25
+% Expected: lower: 0.25, upper: 0.5

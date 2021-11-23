@@ -78,7 +78,7 @@ class PaspParser:
                 comment = False
             # print(char)
             # print(char1)
-        
+        f.close()
         self.insert_worlds_generator()
 
     '''
@@ -169,9 +169,7 @@ class PaspParser:
         of probabilistic facts to make the query true
     '''
     def get_content_to_compute_minimal_prob_facts(self) -> str:
-        l1 = self.lines_log_prob
-        l1.append(":- not " + self.query + ".")
-        return l1
+        return self.lines_log_prob + [":- not " + self.query + "."]
     
     '''
     Parameters:
@@ -191,19 +189,18 @@ class PaspParser:
         
         return res
 
-
-    '''
-    Parameters:
-        - self
-        - filename
-    Return:
-        - None
-    Behavior:
-        dumps the content of the string self.log_probabilities_file on 
-        the file named filename
-    '''
-    def create_log_probabilities_file(self,filename) -> None:
-        pass
+    # '''
+    # Parameters:
+    #     - self
+    #     - filename
+    # Return:
+    #     - None
+    # Behavior:
+    #     dumps the content of the string self.log_probabilities_file on 
+    #     the file named filename
+    # '''
+    # def create_log_probabilities_file(self,filename) -> None:
+    #     pass
     
     '''
     Parameters:

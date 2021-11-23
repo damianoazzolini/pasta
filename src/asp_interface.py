@@ -59,7 +59,10 @@ class AspInterface:
                 cautious = str(m) # i need only the last one
             handle.get()
         clingo_time = time.time() - start_time
-        self.cautious_consequences = cautious
+        if cautious == "":
+            self.cautious_consequences = []
+        else:
+            self.cautious_consequences = [c + "." for c in cautious.split(' ')]
 
         return clingo_time
 
@@ -74,10 +77,14 @@ class AspInterface:
         compute the lower and upper bound for the query
         clingo 0 <filename> --project
     '''
-    def compute_probabilities(self) -> Union[int,float,float]:
+    def compute_probabilities(self) -> Union[int,float,float,float]:
         ctl = clingo.Control(["0","--project"])
         for clause in self.asp_program:
             ctl.add('base',[],clause)
+
+        # add cautious consequences
+        for c in self.cautious_consequences:
+            ctl.add('base',[],":- not " + c)
         
         start_time = time.time()
         ctl.ground([("base", [])])
@@ -94,4 +101,15 @@ class AspInterface:
             handle.get()
         computation_time = time.time() - start_time
 
-        return n_models,grounding_time,computation_time
+        # print(model_handler) # prints the models in world format
+
+        start_time = time.time()
+        self.lower_probability, self.upper_probability = model_handler.compute_lower_upper_probability()
+        world_analysis_time = time.time() - start_time
+
+        return n_models,grounding_time,computation_time,world_analysis_time
+
+    # prints the ASP program
+    def print_asp_program(self) -> None:
+        for el in self.asp_program:
+            print(el)

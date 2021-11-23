@@ -155,6 +155,7 @@ def generate_model_clause(functors_list : list, query : str) -> Union[str,str]:
 
     return model_query_clause, model_not_query_clause
 
+# TODO: modify test
 def generate_generator(functor : str, args : str, arguments : list, prob : float, precision : int) -> Union[str,list,list]:
     vt = "v_" + functor + "_(" + args + ")"
     generator = ""
@@ -223,4 +224,4 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
 def get_id_prob_world(line : str) -> Union[str,int]:
     w = line.split(',')[::2] # only even positions
     p = line.split(',')[1::2] # only even positions
-    return ''.join(w), sum(p)
+    return ''.join(w), sum(int(x) for x in p)
