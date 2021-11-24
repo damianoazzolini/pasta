@@ -30,8 +30,14 @@ def check_consistent_prob_fact(line : str) -> Union[float,str]:
     if not is_number(line[0]):
         print("Error: expected a float, found " + str(line[0]))
         sys.exit()
+
+    prob = float(line[0])
+
+    if prob > 1 or prob <= 0:
+        print("Probabilities must be in the range ]0,1], found " + str(prob))
+        sys.exit()
     
-    return float(line[0]), line[1]
+    return prob, line[1]
 
 # from f(12) returns 12, does some basic checks
 # returns also True if range, false otherwise

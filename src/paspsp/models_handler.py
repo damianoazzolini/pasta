@@ -115,9 +115,10 @@ class ModelsHandler():
     def compute_lower_upper_probability(self) -> Union[float,float]:
         for w in self.worlds_list:
             p = math.exp(-w.get_prob()/(10**self.precision)) * w.get_upper()
-            if w.get_lower() == 0:
-                self.increment_lower_prob(p)
-            self.increment_upper_prob(p)
+            if w.get_upper() != 0:
+                if w.get_lower() == 0:
+                    self.increment_lower_prob(p)
+                self.increment_upper_prob(p)
         
         return self.lower_probability, self.upper_probability
 

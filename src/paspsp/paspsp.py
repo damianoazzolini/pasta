@@ -62,5 +62,8 @@ if __name__ == "__main__":
     pasp_solver = Paspsp(filename, query, precision, verbose, pedantic)
     lp,up = pasp_solver.solve()
 
-    print("Lower probability for the query " + query + ": " + str(lp))
-    print("Upper probability for the query " + query + ": " + str(up))
+    if lp == up:
+        print("Sharp (lower probability == upper probability) probability value: " + str(lp))
+    else:
+        print("Lower probability for the query " + query + ": " + str(lp))
+        print("Upper probability for the query " + query + ": " + str(up))

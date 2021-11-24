@@ -103,6 +103,7 @@ class PaspParser:
         # domain generation (dom = dom + ...)
         # print(self.lines_original)
         functors_list = [] # needed to store the extracted functors
+        n_probabilistic_facts = 0
         for line in self.lines_original:
             if "::" in line and not line.startswith('%'):
                 # line with probability value
@@ -128,6 +129,7 @@ class PaspParser:
 
                 clauses.append(generator)
                 self.lines_log_prob.append(clauses)
+                n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):
                 if line[-1] == ".":
                     self.query = line.split("query")[1][:-2][1:]
@@ -138,6 +140,13 @@ class PaspParser:
             
             # generate the model clause
             # Do here since i need to know how the number of probabilistic facts
+        if n_probabilistic_facts == 0:
+            print("This is not a probabilistic answer set program.")
+            print("No probabilities detected.")
+            print("Please specify at least one probabilistic fact with")
+            print("prob::fact. For example: 0.5::a. states that a has")
+            print("probability 0.5.")
+            sys.exit()
         self.model_query_clause, self.model_not_query_clause = utilities.generate_model_clause(functors_list,self.query)
         
         # print("----- model clauses ")
