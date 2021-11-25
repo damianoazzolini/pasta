@@ -27,8 +27,10 @@ class Paspsp:
         asp_program = parser.get_asp_program()
 
         if pedantic:
-            print("--- Asp program (without minimal set) ---")
+            print("--- Asp program ---")
             for e in asp_program:
+                print(e)
+            for e in content_find_minimal_set:
                 print(e)
             print("---")
 
