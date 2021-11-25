@@ -23,8 +23,6 @@ class PaspParser:
         self.lines_original = []
         self.lines_log_prob = []
         self.query = query
-        self.model_query_clause = ""
-        self.model_not_query_clause = ""
 
     '''
     Parameters:
@@ -102,7 +100,6 @@ class PaspParser:
         # i.e., probabilistic facts with the same functor, for the
         # domain generation (dom = dom + ...)
         # print(self.lines_original)
-        functors_list = [] # needed to store the extracted functors
         n_probabilistic_facts = 0
         for line in self.lines_original:
             if "::" in line and not line.startswith('%'):
@@ -117,15 +114,7 @@ class PaspParser:
                 
                 self.lines_log_prob.append([dom])
 
-                generator, clauses, functor = utilities.generate_generator(functor,args,arguments,probability,self.precision)
-
-                # the variable functor is updated: now it contains the
-                # functor for a range or the whole probabilistic fact for
-                # a probabilistic fact
-                # For example:
-                # bird(1..2) -> functor = "bird"
-                # bird(1) -> functor = "bird(1)"
-                functors_list.append(functor)
+                generator, clauses = utilities.generate_generator(functor,args,arguments,probability,self.precision)
 
                 clauses.append(generator)
                 self.lines_log_prob.append(clauses)
@@ -147,10 +136,6 @@ class PaspParser:
             print("prob::fact. For example: 0.5::a. states that a has")
             print("probability 0.5.")
             sys.exit()
-        self.model_query_clause, self.model_not_query_clause = utilities.generate_model_clause(functors_list,self.query)
-        
-        # print("----- model clauses ")
-        # print(model_clauses)
 
         # flatten the list, maybe try to avoid this
         self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
@@ -184,12 +169,12 @@ class PaspParser:
         need to be computed
     '''
     def get_asp_program(self) -> str:
-        res = self.lines_log_prob
-
-        res.append(self.model_query_clause)
-        res.append(self.model_not_query_clause)
+        self.lines_log_prob.append("q:- " + self.query + ".")
+        self.lines_log_prob.append("#show q/0.")
+        self.lines_log_prob.append("nq:- not " + self.query + ".")
+        self.lines_log_prob.append("#show nq/0.")
         
-        return res
+        return self.lines_log_prob
 
     def get_parsed_file(self) -> str:
         return self.lines_log_prob

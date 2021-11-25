@@ -83,86 +83,8 @@ def generate_dom_fact(functor : str, arguments : list) -> Union[str,str]:
 
     return dom,args
 
-# generates the model_query and model_not_query clauses
-# Clauses model_query and model_not_query structure:
-# model_query(NPF1T,SPF1T,NPF1F,SPF1F,...)
-# where:
-#   - NPF1T: number of probabilistic fact 1 true
-#   - SPF1T: sum of the probabilities of probabilistic fact 1 true
-#   - NPF1F: number of probabilistic fact 1 false
-#   - NPF1F: sum of the probabilities of probabilistic fact 1 false
-# this for every different possible probability for probabilistic
-# facts: 4*n arguments
-# the tuple (NPF1T NPF1F NPF2T ... ) identifies the world
-# TODO: here, i generate two clauses with the same body for
-# model_query and model_not_query: wrap it in another predicate
-def generate_model_clause(functors_list : list, query : str) -> Union[str,str]:
-    clauses_model = [] # clauses for model query and model not query
-    prototype_arguments_model_clauses = ""
-    args_counter = 0
-    clause_count_true = ""
-
-    prob_fact = False
-
-    for functor in functors_list:
-        if "(" in functor: # probabilistic fact
-            prob_fact = True
-            functor = functor[:-1] + ","
-        else:
-            # to reuse some operations
-            functor = functor + "("
-
-        # clause count true
-        clause_count_true = "I" + str(args_counter) + " = #count{ X : " + functor + "X) }"
-        clauses_model.append(clause_count_true)
-
-        prototype_arguments_model_clauses = prototype_arguments_model_clauses + "I" + str(args_counter) + ","
-        args_counter = args_counter + 1
-
-        # clause sum true
-        if prob_fact:
-            clause_sum_true = "I" + str(args_counter) + " = #sum{ X : " + functor + "X) }"
-        else:
-            clause_sum_true = "I" + str(args_counter) + " = #sum{ Y,X : dom_" + functor + "X), " + functor + "X,Y) }"
-        
-        clauses_model.append(clause_sum_true)
-        
-        prototype_arguments_model_clauses = prototype_arguments_model_clauses + "I" + str(args_counter) + ","
-        args_counter = args_counter + 1
-
-        # clause count false
-        clause_count_false = "I" + str(args_counter) + " = #count{ X : not_" + functor + "X) }"
-        clauses_model.append(clause_count_false)
-
-        prototype_arguments_model_clauses = prototype_arguments_model_clauses + "I" + str(args_counter) + ","
-        args_counter = args_counter + 1
-
-        # clause sum false
-        if prob_fact:
-            clause_sum_false = "I" + str(args_counter) + " = #sum{ X : not_" + functor + "X) }"
-        else:
-            clause_sum_false = "I" + str(args_counter) + " = #sum{ Y,X : dom_" + functor + "X), not_" + functor + "X,Y) }"
-        
-        clauses_model.append(clause_sum_false)
-        prototype_arguments_model_clauses = prototype_arguments_model_clauses + "I" + str(args_counter) + ","
-        args_counter = args_counter + 1
-
-    prototype_arguments_model_clauses = prototype_arguments_model_clauses[:-1] # remove the last ,
-    model_query_clause = "model_query(" + prototype_arguments_model_clauses + "):- "
-
-    model_not_query_clause = "model_not_query(" + prototype_arguments_model_clauses + "):- "
-
-    for el in clauses_model:
-        model_query_clause = model_query_clause + el + ", "
-        model_not_query_clause = model_not_query_clause + el + ", "
-
-    model_query_clause = model_query_clause + query + ".\n" + "#show model_query/" + str(args_counter) + "."
-    model_not_query_clause = model_not_query_clause + "not " + query + ".\n" + "#show model_not_query/" + str(args_counter) + "."
-
-    return model_query_clause, model_not_query_clause
-
 # TODO: modify test
-def generate_generator(functor : str, args : str, arguments : list, prob : float, precision : int) -> Union[str,list,list]:
+def generate_generator(functor : str, args : str, arguments : list, prob : float, precision : int) -> Union[str,list]:
     vt = "v_" + functor + "_(" + args + ")"
     generator = ""
     generator = generator + "0{"
@@ -196,11 +118,11 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
         auxiliary_clause_false = "not_" + functor + "(I) :- not_" + functor + "(I,_)."
         clauses.append(auxiliary_clause_false)
 
-        # add show declaration for auxiliary clauses
-        show_declaration = "#show " + functor + "/1."
+        # add show declaration
+        show_declaration = "#show " + functor + "/2."
         clauses.append(show_declaration)
 
-        show_declaration = "#show not_" + functor + "/1."
+        show_declaration = "#show not_" + functor + "/2."
         clauses.append(show_declaration)
 
     else:
@@ -214,23 +136,41 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
         auxiliary_clause_false = "not_" + functor + "(" + args + ") :- not_" + functor + "(" + args + ",_)."
         clauses.append(auxiliary_clause_false)
 
-        show_declaration = "#show " + functor + "/" + str(args.count(',') + 1) + "."
+        show_declaration = "#show " + functor + "/" + str(args.count(',') + 2) + "."
         clauses.append(show_declaration)
-        show_declaration = "#show not_" + functor + "/" + str(args.count(',') + 1) + "."
+        show_declaration = "#show not_" + functor + "/" + str(args.count(',') + 2) + "."
         clauses.append(show_declaration)
 
-        # update the functor, since it is used in the function generate_model_clause
-        functor = functor + "(" + args + ")" 
+    return generator, clauses
 
-    return generator, clauses, functor
-
-# gets a line 1,693,1,693,2,1832,0,0
-# return 1120, 693 + 693 + 1832 + 0
+# ["bird(1,693)", "bird(2,693)", "bird(3,693)", "bird(4,693)", "nq"]
+# returns 11213141, 693 + 693 + 693 + 693, True
+# if nq in line -> returns True else False
+# 11213141 means: 1 true, 2 true. 3 true, 4 true
 # TODO: add test
 def get_id_prob_world(line : str) -> Union[str,int]:
-    w = line.split(',')[::2] # only even positions
-    p = line.split(',')[1::2] # only even positions
-    return ''.join(w), sum(int(x) for x in p)
+    line = line.split(' ')
+    q = False
+    id = ""
+    prob = 0
+    for term in line:
+        if term == "q":
+            q = True
+        elif term == "nq":
+            q = False
+        else:
+            term = term.split('(')
+            if term[1].count(',') == 0: # arity original prob fact 0 (example: 0.2::a.)
+                id = id + term[0]
+                prob = prob + int(term[1][:-1])
+            else:
+                args = term[1][:-1].split(',')
+                prob = prob + int(args[-1])
+                id = id + term[0]
+                for i in args[:-1]:
+                    id = id + i
+    
+    return id, int(prob), q
 
 def parse_command_line(args : str) -> Union[bool,bool,str,int,str]:
     verbose = False

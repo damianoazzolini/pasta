@@ -6,8 +6,10 @@ to the list
 '''
 
 from typing import Union
-from utilities import get_id_prob_world
+import utilities
 import math
+
+import sys
 
 
 class World(object):
@@ -68,6 +70,9 @@ class ModelsHandler():
 
     def increment_upper_prob(self, p : float) -> None:
         self.upper_probability = self.upper_probability + p
+    
+    def get_number_worlds(self) -> None:
+        return len(self.worlds_list)
 
     # checks if the id is in the worlds list
     # query = True -> model_query
@@ -93,27 +98,13 @@ class ModelsHandler():
 
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
-        # print(line)
-        line = line.split(' ')
-        to_analyse = None
-        for el in line:
-            if ("model_query" in el) or ("model_not_query" in el):
-                to_analyse = el
-                break
-        
-        if to_analyse is None:
-            print("Error in analysing the models: no models found")
-
-        el = to_analyse.split('(')[1][:-1] # extract the values
-        id, prob = get_id_prob_world(el)
-        if "model_query" in to_analyse:
-            self.manage_worlds_list(id,prob,True)
-        else: # model no query
-            self.manage_worlds_list(id,prob,False)
+        id, prob, model_query = utilities.get_id_prob_world(line)
+        self.manage_worlds_list(id,prob,model_query)
     
     # computes the lower and upper probability
     def compute_lower_upper_probability(self) -> Union[float,float]:
         for w in self.worlds_list:
+            # print(w)
             p = math.exp(-w.get_prob()/(10**self.precision)) * w.get_upper()
             if w.get_upper() != 0:
                 if w.get_lower() == 0:

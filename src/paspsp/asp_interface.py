@@ -78,7 +78,7 @@ class AspInterface:
         compute the lower and upper bound for the query
         clingo 0 <filename> --project
     '''
-    def compute_probabilities(self) -> Union[int,float,float,float]:
+    def compute_probabilities(self) -> Union[int,int,float,float,float]:
         ctl = clingo.Control(["0","--project"])
         for clause in self.asp_program:
             ctl.add('base',[],clause)
@@ -108,7 +108,9 @@ class AspInterface:
         self.lower_probability, self.upper_probability = model_handler.compute_lower_upper_probability()
         world_analysis_time = time.time() - start_time
 
-        return n_models,grounding_time,computation_time,world_analysis_time
+        n_worlds = model_handler.get_number_worlds()
+
+        return n_models,n_worlds,grounding_time,computation_time,world_analysis_time
 
     # prints the ASP program
     def print_asp_program(self) -> None:

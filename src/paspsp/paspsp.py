@@ -26,14 +26,6 @@ class Paspsp:
         content_find_minimal_set = parser.get_content_to_compute_minimal_prob_facts()
         asp_program = parser.get_asp_program()
 
-        if pedantic:
-            print("--- Asp program ---")
-            for e in asp_program:
-                print(e)
-            for e in content_find_minimal_set:
-                print(e)
-            print("---")
-
         interface = asp_interface.AspInterface(
             content_find_minimal_set, asp_program, self.precision)
         exec_time = interface.get_minimal_set_probabilistic_facts()
@@ -45,11 +37,22 @@ class Paspsp:
                 print(interface.get_cautious_consequences())
                 print("---")
 
-        computed_models, grounding_time, computation_time, world_analysis_time = interface.compute_probabilities()
+        if pedantic:
+            print("--- Asp program ---")
+            for e in asp_program:
+                print(e)
+            print("---")
+            print("--- Program to find minimal sets ---")
+            for e in content_find_minimal_set:
+                print(e)
+            print("---")
+
+        computed_models, n_worlds, grounding_time, computation_time, world_analysis_time = interface.compute_probabilities()
         end_time = time.time() - start_time
 
         if verbose:
             print("Computed models: " + str(computed_models))
+            print("Considered worlds: " + str(n_worlds))
             print("Grounding time (s): " + str(grounding_time))
             print("Probability computation time (s): " + str(computation_time))
             print("World analysis time (s): " + str(world_analysis_time))
@@ -65,7 +68,7 @@ if __name__ == "__main__":
     lp,up = pasp_solver.solve()
 
     if lp == up:
-        print("Sharp (lower probability == upper probability) probability value: " + str(lp))
+        print("Lower probability == upper probability for the query " + query + ": " + str(lp))
     else:
         print("Lower probability for the query " + query + ": " + str(lp))
         print("Upper probability for the query " + query + ": " + str(up))
