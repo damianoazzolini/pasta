@@ -63,7 +63,18 @@ class PaspParser:
             # new line
             l0 = l0 + char
             if not comment:
-                self.lines_original.append(l0.replace('\n','').replace('\r','').replace(' ',''))
+                l0 = l0.replace('\n', '').replace('\r', '')
+                if "not" in l0: # to handle not fact, and avoid removing spaces
+                    l0 = l0.split("not")
+                    l1 = ""
+                    for el in l0:
+                        el = el.replace(' ', '')
+                        l1 = l1 + el + " not "
+                    l1 = l1[:-4]  # remove last not
+                else:
+                    l1 = l0.replace(' ','')
+
+                self.lines_original.append(l1)
             char = char1
             # eat white spaces or empty lines
             char1 = f.read(1)
