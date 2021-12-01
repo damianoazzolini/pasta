@@ -3,6 +3,7 @@ Class defining a parser for a PASP program.
 '''
 import os
 import sys
+# from typing import Dict, Union
 
 # local
 import utilities
@@ -17,12 +18,17 @@ class PaspParser:
         - lines_log_prob: lines obtained by replacing probabilities 
           with log probabilities
     '''
-    def __init__(self,filename,precision,query="") -> None:
+    def __init__(self,filename,precision,query=None,evidence=None) -> None:
         self.filename = filename
         self.precision = precision
         self.lines_original = []
         self.lines_log_prob = []
         self.query = query
+        self.evidence = evidence
+        self.probabilistic_facts = dict() # pairs [fact,prob]
+
+    def get_n_prob_facts(self) -> int:
+        return len(self.probabilistic_facts)
 
     '''
     Parameters:
@@ -89,40 +95,21 @@ class PaspParser:
         f.close()
         self.insert_worlds_generator()
 
-    '''
-    Parameters:
-        - none
-    Return:
-        - none
-    Behavior:
-        from P::f(1..n), creates:
-        dom(1..n) -> domains
-        0{v(I):dom(I)}n -> generator
-        f(1,P1):- v(1).
-        not_f(1,P0):- not v(1).
-        ...
-        f(n,P1):- v(n).
-        not_f(n,P0):- not v(n).
-
-        where P1 = -log(P)*(10**precision)
-    '''
     def insert_worlds_generator(self) -> bool:
-        # TODO: handle 0.5::f(1), 0.5::f(2)
-        # i.e., probabilistic facts with the same functor, for the
-        # domain generation (dom = dom + ...)
-        # print(self.lines_original)
         n_probabilistic_facts = 0
         for line in self.lines_original:
             if "::" in line and not line.startswith('%'):
                 # line with probability value
-                # for example: line = ['0.5', 'f(1).']
                 probability, fact = utilities.check_consistent_prob_fact(line)
-                # extract the value between brackets, 1 in the example
                 arguments = utilities.extract_atom_between_brackets(fact)
-
                 functor = utilities.get_functor(fact)
-                dom, args = utilities.generate_dom_fact(functor,arguments)
+
+                self.add_probabilistic_fact(fact,probability)
+                # print(self.probabilistic_facts)
+                # sys.exit()
                 
+                dom, args = utilities.generate_dom_fact(functor,arguments)
+
                 self.lines_log_prob.append([dom])
 
                 generator, clauses = utilities.generate_generator(functor,args,arguments,probability,self.precision)
@@ -131,10 +118,22 @@ class PaspParser:
                 self.lines_log_prob.append(clauses)
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):
+                # remove the "query" functor and handles whether the line
+                # does not terminate with .
+                # query(fly(1)) -> fly(1)
                 if line[-1] == ".":
                     self.query = line.split("query")[1][:-2][1:]
                 else:
                     self.query = line.split("query")[1][:-1][1:]
+            elif line.startswith("evidence"):
+                if line[-1] == ".":
+                    # remove the "evidence" functor and handles whether the line
+                    # does not terminate with .
+                    # evidence(fly(1)) -> fly(1)
+                    # TODO: handle evidence(a,b)
+                    self.evidence = line.split("evidence")[1][:-2][1:]
+                else:
+                    self.evidence = line.split("evidence")[1][:-1][1:]
             else:
                 self.lines_log_prob.append([line])
             
@@ -162,13 +161,18 @@ class PaspParser:
         generate the file to pass to ASP to compute the minimal set
         of probabilistic facts to make the query true
     '''
-    def get_content_to_compute_minimal_prob_facts(self) -> str:
-        if self.query == "":
+    def get_content_to_compute_minimal_prob_facts(self) -> list:
+        if self.query is None:
             print("Missing query")
             sys.exit()
+        
+        if self.evidence is None:
+            prog = self.lines_log_prob + [":- not " + self.query + "."]
+        else:
+            prog = self.lines_log_prob + [":- not " + self.evidence + "."]
+        
+        return prog
 
-        return self.lines_log_prob + [":- not " + self.query + "."]
-    
     '''
     Parameters:
         - None
@@ -184,14 +188,38 @@ class PaspParser:
         self.lines_log_prob.append("#show q/0.")
         self.lines_log_prob.append("nq:- not " + self.query + ".")
         self.lines_log_prob.append("#show nq/0.")
-        
+
+        if self.evidence is not None:
+            self.lines_log_prob.append("e:- " + self.evidence + ".")
+            self.lines_log_prob.append("#show e/0.")
+            self.lines_log_prob.append("ne:- not " + self.evidence + ".")
+            self.lines_log_prob.append("#show ne/0.")
+
+
         return self.lines_log_prob
 
     def get_parsed_file(self) -> str:
         return self.lines_log_prob
 
-    def get_n_prob_facts(self) -> int:
-        return self.n_prob_facts
+    def has_evidence(self) -> bool:
+        return self.evidence != None
+
+    # adds the current probabilistic fact and its probability in the 
+    # list of probabilistic facts. Also explodes the ranges
+    def add_probabilistic_fact(self,term,prob) -> None:
+        if ".." in term:
+            line = term.split("(")
+            functor = line[0]
+            interval = line[1][:-2] # to remove ).
+            interval = interval.split("..")
+            lb = int(interval[0])
+            ub = int(interval[1])
+
+            for i in range(lb, ub + 1):
+                self.probabilistic_facts[functor + "(" + str(i) + ")"] = int(prob*(10**self.precision))
+        else:
+            # split to remove the . (if present)
+            self.probabilistic_facts[term.split('.')[0]] = int(prob*(10**self.precision))
 
     '''
     string representation of the current class
@@ -200,9 +228,8 @@ class PaspParser:
         return "filename: " + self.filename + "\n" + \
         "precision: " + str(self.precision) + "\n" + \
         "query: " + str(self.query) + "\n" + \
+        (("evidence: " + str(self.evidence) + "\n") if self.evidence != None else "") + \
+        "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \
+        "n probabilistic facts:\n" + str(self.get_n_prob_facts()) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
-        "log probabilities file:\n" + str(self.lines_log_prob) + "\n" \
-        "model query:\n" + str(self.model_query_clause) + "\n" \
-        "model not query:\n" + str(self.model_not_query_clause)
-
-        
+        "log probabilities file:\n" + str(self.lines_log_prob)

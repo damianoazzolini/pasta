@@ -61,6 +61,14 @@ def get_functor(fact : str) -> str:
         i = i + 1
     return r
 
+# converts to log probabilities
+# def to_log_prob(prob : float, precision : int) -> int:
+#     return -int(math.log(prob)*(10**precision))
+
+# converts back to [0,1] prob
+# def to_0_1_range(prob : int, precision : int) -> float:
+#     return math.exp(-prob/(10**precision))
+
 # generates the dom fact
 # dom_f(1..3). from f(1..3).
 def generate_dom_fact(functor : str, arguments : list) -> Union[str,str]:
@@ -97,8 +105,8 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
 
     # generate the two clauses
     clauses = []
-    log_prob_true = -int(math.log(prob)*(10**precision))
-    log_prob_false = -int(math.log(1 - prob)*(10**precision))
+    prob_true = int(prob * (10**precision))
+    prob_false = int((1 - prob) * (10**precision))
 
     if number != 1: # clauses for range
         start = int(arguments[0][0])
@@ -106,8 +114,8 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
 
         for i in range(start,end + 1):
             vt = "v_" + functor + "_(" + str(i) + ")"
-            clause_true = functor + "(" + str(i) + "," + str(log_prob_true) + ")" + ":-" + vt + "."
-            clause_false = "not_" + functor + "(" + str(i) + "," + str(log_prob_false) + ")" + ":- not " + vt + "."
+            clause_true = functor + "(" + str(i) + "," + str(prob_true) + ")" + ":-" + vt + "."
+            clause_false = "not_" + functor + "(" + str(i) + "," + str(prob_false) + ")" + ":- not " + vt + "."
             clauses.append(clause_true)
             clauses.append(clause_false)
 
@@ -126,8 +134,8 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
         clauses.append(show_declaration)
 
     else:
-        clause_true = functor + "(" + args + "," + str(log_prob_true) + ")" + ":-" + vt + "."
-        clause_false = "not_" + functor + "(" + args + "," + str(log_prob_false) + ")" + ":- not " + vt + "."
+        clause_true = functor + "(" + args + "," + str(prob_true) + ")" + ":-" + vt + "."
+        clause_false = "not_" + functor + "(" + args + "," + str(prob_false) + ")" + ":- not " + vt + "."
         clauses.append(clause_true)
         clauses.append(clause_false)
 
@@ -143,41 +151,62 @@ def generate_generator(functor : str, args : str, arguments : list, prob : float
 
     return generator, clauses
 
-# ["bird(1,693)", "bird(2,693)", "bird(3,693)", "bird(4,693)", "nq"]
+# ["bird(1,693)", "bird(2,693)", "bird(3,693)", "bird(4,693)", "nq", "ne"]
 # returns 11213141, 693 + 693 + 693 + 693, True
-# if nq in line -> returns True else False
+# if q in line -> returns True else False in query
+# if e in line -> returns True else False in evidence
 # 11213141 means: 1 true, 2 true. 3 true, 4 true
 # TODO: add test
-def get_id_prob_world(line : str) -> Union[str,int]:
+def get_id_prob_world(line : str, evidence : str) -> Union[str,int,bool,bool]:
     line = line.split(' ')
-    q = False
+    model_query = False # model q and e for evidence, q without evidence
+    model_evidence = False  # model nq and e for evidence, nq without evidence
     id = ""
-    prob = 0
+    prob = 1
     for term in line:
         if term == "q":
-            q = True
+            model_query = True
         elif term == "nq":
-            q = False
+            model_query = False
+        elif term == "e":
+            model_evidence = True
+        elif term == "ne":
+            model_evidence = False
         else:
             term = term.split('(')
             if term[1].count(',') == 0: # arity original prob fact 0 (example: 0.2::a.)
                 id = id + term[0]
-                prob = prob + int(term[1][:-1])
+                # if using log probabilities, replace * with +, also below
+                prob = prob * int(term[1][:-1])
             else:
                 args = term[1][:-1].split(',')
-                prob = prob + int(args[-1])
+                prob = prob * int(args[-1])
                 id = id + term[0]
                 for i in args[:-1]:
                     id = id + i
     
-    return id, int(prob), q
-
-def parse_command_line(args : str) -> Union[bool,bool,str,int,str]:
+    if evidence == None:
+        # query without evidence
+        return id, int(prob), model_query, False
+    else:
+        # is this if really needed?
+        # can I return directly model_query and model_evidence?
+        # also in the case of evidence == None
+        if (model_query == True) and (model_evidence == True):
+            return id, int(prob), True, True
+        elif (model_query == False) and (model_evidence == True):
+            return id, int(prob), False, True
+        else:
+            # all the other cases, don't care 
+            return id, int(prob), False, False
+        
+def parse_command_line(args : str) -> Union[bool,bool,str,int,str,str]:
     verbose = False
     pedantic = False
     filename = ""
     precision = 3 # default value
-    query = ""
+    query = None
+    evidence = None
     # for i in range(0,len(args)):
     i = 0
     while i < len(args):
@@ -193,6 +222,8 @@ def parse_command_line(args : str) -> Union[bool,bool,str,int,str]:
             sys.exit()
         elif args[i].startswith("--query=") or args[i].startswith("-q="):
             query = args[i].split("=")[1].replace("\"","")
+        elif args[i].startswith("--evidence=") or args[i].startswith("-q="):
+            evidence = args[i].split("=")[1].replace("\"", "")
         else:
             if i + 1 < len(args):
                 filename = args[i+1]
@@ -203,17 +234,21 @@ def parse_command_line(args : str) -> Union[bool,bool,str,int,str]:
         print("Missing filename")
         sys.exit()
     
-    return verbose,pedantic,filename,precision,query
+    return verbose,pedantic,filename,precision,query,evidence
 
 def print_help() -> None:
     print("paspsp: probabilistic answer set programming statistical probabilities")
     print("Compute lower and upper bound for a query in")
     print("a probabilistic answer set program")
+    print("paspsp <program> [OPTIONS]")
     print("Example: paspsp ../../examples/bird_4.lp -q=\"fly(1)\"")
     print("Example programs: see example folder.")
     print("Issues: https://github.com/damianoazzolini/PaspStatsProb/issues")
     print("Available commands:")
     print("\t--query=,-q: specifies a query. Example: -q=\"fly(1)\".")
+    print("\t\tIt can also be specified in the program by adding the line query(fly(1)).")
+    print("\t--evidence=,-e: specifies a evidence. Example: -e=\"fly(1)\".")
+    print("\t\tIt can also be specified in the program by adding the line evidence(fly(1)).")
     print("\t--verbose,-v: verbose mode. Default: off.")
     print("\t--pedantic: pedantic mode (more verbose than --verbose). Default: off.")
     print("\t--precision=,-p=: set the required precision. Example: --precision=3. Default = 3.")

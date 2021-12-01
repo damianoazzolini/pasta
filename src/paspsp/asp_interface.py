@@ -1,6 +1,7 @@
 import clingo
 from typing import Union
 import time
+import sys
 
 # local
 import models_handler
@@ -19,23 +20,33 @@ class AspInterface:
     Parameters:
         - content: list with the program
     '''
-    def __init__(self,program_minimal_set : list, asp_program : list, precision = 3) -> None:
+    def __init__(self,program_minimal_set : list, evidence : list, asp_program : list, n_prob_facts : int, precision = 3) -> None:
         self.cautious_consequences = ""
         self.program_minimal_set = program_minimal_set
         self.asp_program = asp_program
-        self.lower_probability = 0
-        self.upper_probability = 0
+        self.lower_probability_query = 0
+        self.upper_probability_query = 0
+        self.upper_probability_evidence = 0
+        self.lower_probability_evidence = 0
         self.precision = precision
+        self.evidence = evidence
+        self.n_prob_facts = n_prob_facts
 
     def get_cautious_consequences(self) -> str:
         return self.cautious_consequences
 
-    def get_lower_probability(self) -> str:
-        return str(self.lower_probability)
+    def get_lower_probability_query(self) -> float:
+        return float(self.lower_probability_query)
     
-    def get_upper_probability(self) -> str:
-        return str(self.upper_probability)
-    
+    def get_upper_probability_query(self) -> float:
+        return float(self.upper_probability_query)
+
+    def get_lower_probability_evidence(self) -> float:
+        return float(self.lower_probability_evidence)
+
+    def get_upper_probability_evidence(self) -> float:
+        return float(self.upper_probability_evidence)
+
     '''
     Parameters:
         - None
@@ -43,7 +54,8 @@ class AspInterface:
         - str
     Behavior:
         compute the minimal set of probabilistic facts
-        needed to make the query true.
+        needed to make the query true. This operation is performed
+        only if there is not evidence.
         Cautious consequences
         clingo <filename> -e cautious
     '''
@@ -51,19 +63,17 @@ class AspInterface:
         ctl = clingo.Control(["--enum-mode=cautious"])
         for clause in self.program_minimal_set:
             ctl.add('base',[],clause)
+
         ctl.ground([("base", [])])
         start_time = time.time()
 
-        cautious = ""
         with ctl.solve(yield_=True) as handle:
             for m in handle:
-                cautious = str(m) # i need only the last one
+                # i need only the last one
+                self.cautious_consequences = str(m).split(' ')
             handle.get()
+    
         clingo_time = time.time() - start_time
-        if cautious == "":
-            self.cautious_consequences = []
-        else:
-            self.cautious_consequences = [c + "." for c in cautious.split(' ')]
 
         return clingo_time
 
@@ -84,8 +94,9 @@ class AspInterface:
             ctl.add('base',[],clause)
 
         # add cautious consequences
-        for c in self.cautious_consequences:
-            ctl.add('base',[],":- not " + c)
+        if self.cautious_consequences is not None:
+            for c in self.cautious_consequences:
+                ctl.add('base',[],":- not " + c + '.')
         
         start_time = time.time()
         ctl.ground([("base", [])])
@@ -93,7 +104,7 @@ class AspInterface:
 
         n_models = 0
         start_time = time.time()
-        model_handler = models_handler.ModelsHandler(self.precision)
+        model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, self.evidence)
 
         with ctl.solve(yield_=True) as handle:
             for m in handle:
@@ -105,10 +116,11 @@ class AspInterface:
         # print(model_handler) # prints the models in world format
 
         start_time = time.time()
-        self.lower_probability, self.upper_probability = model_handler.compute_lower_upper_probability()
-        world_analysis_time = time.time() - start_time
+        self.lower_probability_query, self.upper_probability_query = model_handler.compute_lower_upper_probability()
 
         n_worlds = model_handler.get_number_worlds()
+
+        world_analysis_time = time.time() - start_time
 
         return n_models,n_worlds,grounding_time,computation_time,world_analysis_time
 
@@ -116,3 +128,5 @@ class AspInterface:
     def print_asp_program(self) -> None:
         for el in self.asp_program:
             print(el)
+        for c in self.cautious_consequences:
+            print(":- not " + c + '.')

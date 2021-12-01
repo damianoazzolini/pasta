@@ -24,6 +24,8 @@ run_test "bird_2_2_fly_1" "../examples/bird_2_2.lp --query=\"fly_1\"" "Lower pro
 
 run_test "bird_4_fly(1)" "../examples/bird_4.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.250\nUpper probability for the query fly(1): 0.500"
 
+run_test "bird_4_different_fly(1)" "../examples/bird_4_different.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.102\nUpper probability for the query fly(1): 0.11"
+
 run_test "bird_4_nofly(1)" "../examples/bird_4.lp --query=\"nofly(1)\"" "Lower probability for the query nofly(1): 0\nUpper probability for the query nofly(1): 0.250"
 
 run_test "bird_10_fly(1)" "../examples/bird_10.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.127\nUpper probability for the query fly(1): 0.500"
