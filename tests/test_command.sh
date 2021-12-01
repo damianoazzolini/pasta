@@ -20,18 +20,20 @@ function run_test {
     fi
 }
 
-run_test "bird_2_2_fly_1" "../examples/bird_2_2.lp --query=\"fly_1\"" "Lower probability for the query fly_1: 0.600\nUpper probability for the query fly_1: 0.700"
+run_test "bird_2_2_fly_1" "../examples/bird_2_2.lp --query=\"fly_1\"" "Lower probability for the query fly_1: 0.600000\nUpper probability for the query fly_1: 0.700000"
 
-run_test "bird_4_fly(1)" "../examples/bird_4.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.250\nUpper probability for the query fly(1): 0.500"
+run_test "bird_4_fly(1)" "../examples/bird_4.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.25\nUpper probability for the query fly(1): 0.5"
 
-run_test "bird_4_different_fly(1)" "../examples/bird_4_different.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.102\nUpper probability for the query fly(1): 0.11"
+run_test "bird_4_different_fly(1)" "../examples/bird_4_different.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.102222\nUpper probability for the query fly(1): 0.11"
 
-run_test "bird_4_nofly(1)" "../examples/bird_4.lp --query=\"nofly(1)\"" "Lower probability for the query nofly(1): 0\nUpper probability for the query nofly(1): 0.250"
+run_test "bird_4_nofly(1)" "../examples/bird_4.lp --query=\"nofly(1)\"" "Lower probability for the query nofly(1): 0.0\nUpper probability for the query nofly(1): 0.25"
 
-run_test "bird_10_fly(1)" "../examples/bird_10.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.127\nUpper probability for the query fly(1): 0.500"
+run_test "bird_10_fly(1)" "../examples/bird_10.lp --query=\"fly(1)\"" "Lower probability for the query fly(1): 0.126953\nUpper probability for the query fly(1): 0.5"
 
-run_test "bird_10_nofly(1)" "../examples/bird_10.lp --query=\"nofly(1)\"" "Lower probability for the query nofly(1): 0\nUpper probability for the query nofly(1): 0.373"
+run_test "bird_10_nofly(1)" "../examples/bird_10.lp --query=\"nofly(1)\"" "Lower probability for the query nofly(1): 0.0\nUpper probability for the query nofly(1): 0.373046"
 
-run_test "path_path_1_4" "../examples/path.lp --query=\"path(1,4)\"" "Lower probability == upper probability for the query path(1,4): 0.267"
+run_test "path_path_1_4" "../examples/path.lp --query=\"path(1,4)\"" "Lower probability == upper probability for the query path(1,4): 0.266816"
 
-run_test "viral_marketing_5_buy_5" "../examples/viral_marketing_5.lp --query=\"buy(5)\"" "Lower probability for the query buy(5): 0.273\nUpper probability for the query buy(5): 0.290"
+run_test "viral_marketing_5_buy_5" "../examples/viral_marketing_5.lp --query=\"buy(5)\"" "Lower probability for the query buy(5): 0.2734\nUpper probability for the query buy(5): 0.29"
+
+run_test "bird_4_different_q_fly_1_e_fly_2" "../examples/bird_4_different.lp --evidence=\"fly(2)\"" "Lower probability for the query: 0.073952\nUpper probability for the query: 0.113255"

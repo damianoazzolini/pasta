@@ -60,8 +60,8 @@ class Paspsp:
             print("World analysis time (s): " + str(world_analysis_time))
             print("Total time (s): " + str(end_time))
 
-        uq = interface.get_upper_probability_query()
-        lq = interface.get_lower_probability_query()
+        uq = str(interface.get_upper_probability_query())[:8]
+        lq = str(interface.get_lower_probability_query())[:8]
 
         return lq, uq
      
@@ -75,5 +75,9 @@ if __name__ == "__main__":
     if lp == up:
         print("Lower probability == upper probability for the query " + query + ": " + str(lp))
     else:
-        print("Lower probability for the query " + query + ": " + str(lp))
-        print("Upper probability for the query " + query + ": " + str(up))
+        if query is None:
+            print("Lower probability for the query: " + str(lp))
+            print("Upper probability for the query: " + str(up))
+        else:
+            print("Lower probability for the query " + query + ": " + str(lp))
+            print("Upper probability for the query " + query + ": " + str(up))

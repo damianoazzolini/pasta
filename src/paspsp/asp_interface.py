@@ -93,8 +93,8 @@ class AspInterface:
         for clause in self.asp_program:
             ctl.add('base',[],clause)
 
-        # add cautious consequences
-        if self.cautious_consequences is not None:
+        # add cautious consequences, [''] if none
+        if len(self.cautious_consequences[0]) != 0:
             for c in self.cautious_consequences:
                 ctl.add('base',[],":- not " + c + '.')
         
