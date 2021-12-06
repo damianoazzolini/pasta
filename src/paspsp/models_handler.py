@@ -58,20 +58,13 @@ class World:
             " mqc: " + str(self.get_model_query_count()) + \
             " mnqc: " + str(self.get_model_not_query_count()) + \
             " mc: " + str(self.get_model_count())
-
-    # used to keep the list of worlds sorted
-    def __eq__(self, o: object) -> bool:
-        return self.id == o.id
-    
-    def __lt__(self, o: object) -> bool:
-        return self.id < o.id
     
 '''
 Class to handle the models computed by clingo.
 '''
 class ModelsHandler():
     def __init__(self, precision : int, n_prob_facts : int, evidence : str) -> None:
-        self.worlds_list : List[World] = []
+        self.worlds_dict = dict()
         self.upper_query_prob : float = 0
         self.lower_query_prob : float = 0
         self.upper_evidence_prob : float = 0
@@ -93,28 +86,27 @@ class ModelsHandler():
         self.upper_evidence_prob = self.upper_evidence_prob + p
 
     def get_number_worlds(self) -> int:
-        return len(self.worlds_list)
+        return len(self.worlds_dict.keys())
 
     # checks if the id is in the worlds list
     # query = True -> q in line
     # query = False -> nq in line
     # model_evidence = True -> e in line
     # model_evidence = False -> ne in line
-    def manage_worlds_list(self, id : str, prob : int, model_query : bool, model_evidence : bool) -> None:
-        for el in self.worlds_list:
-            if el.get_id() == id:
-                if self.evidence is None:
-                    if model_query == True:
-                        el.increment_model_query_count()
-                    else:
-                        el.increment_model_not_query_count()
+    def manage_worlds_dict(self, id : str, prob : int, model_query : bool, model_evidence : bool) -> None:
+        if id in self.worlds_dict:
+            if self.evidence is None:
+                if model_query == True:
+                    self.worlds_dict[id].increment_model_query_count()
                 else:
-                    el.increment_model_count()
-                    if (model_query == True) and (model_evidence == True):
-                        el.increment_model_query_count() # q e
-                    elif (model_query == False) and (model_evidence == True):
-                        el.increment_model_not_query_count() # nq e
-                return
+                    self.worlds_dict[id].increment_model_not_query_count()
+            else:
+                self.worlds_dict[id].increment_model_count()
+                if (model_query == True) and (model_evidence == True):
+                    self.worlds_dict[id].increment_model_query_count()  # q e
+                elif (model_query == False) and (model_evidence == True):
+                    self.worlds_dict[id].increment_model_not_query_count() # nq e
+            return
         
         # element not found -> add a new world
         w = World(id,prob)
@@ -130,36 +122,28 @@ class ModelsHandler():
             elif (model_query == False) and (model_evidence == True):
                 w.increment_model_not_query_count()  # nq e
         
-        self.worlds_list.append(w)
-        self.worlds_list = sorted(self.worlds_list) # keep the list sorted
+        self.worlds_dict[id] = w
 
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
         # print(line)
         id, prob, model_query, model_evidence = utilities.get_id_prob_world(line,self.evidence)
-        self.manage_worlds_list(id, prob, model_query, model_evidence)
+        self.manage_worlds_dict(id, prob, model_query, model_evidence)
     
     # computes the lower and upper probability
     def compute_lower_upper_probability(self) -> Union[int,int,int,int]:
-        for w in self.worlds_list:
-            # print(w)
-            # p = math.exp(-w.get_prob()/(10**self.precision)) * w.get_upper()
-            # serve veramente moltiplicare per model query count? per me no
-            # if self.evidence is None:
-                # p = (w.get_prob()/((10**self.precision) ** self.n_prob_facts)) * w.get_model_query_count()
-            p = (w.get_prob()/((10**self.precision) ** self.n_prob_facts))
-            # else:
-                # p = (w.get_prob()/((10**self.precision) ** self.n_prob_facts))
-            # print(p)
+        for w in self.worlds_dict:
+            p = (self.worlds_dict[w].get_prob() /
+                 ((10**self.precision) ** self.n_prob_facts))
             if self.evidence is None:
-                if w.get_model_query_count() != 0:
-                    if w.get_model_not_query_count() == 0:
+                if self.worlds_dict[w].get_model_query_count() != 0:
+                    if self.worlds_dict[w].get_model_not_query_count() == 0:
                         self.increment_lower_query_prob(p)
                     self.increment_upper_query_prob(p)
             else:
-                mqe = w.get_model_query_count()
-                mnqe = w.get_model_not_query_count()
-                nm = w.get_model_count()
+                mqe = self.worlds_dict[w].get_model_query_count()
+                mnqe = self.worlds_dict[w].get_model_not_query_count()
+                nm = self.worlds_dict[w].get_model_count()
                 if mqe > 0:
                     if mqe == nm:
                         self.increment_lower_query_prob(p)
@@ -182,6 +166,6 @@ class ModelsHandler():
 
     def __repr__(self) -> str:
         s = ""
-        for el in self.worlds_list:
+        for el in self.worlds_dict:
             s = s + str(el) + "\n"
         return s
