@@ -4,11 +4,11 @@ import math
 from typing import Union
 
 # TODO: write test for this
-def endline_content(char1) -> bool:
+def endline_content(char1 : str) -> bool:
     return char1 == '\n' or char1 == '\r\n' or char1 == ' '
 
 # TODO: write test for this
-def endline_comment(char1) -> bool:
+def endline_comment(char1 : str) -> bool:
     return char1 == '\n' or char1 == '\r\n'
 
 

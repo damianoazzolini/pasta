@@ -18,7 +18,7 @@ class PaspParser:
         - lines_log_prob: lines obtained by replacing probabilities 
           with log probabilities
     '''
-    def __init__(self,filename,precision,query=None,evidence=None) -> None:
+    def __init__(self, filename : str, precision : int ,query=None, evidence=None) -> None:
         self.filename = filename
         self.precision = precision
         self.lines_original = []
@@ -206,7 +206,7 @@ class PaspParser:
 
     # adds the current probabilistic fact and its probability in the 
     # list of probabilistic facts. Also explodes the ranges
-    def add_probabilistic_fact(self,term,prob) -> None:
+    def add_probabilistic_fact(self, term : str, prob : float) -> None:
         if ".." in term:
             line = term.split("(")
             functor = line[0]
