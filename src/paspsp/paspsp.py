@@ -75,14 +75,17 @@ if __name__ == "__main__":
     verbose,pedantic,filename,precision,query,evidence = parse_command_line(sys.argv)
 
     pasp_solver = Paspsp(filename, query, evidence, precision, verbose, pedantic)
-    lp,up = pasp_solver.solve()
+    lp,up = pasp_solver.solve()    
 
-    if lp == up:
-        print("Lower probability == upper probability for the query " + query + ": " + str(lp))
-    else:
-        if query is None:
+    if query is None:
+        if lp == up:
+            print("Lower probability == upper probability for the query: " + str(lp))
+        else:
             print("Lower probability for the query: " + str(lp))
             print("Upper probability for the query: " + str(up))
+    else:
+        if lp == up:
+            print("Lower probability == upper probability for the query " + query + ": " + str(lp))
         else:
             print("Lower probability for the query " + query + ": " + str(lp))
             print("Upper probability for the query " + query + ": " + str(up))
