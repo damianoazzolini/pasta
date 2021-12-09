@@ -20,8 +20,8 @@ class AspInterface:
     Parameters:
         - content: list with the program
     '''
-    def __init__(self,program_minimal_set : list, evidence : list, asp_program : list, n_prob_facts : int, precision = 3) -> None:
-        self.cautious_consequences = ""
+    def __init__(self,program_minimal_set : list, evidence : list, asp_program : list, probabilistic_facts : dict, precision = 3) -> None:
+        self.cautious_consequences = ['']
         self.program_minimal_set = program_minimal_set
         self.asp_program = asp_program
         self.lower_probability_query = 0
@@ -30,7 +30,8 @@ class AspInterface:
         self.lower_probability_evidence = 0
         self.precision = precision
         self.evidence = evidence
-        self.n_prob_facts = n_prob_facts
+        self.probabilistic_facts = probabilistic_facts
+        self.n_prob_facts = len(probabilistic_facts)
 
     def get_cautious_consequences(self) -> str:
         return self.cautious_consequences
@@ -67,12 +68,19 @@ class AspInterface:
         ctl.ground([("base", [])])
         start_time = time.time()
 
+        temp_cautious = []
         with ctl.solve(yield_=True) as handle:
             for m in handle:
                 # i need only the last one
-                self.cautious_consequences = str(m).split(' ')
+                temp_cautious = str(m).split(' ')
             handle.get()
-    
+        # print(temp_cautious)
+        for el in temp_cautious:
+            if el in self.probabilistic_facts:
+                self.cautious_consequences.append(el)
+        # print(self.cautious_consequences)
+
+        # sys.exit()
         clingo_time = time.time() - start_time
 
         return clingo_time
@@ -128,5 +136,6 @@ class AspInterface:
     def print_asp_program(self) -> None:
         for el in self.asp_program:
             print(el)
-        for c in self.cautious_consequences:
-            print(":- not " + c + '.')
+        if len(self.cautious_consequences[0]) != 0:
+            for c in self.cautious_consequences:
+                print(":- not " + c + '.')

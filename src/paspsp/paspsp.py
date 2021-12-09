@@ -28,8 +28,7 @@ class Paspsp:
 
         asp_program = parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(
-            content_find_minimal_set, evidence, asp_program, parser.get_n_prob_facts(), self.precision)
+        interface = asp_interface.AspInterface(content_find_minimal_set, evidence, asp_program, parser.get_dict_prob_facts(), self.precision)
 
         exec_time = interface.get_minimal_set_probabilistic_facts()
 
@@ -60,8 +59,14 @@ class Paspsp:
             print("World analysis time (s): " + str(world_analysis_time))
             print("Total time (s): " + str(end_time))
 
-        uq = str(interface.get_upper_probability_query())[:8]
-        lq = str(interface.get_lower_probability_query())[:8]
+        uq = float(str(interface.get_upper_probability_query())[:8])
+        lq = float(str(interface.get_lower_probability_query())[:8])
+
+        if (lq > uq) or lq > 1 or uq > 1:
+            print("Error in computing probabilities")
+            print("Lower: " + str(lq))
+            print("Upper: " + str(uq))
+            sys.exit()
 
         return lq, uq
      

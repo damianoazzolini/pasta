@@ -30,6 +30,9 @@ class PaspParser:
     def get_n_prob_facts(self) -> int:
         return len(self.probabilistic_facts)
 
+    def get_dict_prob_facts(self) -> dict:
+        return self.probabilistic_facts
+
     '''
     Parameters:
         - verbose: default 0
@@ -70,7 +73,7 @@ class PaspParser:
             l0 = l0 + char
             if not comment:
                 l0 = l0.replace('\n', '').replace('\r', '')
-                if "not" in l0: # to handle not fact, and avoid removing spaces
+                if "not " in l0: # to handle not fact, and avoid removing spaces, important space after not
                     l0 = l0.split("not")
                     l1 = ""
                     for el in l0:
@@ -135,7 +138,8 @@ class PaspParser:
                 else:
                     self.evidence = line.split("evidence")[1][:-1][1:]
             else:
-                self.lines_log_prob.append([line])
+                if not line.startswith("#show"):
+                    self.lines_log_prob.append([line])
             
             # generate the model clause
             # Do here since i need to know how the number of probabilistic facts
@@ -204,6 +208,11 @@ class PaspParser:
     def has_evidence(self) -> bool:
         return self.evidence != None
 
+    def error_prob_fact_twice(self, key : str, prob : float) -> None:
+        print("Probabilistic fact " + key + " already defined with")
+        print("probability " + str(self.probabilistic_facts[key]/(10**self.precision)) + ".")
+        print("Trying to replace it with probability " + str(prob) + ".")
+
     # adds the current probabilistic fact and its probability in the 
     # list of probabilistic facts. Also explodes the ranges
     def add_probabilistic_fact(self, term : str, prob : float) -> None:
@@ -216,10 +225,18 @@ class PaspParser:
             ub = int(interval[1])
 
             for i in range(lb, ub + 1):
-                self.probabilistic_facts[functor + "(" + str(i) + ")"] = int(prob*(10**self.precision))
+                key = functor + "(" + str(i) + ")"
+                if key in self.probabilistic_facts:
+                    self.error_prob_fact_twice(key,prob)
+                    sys.exit()
+                self.probabilistic_facts[key] = int(prob*(10**self.precision))
         else:
             # split to remove the . (if present)
-            self.probabilistic_facts[term.split('.')[0]] = int(prob*(10**self.precision))
+            key = term.split('.')[0]
+            if key in self.probabilistic_facts:
+                self.error_prob_fact_twice(key, prob)
+                sys.exit()
+            self.probabilistic_facts[key] = int(prob*(10**self.precision))
 
     '''
     string representation of the current class
