@@ -5,6 +5,7 @@ bird(3).
 bird(4).
 
 % the bird indexed by 1 flies with probability 0.7
+% (fly(1) | T)[0.7]
 0.7::fly_w(1).
 
 % The following two lines are equivalent to the conditional

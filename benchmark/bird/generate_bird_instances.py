@@ -22,5 +22,7 @@ if __name__ == "__main__":
             f.write("0.5::bird(" + str(j) + ").\n")
         f.write("\nfly(X);nofly(X):- bird(X).\n")
         f.write("\n:- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<6*B.\n")
-        f.write("\nfly:- fly(_).")
+        f.write("\n0.7::fly_w(1).")
+        f.write("\nfly:- fly(1).")
+        f.write("\nfly:- fly_w(1).")
         f.close()
