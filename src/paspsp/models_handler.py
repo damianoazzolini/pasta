@@ -161,7 +161,15 @@ class ModelsHandler():
             elif (self.lower_query_prob + self.upper_evidence_prob == 0) and self.upper_query_prob > 0:
                 return 1,1
             else:
-                return self.lower_query_prob / (self.lower_query_prob + self.upper_evidence_prob), self.upper_query_prob / (self.upper_query_prob + self.lower_evidence_prob)
+                if self.lower_query_prob + self.upper_evidence_prob > 0:
+                    lqp = self.lower_query_prob / (self.lower_query_prob + self.upper_evidence_prob)
+                else:
+                    lqp = 0
+                if self.upper_query_prob + self.lower_evidence_prob > 0:
+                    uqp = self.upper_query_prob / (self.upper_query_prob + self.lower_evidence_prob)
+                else:
+                    uqp = 0
+                return lqp,uqp 
 
 
     def __repr__(self) -> str:
