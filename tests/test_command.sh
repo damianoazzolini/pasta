@@ -41,3 +41,7 @@ run_test "bird_4_different_q_fly_1_e_fly_2" "../examples/bird_4_different.lp --e
 run_test "bird_4_cond_q_fly_1" "../examples/conditionals/bird_4_cond.lp --query=\"fly\"" "Lower probability for the query fly: 0.7\nUpper probability for the query fly: 1.0"
 
 run_test "smokers_cond_q_smk" "../examples/conditionals/smokers.lp --query=\"smk\"" "Lower probability for the query smk: 0.7\nUpper probability for the query smk: 0.70627"
+
+run_test "sick_sick" "../examples/sick.lp" "Lower probability for the query: 0.199\nUpper probability for the query: 0.2374"
+
+run_test "disjunction" "../examples/disjunction.lp" "Lower probability for the query: 0.6\nUpper probability for the query: 0.8"
