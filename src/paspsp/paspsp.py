@@ -6,6 +6,7 @@ from typing import Union
 import pasp_parser
 import asp_interface
 from utilities import parse_command_line
+from utilities import truncate_prob
 
 class Paspsp:
     def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False) -> None:
@@ -59,16 +60,16 @@ class Paspsp:
             print("World analysis time (s): " + str(world_analysis_time))
             print("Total time (s): " + str(end_time))
 
-        uq = float(str(interface.get_upper_probability_query())[:8])
-        lq = float(str(interface.get_lower_probability_query())[:8])
+        uq = interface.get_upper_probability_query()
+        lq = interface.get_lower_probability_query()
 
         if (lq > uq) or lq > 1 or uq > 1:
             print("Error in computing probabilities")
-            print("Lower: " + str(lq))
-            print("Upper: " + str(uq))
+            print("Lower: " + '{:.8f}'.format(lq))
+            print("Upper: " + '{:.8f}'.format(uq))
             sys.exit()
 
-        return lq, uq
+        return truncate_prob(lq)[:8], truncate_prob(uq)[:8]
      
 
 if __name__ == "__main__":
@@ -79,13 +80,13 @@ if __name__ == "__main__":
 
     if query is None:
         if lp == up:
-            print("Lower probability == upper probability for the query: " + str(lp))
+            print("Lower probability == upper probability for the query: " + lp)
         else:
-            print("Lower probability for the query: " + str(lp))
-            print("Upper probability for the query: " + str(up))
+            print("Lower probability for the query: " + lp)
+            print("Upper probability for the query: " + up)
     else:
         if lp == up:
-            print("Lower probability == upper probability for the query " + query + ": " + str(lp))
+            print("Lower probability == upper probability for the query " + query + ": " + lp)
         else:
-            print("Lower probability for the query " + query + ": " + str(lp))
-            print("Upper probability for the query " + query + ": " + str(up))
+            print("Lower probability for the query " + query + ": " + lp)
+            print("Upper probability for the query " + query + ": " + up)

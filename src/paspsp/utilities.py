@@ -259,6 +259,19 @@ def parse_command_line(args : str) -> Union[bool,bool,str,int,str,str]:
     
     return verbose,pedantic,filename,precision,query,evidence
 
+def truncate_prob(s : float) -> str:
+    s = str('{:.8f}'.format(s))
+    s0 = s.split('.')[0]
+    s = s.split('.')[1]
+    i = len(s)
+    found = False
+    while (i > 0) and (found is False):
+        if int(s[i - 1]) != 0:
+            found = True
+        i = i - 1
+    
+    return s0 + "." + s[:i+1]
+
 def print_help() -> None:
     print("paspsp: probabilistic answer set programming statistical probabilities")
     print("Compute lower and upper bound for a query in")
