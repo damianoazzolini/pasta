@@ -21,7 +21,7 @@ class AspInterface:
         - content: list with the program
     '''
     def __init__(self,program_minimal_set : list, evidence : list, asp_program : list, probabilistic_facts : dict, precision = 3) -> None:
-        self.cautious_consequences = ['']
+        self.cautious_consequences = []
         self.program_minimal_set = program_minimal_set
         self.asp_program = asp_program
         self.lower_probability_query = 0
@@ -74,11 +74,10 @@ class AspInterface:
                 # i need only the last one
                 temp_cautious = str(m).split(' ')
             handle.get()
-        # print(temp_cautious)
+
         for el in temp_cautious:
-            if el in self.probabilistic_facts:
+            if el != '' and (el.split(',')[-2] + ')' if el.count(',') > 0 else el.split('(')[0]) in self.probabilistic_facts:
                 self.cautious_consequences.append(el)
-        # print(self.cautious_consequences)
 
         # sys.exit()
         clingo_time = time.time() - start_time
@@ -101,8 +100,7 @@ class AspInterface:
         for clause in self.asp_program:
             ctl.add('base',[],clause)
 
-        # add cautious consequences, [''] if none
-        if len(self.cautious_consequences[0]) != 0:
+        if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 ctl.add('base',[],":- not " + c + '.')
         
@@ -136,6 +134,6 @@ class AspInterface:
     def print_asp_program(self) -> None:
         for el in self.asp_program:
             print(el)
-        if len(self.cautious_consequences[0]) != 0:
+        if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 print(":- not " + c + '.')
