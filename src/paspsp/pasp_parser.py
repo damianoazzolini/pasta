@@ -101,7 +101,21 @@ class PaspParser:
     def insert_worlds_generator(self) -> bool:
         n_probabilistic_facts = 0
         for line in self.lines_original:
+            self.check_reserved(line)
             if "::" in line and not line.startswith('%'):
+                if ':-' in line:
+                    print('Probabilistic clauses are not supported')
+                    print("-> " + line)
+                    sys.exit()
+                if 'not_' in line:
+                    print('Please define probabilistic facts without using not_')
+                    print("-> " + line)
+                    sys.exit()
+                if ';' in line:
+                    print('Disjunction is not yet supported in probabilistic facts')
+                    print('please rewrite them as single facts.')
+                    print('Example: 0.6::a;0.2::b. can be written as')
+                    print('0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)')
                 # line with probability value
                 probability, fact = utilities.check_consistent_prob_fact(line)
                 arguments = utilities.extract_atom_between_brackets(fact)
@@ -154,6 +168,22 @@ class PaspParser:
         # flatten the list, maybe try to avoid this
         self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
         return True
+
+    # dummy check fo reserved facts
+    def check_reserved(self, line : str) -> None:
+        if line == 'q':
+            print("q is a reserved fact")
+            sys.exit()
+        elif line == 'nq':
+            print("nq is a reserved fact")
+            sys.exit()
+        elif line == 'e':
+            print("e is a reserved fact")
+            sys.exit()
+        elif line == 'ne':
+            print("ne is a reserved fact")
+            sys.exit()
+
 
     '''
     Parameters:
