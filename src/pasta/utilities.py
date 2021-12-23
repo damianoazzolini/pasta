@@ -273,11 +273,11 @@ def truncate_prob(s : float) -> str:
     return s0 + "." + s[:i+1]
 
 def print_help() -> None:
-    print("paspsp: probabilistic answer set programming statistical probabilities")
-    print("Compute lower and upper bound for a query in")
-    print("a probabilistic answer set program")
-    print("paspsp <program> [OPTIONS]")
-    print("Example: paspsp ../../examples/bird_4.lp -q=\"fly(1)\"")
+    print("PASTA: Probabilistic Answer Set programming for STAtistical probabilities")
+    # print("Compute lower and upper bound for a query in")
+    # print("a probabilistic answer set program")
+    print("pasta <program> [OPTIONS]")
+    print("Example: pasta ../../examples/bird_4.lp -q=\"fly(1)\"")
     print("Example programs: see example folder.")
     print("Issues: https://github.com/damianoazzolini/PaspStatsProb/issues")
     print("Available commands:")

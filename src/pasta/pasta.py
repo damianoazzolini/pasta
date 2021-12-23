@@ -8,7 +8,7 @@ import asp_interface
 from utilities import parse_command_line
 from utilities import truncate_prob
 
-class Paspsp:
+class Pasta:
     def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False) -> None:
         self.filename = filename
         self.query = query
@@ -75,7 +75,7 @@ class Paspsp:
 if __name__ == "__main__":
     verbose,pedantic,filename,precision,query,evidence = parse_command_line(sys.argv)
 
-    pasp_solver = Paspsp(filename, query, evidence, precision, verbose, pedantic)
+    pasp_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
     lp,up = pasp_solver.solve()    
 
     if query is None:

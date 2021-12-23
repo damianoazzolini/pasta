@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
             lns = list(filter(lambda x: x not in ls,list(set(le))))
 
-            f.write("\nquery(smokes(" + str(random.sample(lns,1)[0]) + ")).")
+            f.write("\nqry:- smokes(" + str(random.sample(lns,1)[0]) + ").")
             
             # f.write("\nfly:- fly(_).")
             f.close()

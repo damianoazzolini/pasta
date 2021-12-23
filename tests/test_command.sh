@@ -7,9 +7,9 @@ function run_test {
 	# to manage empty result
 	res=$3
 	if [ "${#res}" -eq 0 ]; then
-		diff -w <(python3 ../src/paspsp/paspsp.py $2) <(echo -e -n $3)
+		diff -w <(python3 ../src/pasta/pasta.py $2) <(echo -e -n $3)
 	else
-    	diff -w <(python3 ../src/paspsp/paspsp.py $2) <(echo -e $3)
+    	diff -w <(python3 ../src/pasta/pasta.py $2) <(echo -e $3)
     fi
 	# echo $?
     if [ "$?" -eq 0 ]; then

@@ -2,7 +2,7 @@
 import importlib.util
 from typing import Union
 
-spec = importlib.util.spec_from_file_location("utilities", "../src/paspsp/utilities.py")
+spec = importlib.util.spec_from_file_location("utilities", "../src/pasta/utilities.py")
 utilities = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(utilities)
 
