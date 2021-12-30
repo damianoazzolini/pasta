@@ -3,10 +3,11 @@ Class defining a parser for a PASP program.
 '''
 import os
 import sys
+from typing import Union
+import re
 # from typing import Dict, Union
 
-# local
-import utilities
+import generator
 
 class PaspParser:
     '''
@@ -33,6 +34,67 @@ class PaspParser:
     def get_dict_prob_facts(self) -> dict:
         return self.probabilistic_facts
 
+    @staticmethod
+    def endline_content(char1: str) -> bool:
+        return char1 == '\n' or char1 == '\r\n' or char1 == ' '
+
+    @staticmethod
+    def endline_comment(char1: str) -> bool:
+        return char1 == '\n' or char1 == '\r\n'
+
+    @staticmethod
+    def is_number(n: Union[int, float]) -> bool:
+        try:
+            float(n)
+        except ValueError:
+            return False
+        return True
+
+    def check_consistent_prob_fact(self, line: str) -> Union[float, str]:
+        line = line.split("::")
+        # for example: line = ['0.5', 'f(1..3).']
+        if len(line) != 2:
+            print("Error in parsing: " + str(line))
+            sys.exit()
+
+        if not self.is_number(line[0]):
+            print("Error: expected a float, found " + str(line[0]))
+            sys.exit()
+
+        prob = float(line[0])
+
+        if prob > 1 or prob <= 0:
+            print("Probabilities must be in the range ]0,1], found " + str(prob))
+            sys.exit()
+
+        return prob, line[1]
+
+    # from f(12) returns 12, does some basic checks
+    # returns also True if range, false otherwise
+    @staticmethod
+    def extract_atom_between_brackets(fact: str) -> Union[list, bool]:
+        val = re.findall(r'\(([^()]+)\)', fact)
+
+        if len(val) == 1:
+            if ".." in val[0]:
+                return val[0].split(".."), True
+            else:
+                return val[0].split(','), False
+        else:
+            # fact not defined with a range
+            return None, False
+
+    # from fa(32) returns fa
+    @staticmethod
+    def get_functor(fact: str) -> str:
+        r = ""
+        i = 0
+        while i < len(fact) and fact[i] != '(' and fact[i] != '.':
+            r = r + fact[i]
+            i = i + 1
+        return r
+
+
     '''
     Parameters:
         - verbose: default 0
@@ -53,7 +115,7 @@ class PaspParser:
             sys.exit()
 
         # eat possible white spaces or empty lines
-        while utilities.endline_content(char):
+        while self.endline_content(char):
             char = f.read(1)
 
         char1 = f.read(1)
@@ -64,7 +126,7 @@ class PaspParser:
         
         while char1:
             l0 = ""
-            while char1 and not(((char == '.' and not comment) and utilities.endline_content(char1)) or (comment and utilities.endline_comment(char1))):
+            while char1 and not(((char == '.' and not comment) and self.endline_content(char1)) or (comment and self.endline_comment(char1))):
                 # look for a . followed by \n
                 l0 = l0 + char
                 char = char1
@@ -87,7 +149,7 @@ class PaspParser:
             char = char1
             # eat white spaces or empty lines
             char1 = f.read(1)
-            while utilities.endline_content(char1):
+            while self.endline_content(char1):
                 char1 = f.read(1)
             if char1 == '%':
                 comment = True
@@ -117,21 +179,22 @@ class PaspParser:
                     print('Example: 0.6::a;0.2::b. can be written as')
                     print('0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)')
                 # line with probability value
-                probability, fact = utilities.check_consistent_prob_fact(line)
-                arguments = utilities.extract_atom_between_brackets(fact)
-                functor = utilities.get_functor(fact)
+                probability, fact = self.check_consistent_prob_fact(line)
+                arguments = self.extract_atom_between_brackets(fact)
+                functor = self.get_functor(fact)
 
                 self.add_probabilistic_fact(fact,probability)
                 # print(self.probabilistic_facts)
                 # sys.exit()
-                
-                dom, args = utilities.generate_dom_fact(functor,arguments)
+
+                gen = generator.Generator()
+                dom, args = gen.generate_dom_fact(functor,arguments)
 
                 self.lines_log_prob.append([dom])
 
-                generator, clauses = utilities.generate_generator(functor,args,arguments,probability,self.precision)
+                generat, clauses = gen.generate_generator(functor,args,arguments,probability,self.precision)
 
-                clauses.append(generator)
+                clauses.append(generat)
                 self.lines_log_prob.append(clauses)
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):

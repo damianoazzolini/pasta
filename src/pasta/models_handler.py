@@ -5,12 +5,7 @@ some cases only model_not_query is true, so the world does not contribute
 to the list
 '''
 
-from typing import List, Union
-import utilities
-import math
-
-import sys
-
+from typing import Union
 
 class World:
     '''
@@ -88,6 +83,55 @@ class ModelsHandler():
     def get_number_worlds(self) -> int:
         return len(self.worlds_dict.keys())
 
+    @staticmethod
+    # ["bird(1,693)", "bird(2,693)", "bird(3,693)", "bird(4,693)", "nq", "ne"]
+    # returns 11213141, 693 + 693 + 693 + 693, True
+    # if q in line -> returns True else False in query
+    # if e in line -> returns True else False in evidence
+    # 11213141 means: 1 true, 2 true. 3 true, 4 true
+    def get_id_prob_world(line: str, evidence: str) -> Union[str, int, bool, bool]:
+        line = line.split(' ')
+        model_query = False  # model q and e for evidence, q without evidence
+        model_evidence = False  # model nq and e for evidence, nq without evidence
+        id = ""
+        prob = 1
+        for term in line:
+            if term == "q":
+                model_query = True
+            elif term == "nq":
+                model_query = False
+            elif term == "e":
+                model_evidence = True
+            elif term == "ne":
+                model_evidence = False
+            else:
+                term = term.split('(')
+                if term[1].count(',') == 0:  # arity original prob fact 0 (example: 0.2::a.)
+                    id = id + term[0]
+                    # if using log probabilities, replace * with +, also below
+                    prob = prob * int(term[1][:-1])
+                else:
+                    args = term[1][:-1].split(',')
+                    prob = prob * int(args[-1])
+                    id = id + term[0]
+                    for i in args[:-1]:
+                        id = id + i
+
+        if evidence == None:
+            # query without evidence
+            return id, int(prob), model_query, False
+        else:
+            # is this if really needed?
+            # can I return directly model_query and model_evidence?
+            # also in the case of evidence == None
+            if (model_query == True) and (model_evidence == True):
+                return id, int(prob), True, True
+            elif (model_query == False) and (model_evidence == True):
+                return id, int(prob), False, True
+            else:
+                # all the other cases, don't care
+                return id, int(prob), False, False
+
     # checks if the id is in the worlds list
     # query = True -> q in line
     # query = False -> nq in line
@@ -127,7 +171,7 @@ class ModelsHandler():
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
         # print(line)
-        id, prob, model_query, model_evidence = utilities.get_id_prob_world(line,self.evidence)
+        id, prob, model_query, model_evidence = self.get_id_prob_world(line,self.evidence)
         self.manage_worlds_dict(id, prob, model_query, model_evidence)
     
     # computes the lower and upper probability

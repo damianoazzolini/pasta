@@ -1,7 +1,6 @@
 import clingo
 from typing import Union
 import time
-import sys
 
 # local
 import models_handler

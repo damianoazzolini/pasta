@@ -1,3 +1,4 @@
+from os import stat
 import time
 import sys
 from typing import Union
@@ -5,8 +6,6 @@ from typing import Union
 # local
 import pasp_parser
 import asp_interface
-from utilities import parse_command_line
-from utilities import truncate_prob
 
 class Pasta:
     def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False) -> None:
@@ -16,6 +15,76 @@ class Pasta:
         self.precision = precision
         self.verbose = verbose
         self.pedantic = pedantic
+
+    @staticmethod
+    def print_help() -> None:
+        print("PASTA: Probabilistic Answer Set programming for STAtistical probabilities")
+        # print("Compute lower and upper bound for a query in")
+        # print("a probabilistic answer set program")
+        print("pasta <program> [OPTIONS]")
+        print("Example: pasta ../../examples/bird_4.lp -q=\"fly(1)\"")
+        print("Example programs: see example folder.")
+        print("Issues: https://github.com/damianoazzolini/PaspStatsProb/issues")
+        print("Available commands:")
+        print("\t--query=,-q: specifies a query. Example: -q=\"fly(1)\".")
+        print("\t\tIt can also be specified in the program by adding the line query(fly(1)).")
+        print("\t--evidence=,-e: specifies a evidence. Example: -e=\"fly(1)\".")
+        print("\t\tIt can also be specified in the program by adding the line evidence(fly(1)).")
+        print("\t--verbose,-v: verbose mode. Default: off.")
+        print("\t--pedantic: pedantic mode (more verbose than --verbose). Default: off.")
+        print("\t--precision=,-p=: set the required precision. Example: --precision=3. Default = 3.")
+        print("\t--help,-h: print this help page")
+    
+    @staticmethod
+    def parse_command_line(args: str) -> Union[bool, bool, str, int, str, str]:
+        verbose = False
+        pedantic = False
+        filename = ""
+        precision = 3  # default value
+        query = None
+        evidence = None
+        # for i in range(0,len(args)):
+        i = 0
+        while i < len(args):
+            if args[i] == "--verbose" or args[i] == "-v":
+                verbose = True
+            elif args[i] == "--pedantic":
+                verbose = True
+                pedantic = True
+            elif args[i].startswith("--precision=") or args[i].startswith("-p="):
+                precision = int(args[i].split('=')[1])
+            elif args[i] == "--help" or args[i] == "-h":
+                Pasta.print_help()
+                sys.exit()
+            elif args[i].startswith("--query=") or args[i].startswith("-q="):
+                query = args[i].split("=")[1].replace("\"", "")
+            elif args[i].startswith("--evidence=") or args[i].startswith("-q="):
+                evidence = args[i].split("=")[1].replace("\"", "")
+            else:
+                if i + 1 < len(args):
+                    filename = args[i+1]
+                    i = i + 1
+            i = i + 1
+
+        if filename == "":
+            print("Missing filename")
+            sys.exit()
+
+        return verbose, pedantic, filename, precision, query, evidence
+
+    @staticmethod
+    def truncate_prob(s: float) -> str:
+        s = str('{:.8f}'.format(s))
+        s0 = s.split('.')[0]
+        s = s.split('.')[1]
+        i = len(s)
+        found = False
+        while (i > 0) and (found is False):
+            if int(s[i - 1]) != 0:
+                found = True
+            i = i - 1
+
+        return s0 + "." + s[:i+1]
     
     def solve(self) -> Union[float,float]:
         start_time = time.time()
@@ -69,11 +138,11 @@ class Pasta:
             print("Upper: " + '{:.8f}'.format(uq))
             sys.exit()
 
-        return truncate_prob(lq)[:8], truncate_prob(uq)[:8]
+        return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8]
      
 
 if __name__ == "__main__":
-    verbose,pedantic,filename,precision,query,evidence = parse_command_line(sys.argv)
+    verbose,pedantic,filename,precision,query,evidence = Pasta.parse_command_line(sys.argv)
 
     pasp_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
     lp,up = pasp_solver.solve()    
