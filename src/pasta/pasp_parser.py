@@ -50,7 +50,20 @@ class PaspParser:
             return False
         return True
 
+    # from fa(32) returns fa
+    @staticmethod
+    def get_functor(term: str) -> str:
+        r = ""
+        i = 0
+        while i < len(term) and term[i] != '(':
+            r = r + term[i]
+            i = i + 1
+        return r
+
+    # can this be static?
     def check_consistent_prob_fact(self, line: str) -> Union[float, str]:
+        if not line.endswith('.'):
+            sys.exit("Missing ending . in " + line)
         line = line.split("::")
         # for example: line = ['0.5', 'f(1..3).']
         if len(line) != 2:
@@ -67,7 +80,8 @@ class PaspParser:
             print("Probabilities must be in the range ]0,1], found " + str(prob))
             sys.exit()
 
-        return prob, line[1]
+        # [:-1] to remove final .
+        return prob, line[1][:-1]
 
     # from f(12) returns 12, does some basic checks
     # returns also True if range, false otherwise
@@ -83,17 +97,6 @@ class PaspParser:
         else:
             # fact not defined with a range
             return None, False
-
-    # from fa(32) returns fa
-    @staticmethod
-    def get_functor(fact: str) -> str:
-        r = ""
-        i = 0
-        while i < len(fact) and fact[i] != '(' and fact[i] != '.':
-            r = r + fact[i]
-            i = i + 1
-        return r
-
 
     '''
     Parameters:
@@ -312,7 +315,7 @@ class PaspParser:
         if ".." in term:
             line = term.split("(")
             functor = line[0]
-            interval = line[1][:-2] # to remove ).
+            interval = line[1][:-1] # to remove )
             interval = interval.split("..")
             lb = int(interval[0])
             ub = int(interval[1])
