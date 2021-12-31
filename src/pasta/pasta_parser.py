@@ -1,5 +1,5 @@
 '''
-Class defining a parser for a PASP program.
+Class defining a parser for a PASTA program.
 '''
 import os
 import sys
@@ -9,7 +9,7 @@ import re
 
 import generator
 
-class PaspParser:
+class PastaParser:
     '''
     Parameters:
         - filename: name of the file to read

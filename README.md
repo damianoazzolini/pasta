@@ -1,4 +1,4 @@
-# Title
+# PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
 ## Syntax
 Probabilistic facts can be added with the syntax: `prob::atom.` where `prob` is a floating point number (0 < number <= 1) and `atom` is a standard ASP fact.

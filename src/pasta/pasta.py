@@ -4,7 +4,7 @@ import sys
 from typing import Union
 
 # local
-import pasp_parser
+import pasta_parser
 import asp_interface
 
 class Pasta:
@@ -24,7 +24,7 @@ class Pasta:
         print("pasta <program> [OPTIONS]")
         print("Example: pasta ../../examples/bird_4.lp -q=\"fly(1)\"")
         print("Example programs: see example folder.")
-        print("Issues: https://github.com/damianoazzolini/PaspStatsProb/issues")
+        print("Issues: https://github.com/damianoazzolini/pasta/issues")
         print("Available commands:")
         print("\t--query=,-q: specifies a query. Example: -q=\"fly(1)\".")
         print("\t\tIt can also be specified in the program by adding the line query(fly(1)).")
@@ -88,7 +88,7 @@ class Pasta:
     
     def solve(self) -> Union[float,float]:
         start_time = time.time()
-        parser = pasp_parser.PaspParser(self.filename, self.precision, self.query, self.evidence)
+        parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
         parser.parse()
 
         if verbose:
@@ -144,8 +144,8 @@ class Pasta:
 if __name__ == "__main__":
     verbose,pedantic,filename,precision,query,evidence = Pasta.parse_command_line(sys.argv)
 
-    pasp_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
-    lp,up = pasp_solver.solve()    
+    pasta_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
+    lp,up = pasta_solver.solve()    
 
     if query is None:
         if lp == up:
