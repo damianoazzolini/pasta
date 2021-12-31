@@ -103,24 +103,72 @@ class TestGetFunctor(unittest.TestCase):
         self.assertEqual(pasta_parser.PastaParser.get_functor(
             term), "a", term + "not recognized")
 
-class TestConsistencyProbFacts(unittest.TestCase):
 
-    def test_correct(self):
+class TestConsistencyProbFacts(unittest.TestCase):
+    def test_correct_atom(self):
         pars = pasta_parser.PastaParser("test.pl",3)
         fact = "0.5::a."
         self.assertEqual(pars.check_consistent_prob_fact(fact), (0.5, "a"), fact + " not recognized as probabilistic fact")
 
-    def test_missing_dot(self):
+    def test_correct_term(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.5::a(f)."
+        self.assertEqual(pars.check_consistent_prob_fact(
+            fact), (0.5, "a(f)"), fact + " not recognized as probabilistic fact")
+
+    def test_wrong_prob(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.5q::a(f)."
+        self.assertRaisesRegex(
+            SystemExit, "Error: expected a float, found 0.5q", pars.check_consistent_prob_fact, fact)
+
+    def test_prob_above_1(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "1.3::a(f)."
+        self.assertRaisesRegex(
+            SystemExit, "Probabilities must be in the range ]0,1], found 1.3", pars.check_consistent_prob_fact, fact)
+
+    def test_prob_0(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0::a(f)."
+        self.assertRaisesRegex(
+            SystemExit, "Probabilities must be in the range ]0,1], found 0", pars.check_consistent_prob_fact, fact)
+
+    def test_not_valid_term_first_number(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.3::2l."
+        self.assertRaisesRegex(
+            SystemExit, "Invalid probabilistic fact 2l", pars.check_consistent_prob_fact, fact)
+
+    def test_not_valid_term_first_upper(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.3::Ul."
+        self.assertRaisesRegex(
+            SystemExit, "Invalid probabilistic fact Ul", pars.check_consistent_prob_fact, fact)
+
+    def test_not_valid_term_symbol(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.3::()."
+        self.assertRaisesRegex(
+            SystemExit, "Invalid probabilistic fact ()", pars.check_consistent_prob_fact, fact)
+
+    def test_not_valid_term_missing(self):
+        pars = pasta_parser.PastaParser("test.pl", 3)
+        fact = "0.3::."
+        self.assertRaisesRegex(
+            SystemExit, "Invalid probabilistic fact ", pars.check_consistent_prob_fact, fact)
+
+    def test_missing_end_dot(self):
         pars = pasta_parser.PastaParser("test.pl", 3)
         fact = "0.5::a"
         self.assertRaisesRegex(SystemExit, "Missing ending . in 0.5::a", pars.check_consistent_prob_fact, fact)
 
-    # def test_wrong_prob(self):
-    #     fact = "0.a::a."
-    #     self.assertEqual(utilities.check_consistent_prob_fact(fact), [
-    #                      0.5, "a"], fact + " not recognized as probabilistic fact")
+class TestConsistencyProbFacts(unittest.TestCase):
+    def test_atom():
+        pass
 
-
+    def test_term():
+        pass
 
 if __name__ == '__main__':
     unittest.main(buffer=True)

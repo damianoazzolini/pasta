@@ -64,24 +64,27 @@ class PastaParser:
     def check_consistent_prob_fact(self, line: str) -> Union[float, str]:
         if not line.endswith('.'):
             sys.exit("Missing ending . in " + line)
+
         line = line.split("::")
         # for example: line = ['0.5', 'f(1..3).']
         if len(line) != 2:
-            print("Error in parsing: " + str(line))
-            sys.exit()
+            sys.exit("Error in parsing: " + str(line))
 
         if not self.is_number(line[0]):
-            print("Error: expected a float, found " + str(line[0]))
-            sys.exit()
+            sys.exit("Error: expected a float, found " + str(line[0]))
 
         prob = float(line[0])
 
         if prob > 1 or prob <= 0:
-            print("Probabilities must be in the range ]0,1], found " + str(prob))
-            sys.exit()
+            sys.exit("Probabilities must be in the range ]0,1], found " + str(prob))
 
         # [:-1] to remove final .
-        return prob, line[1][:-1]
+        term = line[1][:-1]
+
+        if len(term) == 0 or not term[0].islower():
+            sys.exit("Invalid probabilistic fact " + str(term))
+
+        return prob, term
 
     # from f(12) returns 12, does some basic checks
     # returns also True if range, false otherwise
