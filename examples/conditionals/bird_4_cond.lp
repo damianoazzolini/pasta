@@ -5,11 +5,10 @@ bird(3).
 bird(4).
 
 % the bird indexed by 1 flies with probability 0.7
-% (fly(1) | T)[0.7]
 0.7::fly_w(1).
 
 % The following two lines are equivalent to the conditional
-% (fly(X) | bird(X))[0.6]
+% (fly(X) | bird(X))[0.6,1]
 
 % A bird can fly or not fly
 fly(X) ; not_fly(X):- bird(X).

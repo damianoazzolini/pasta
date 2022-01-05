@@ -3,7 +3,7 @@ import networkx
 import random
 import time
 
-# see examples/conditionals/smokers.lp for the structure
+# see examples/conditionals/mky.lp for the structure
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

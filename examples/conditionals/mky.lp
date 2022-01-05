@@ -1,5 +1,4 @@
-% {(f(X, Y )|h(Y ))[0.2]
-% converted into {(f(Y)|h(Y))[0.2] since X is singleton 
+% (f(X)|h(X))[0.2,1]
 
 f1(Y) ; not_f1(Y):- h(Y).
 
@@ -7,7 +6,7 @@ f1(Y) ; not_f1(Y):- h(Y).
    #count{X:f1(X),h(X)} = FH,
    10*FH < 2*H.
 
-% (f(X, Y )|h(Y )r(X, Y ))[0.9]}
+% (f(X, Y )|h(Y ),r(X, Y ))[0.9,1]
 
 f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).
 

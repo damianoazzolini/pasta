@@ -13,7 +13,7 @@
 %           d
 
 % Conditional
-% (smokes(Y) | smokes(X), friend(X,Y))[0.4]
+% (smokes(Y) | smokes(X), friend(X,Y))[0.4,1]
 % converted into the following rule plus a constraint
 
 smokes(Y) ; not_smokes(Y):- smokes(X), friend(X,Y).

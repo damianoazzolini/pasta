@@ -163,7 +163,7 @@ class TestConsistencyProbFacts(unittest.TestCase):
         fact = "0.5::a"
         self.assertRaisesRegex(SystemExit, "Missing ending . in 0.5::a", pars.check_consistent_prob_fact, fact)
 
-class TestConsistencyProbFacts(unittest.TestCase):
+class TestExtractAtomBetweenBrackets(unittest.TestCase):
     def test_atom():
         pass
 

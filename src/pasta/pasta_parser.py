@@ -216,10 +216,13 @@ class PastaParser:
                     # remove the "evidence" functor and handles whether the line
                     # does not terminate with .
                     # evidence(fly(1)) -> fly(1)
-                    # TODO: handle evidence(a,b)
                     self.evidence = line.split("evidence")[1][:-2][1:]
                 else:
                     self.evidence = line.split("evidence")[1][:-1][1:]
+            elif line.startswith("("):
+                expanded_conditional = gen.expand_conditional(line)
+                for el in expanded_conditional:
+                    self.lines_log_prob.append([el])
             else:
                 if not line.startswith("#show"):
                     self.lines_log_prob.append([line])
@@ -236,6 +239,7 @@ class PastaParser:
 
         # flatten the list, maybe try to avoid this
         self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
+
         return True
 
     # dummy check fo reserved facts
