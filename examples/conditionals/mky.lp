@@ -1,21 +1,16 @@
-% (f(X)|h(X))[0.2,1]
+(f1(X)|h(X))[0.2,1].
 
-f1(Y) ; not_f1(Y):- h(Y).
+% f1(Y) ; not_f1(Y):- h(Y).
 
-:- #count{X:h(X)} = H,
-   #count{X:f1(X),h(X)} = FH,
-   10*FH < 2*H.
-
-% (f(X, Y )|h(Y ),r(X, Y ))[0.9,1]
+% :- #count{X:h(X)} = H,
+%    #count{X:f1(X),h(X)} = FH,
+%    10*FH < 2*H.
 
 f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).
 
 :- #count{X:h(X),r(X,_)} = H,
    #count{Y,X:f2(X,Y),h(Y),r(X,Y)} = FH,
    10*FH < 9*H.
-
-qry:- f1(A).
-qry:- f2(A,B).
 
 0.3::h(a).
 0.3::h(b).
@@ -27,3 +22,17 @@ qry:- f2(A,B).
 0.3::r(c,d).
 0.3::r(d,e).
 0.3::r(e,f).
+
+qry:- f1(a).
+qry:- f1(b).
+qry:- f1(c).
+qry:- f1(d).
+qry:- f1(e).
+qry:- f2(a,b).
+qry:- f2(b,c).
+qry:- f2(c,d).
+qry:- f2(d,e).
+
+% Example query: qry.
+% python3 pasta.py mky.lp --query="qry"
+% Expected: Lower probability == upper probability for the query qry: 0.605797

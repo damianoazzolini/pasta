@@ -168,6 +168,7 @@ class PastaParser:
 
     def insert_worlds_generator(self) -> bool:
         n_probabilistic_facts = 0
+        gen = generator.Generator()
         for line in self.lines_original:
             self.check_reserved(line)
             if "::" in line and not line.startswith('%'):
@@ -193,7 +194,6 @@ class PastaParser:
                 # print(self.probabilistic_facts)
                 # sys.exit()
 
-                gen = generator.Generator()
                 dom, args = gen.generate_dom_fact(functor,arguments)
 
                 self.lines_log_prob.append([dom])

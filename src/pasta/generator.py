@@ -77,7 +77,7 @@ class Generator:
         disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
         # here I consider only one term in the left part
         # f(a,b) | ... not f(a,b), f(b,c) | ...
-        constr = ":- #count{" + ','.join(vars) + ":" + cond[0] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"
+        constr = ":- #count{" + ','.join(vars) + ":" + cond[1] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"
 
         range = range.split(",")
         if len(range) != 2:

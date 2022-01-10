@@ -8,7 +8,7 @@ bird(4).
 0.7::fly_w(1).
 
 % The following two lines are equivalent to the conditional
-% (fly(X) | bird(X))[0.6,1]
+% (fly(X) | bird(X))[0.6,1].
 
 % A bird can fly or not fly
 fly(X) ; not_fly(X):- bird(X).

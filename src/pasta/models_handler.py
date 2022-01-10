@@ -200,6 +200,10 @@ class ModelsHandler():
         if self.evidence is None:
             return self.lower_query_prob, self.upper_query_prob
         else:
+            # print("upper evidence: " + str(self.upper_evidence_prob))
+            # print("lower evidence: " + str(self.lower_evidence_prob))
+            # print("upper query: " + str(self.upper_query_prob))
+            # print("lower query: " + str(self.lower_query_prob))
             if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
                 return 0,0
             elif (self.lower_query_prob + self.upper_evidence_prob == 0) and self.upper_query_prob > 0:
