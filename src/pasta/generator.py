@@ -80,6 +80,8 @@ class Generator:
         constr = ":- #count{" + ','.join(vars) + ":" + cond[0] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"
 
         range = range.split(",")
+        if len(range) != 2:
+            sys.exit("Unbalanced range in conditional: " + conditional)
         lower = range[0][1:]
         upper = range[1][:-1]
 
@@ -97,7 +99,6 @@ class Generator:
             lb = int(float(lower) * 100)
             cl = constr + ", " + "100 * FH < " + str(lb) + "*H."
 
-        
         return [disjunct,cu,cl]
 
 

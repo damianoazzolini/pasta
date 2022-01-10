@@ -19,40 +19,64 @@ class TestExtractVars(unittest.TestCase):
 class TestExpandConditional(unittest.TestCase):
     def test_correct_1(self):
         res = generat.Generator.expand_conditional(
-            "(f(X)|h(X))[0.2,1]")
-        expected = ["f(X) ; not_f2(X) :- h(Y), r(X,Y).", ":- #count{X:h(X)}=H, #count{X:f1(X),h(X)}=FH, 10*FH < 2*H."]
+            "(f(X)|h(X))[0.2,1].")
 
-        self.assertCountEqual(res, expected, "Error")
+        self.assertEqual(res[1],'',"Not empty lower")
 
-    def test_correct_2(self):
-        res = generat.Generator.expand_conditional("(f2(X, Y )|h(Y )r(X, Y ))[0.9,1]")
-        expected = ["f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).",":- #count{X:h(X),r(X,_)} = H, #count{Y,X:f2(X,Y),h(Y),r(X,Y)} = FH,10*FH < 9*H."]
+        del res[1]
 
-        self.assertCountEqual(res, expected, "Error")
+        res[0] = res[0].replace(' ','')
+        res[1] = res[1].replace(' ','')
+
+        e0 = "f(X);not_f(X):-h(X)."
+        e1 = ":-#count{X:f(X)}=H,#count{X:f(X),h(X)}=FH,100*FH<20*H."
+
+        self.assertCountEqual(res, [e0,e1], "Error")
+
+    # def test_correct_2(self):
+    #     res = generat.Generator.expand_conditional("(f2(X, Y )|h(Y )r(X, Y ))[0.9,1].")
+    #     expected = ["f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).",":- #count{X:h(X),r(X,_)} = H, #count{Y,X:f2(X,Y),h(Y),r(X,Y)} = FH,10*FH < 9*H."]
+
+    #     self.assertCountEqual(res, expected, "Error")
 
     def test_missing_pipe(self):
-        cond = "(f(X) h(X))[0.2,1]"
+        cond = "(f(X) h(X))[0.2,1]."
+        cond_escaped = cond.replace('(', '\(').replace(')', '\)').replace('[','\[').replace(']','\]')
 
         self.assertRaisesRegex(
-            SystemExit, "Syntax error in conditional: " + cond, generat.Generator.expand_conditional, cond)
+            SystemExit, "Syntax error in conditional: " + cond_escaped, generat.Generator.expand_conditional, cond)
 
     def test_missing_par(self):
-        cond = "f(X) | h(X))[0.2,1]"
+        cond = "(f(X) | h(X)[0.2,1]."
+        cond_escaped = cond.replace('(', '\(').replace(')', '\)').replace(
+            '[', '\[').replace(']', '\]')
+
 
         self.assertRaisesRegex(
-            SystemExit, "Syntax error in conditional: " + cond, generat.Generator.expand_conditional, cond)
+            SystemExit, "Syntax error in conditional: " + cond_escaped, generat.Generator.expand_conditional, cond)
 
     def test_missing_range(self):
-        cond = "(f(X) | h(X))"
+        cond = "(f(X) | h(X))."
+        cond_escaped = cond.replace('(', '\(').replace(')', '\)').replace(
+            '[', '\[').replace(']', '\]')
+
 
         self.assertRaisesRegex(
-            SystemExit, "Missing range in conditional: " + cond, generat.Generator.expand_conditional, cond)
+            SystemExit, "Missing range in conditional: " + cond_escaped, generat.Generator.expand_conditional, cond)
 
     def test_unbalanced_range(self):
+        cond = "(f(X) | h(X))[0]."
+        cond_escaped = cond.replace('(', '\(').replace(')', '\)').replace(
+            '[', '\[').replace(']', '\]')
+
+        self.assertRaisesRegex(
+            SystemExit, "Unbalanced range in conditional: " + cond_escaped, generat.Generator.expand_conditional, cond)
+
+    def test_missing_final_dot(self):
         cond = "(f(X) | h(X))[0]"
 
         self.assertRaisesRegex(
-            SystemExit, "Unbalanced range in conditional: " + cond, generat.Generator.expand_conditional, cond)
+            SystemExit, "Missing final .", generat.Generator.expand_conditional, cond)
 
 
 
