@@ -16,14 +16,14 @@ class PastaParser:
         - query: query to answer
         - precision: multiplier for the log probabilities
         - lines_original: lines from the parsing of the original file
-        - lines_log_prob: lines obtained by replacing probabilities 
+        - lines_prob: lines obtained by replacing probabilities 
           with log probabilities
     '''
     def __init__(self, filename : str, precision : int ,query=None, evidence=None) -> None:
         self.filename = filename
         self.precision = precision
         self.lines_original = []
-        self.lines_log_prob = []
+        self.lines_prob = []
         self.query = query
         self.evidence = evidence
         self.probabilistic_facts = dict() # pairs [fact,prob]
@@ -203,12 +203,12 @@ class PastaParser:
 
                 dom, args = gen.generate_dom_fact(functor,arguments)
 
-                self.lines_log_prob.append([dom])
+                self.lines_prob.append([dom])
 
                 generat, clauses = gen.generate_generator(functor,args,arguments,probability,self.precision)
 
                 clauses.append(generat)
-                self.lines_log_prob.append(clauses)
+                self.lines_prob.append(clauses)
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):
                 # remove the "query" functor and handles whether the line
@@ -229,10 +229,10 @@ class PastaParser:
             elif line.startswith("("):
                 expanded_conditional = gen.expand_conditional(line)
                 for el in expanded_conditional:
-                    self.lines_log_prob.append([el])
+                    self.lines_prob.append([el])
             else:
                 if not line.startswith("#show"):
-                    self.lines_log_prob.append([line])
+                    self.lines_prob.append([line])
             
             # generate the model clause
             # Do here since i need to know how the number of probabilistic facts
@@ -245,7 +245,7 @@ class PastaParser:
             sys.exit()
 
         # flatten the list, maybe try to avoid this
-        self.lines_log_prob = [item for sublist in self.lines_log_prob for item in sublist]
+        self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
 
         return True
 
@@ -281,9 +281,9 @@ class PastaParser:
             sys.exit()
         
         if self.evidence is None:
-            prog = self.lines_log_prob + [":- not " + self.query + "."]
+            prog = self.lines_prob + [":- not " + self.query + "."]
         else:
-            prog = self.lines_log_prob + [":- not " + self.evidence + "."]
+            prog = self.lines_prob + [":- not " + self.evidence + "."]
         
         return prog
 
@@ -298,22 +298,22 @@ class PastaParser:
         need to be computed
     '''
     def get_asp_program(self) -> str:
-        self.lines_log_prob.append("q:- " + self.query + ".")
-        self.lines_log_prob.append("#show q/0.")
-        self.lines_log_prob.append("nq:- not " + self.query + ".")
-        self.lines_log_prob.append("#show nq/0.")
+        self.lines_prob.append("q:- " + self.query + ".")
+        self.lines_prob.append("#show q/0.")
+        self.lines_prob.append("nq:- not " + self.query + ".")
+        self.lines_prob.append("#show nq/0.")
 
         if self.evidence is not None:
-            self.lines_log_prob.append("e:- " + self.evidence + ".")
-            self.lines_log_prob.append("#show e/0.")
-            self.lines_log_prob.append("ne:- not " + self.evidence + ".")
-            self.lines_log_prob.append("#show ne/0.")
+            self.lines_prob.append("e:- " + self.evidence + ".")
+            self.lines_prob.append("#show e/0.")
+            self.lines_prob.append("ne:- not " + self.evidence + ".")
+            self.lines_prob.append("#show ne/0.")
 
 
-        return self.lines_log_prob
+        return self.lines_prob
 
     def get_parsed_file(self) -> str:
-        return self.lines_log_prob
+        return self.lines_prob
 
     def has_evidence(self) -> bool:
         return self.evidence != None
@@ -359,4 +359,4 @@ class PastaParser:
         "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \
         "n probabilistic facts:\n" + str(self.get_n_prob_facts()) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
-        "log probabilities file:\n" + str(self.lines_log_prob)
+        "log probabilities file:\n" + str(self.lines_prob)
