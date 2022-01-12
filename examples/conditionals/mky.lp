@@ -23,15 +23,19 @@ f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).
 0.3::r(d,e).
 0.3::r(e,f).
 
-qry:- f1(a).
-qry:- f1(b).
-qry:- f1(c).
-qry:- f1(d).
-qry:- f1(e).
-qry:- f2(a,b).
-qry:- f2(b,c).
-qry:- f2(c,d).
-qry:- f2(d,e).
+% qry:- f1(a).
+% qry:- f1(b).
+% qry:- f1(c).
+% qry:- f1(d).
+% qry:- f1(e).
+% qry:- f2(a,b).
+% qry:- f2(b,c).
+% qry:- f2(c,d).
+% qry:- f2(d,e).
+
+qr:- not f1(a), not f1(b), not f1(c), not f1(d), not f1(e), not f2(a,b), not f2(b,c), not f2(c,d), not f2(d,e).
+
+qry:- not qr.
 
 % Example query: qry.
 % python3 pasta.py mky.lp --query="qry"

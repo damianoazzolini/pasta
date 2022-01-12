@@ -51,7 +51,7 @@ class Generator:
         if "[" not in conditional or "]" not in conditional:
             sys.exit("Missing range in conditional: " + conditional)
         if not conditional.endswith("."):
-            sys.exit("Missing final .")
+            sys.exit("Missing final . in " + conditional)
         
         conditional = conditional[:-1]
         i = 1
