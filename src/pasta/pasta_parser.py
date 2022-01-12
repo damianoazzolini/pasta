@@ -35,11 +35,11 @@ class PastaParser:
         return self.probabilistic_facts
 
     @staticmethod
-    def endline_content(char1: str) -> bool:
+    def symbol_endline_or_space(char1: str) -> bool:
         return char1 == '\n' or char1 == '\r\n' or char1 == ' '
 
     @staticmethod
-    def endline_comment(char1: str) -> bool:
+    def endline_symbol(char1: str) -> bool:
         return char1 == '\n' or char1 == '\r\n'
 
     @staticmethod
@@ -63,7 +63,7 @@ class PastaParser:
     # can this be static?
     def check_consistent_prob_fact(self, line: str) -> Union[float, str]:
         if not line.endswith('.'):
-            sys.exit("Missing ending . in " + line)
+            sys.exit("Missing final . in " + line)
 
         line = line.split("::")
         # for example: line = ['0.5', 'f(1..3).']
@@ -71,6 +71,7 @@ class PastaParser:
             sys.exit("Error in parsing: " + str(line))
 
         if not self.is_number(line[0]):
+            print("---- ")
             sys.exit("Error: expected a float, found " + str(line[0]))
 
         prob = float(line[0])
@@ -121,18 +122,18 @@ class PastaParser:
             sys.exit()
 
         # eat possible white spaces or empty lines
-        while self.endline_content(char):
+        while self.symbol_endline_or_space(char):
             char = f.read(1)
-
-        char1 = f.read(1)
 
         comment = False
         if char == '%':
             comment = True
+
+        char1 = f.read(1)
         
         while char1:
             l0 = ""
-            while char1 and not(((char == '.' and not comment) and self.endline_content(char1)) or (comment and self.endline_comment(char1))):
+            while char1 and not(((char == '.' and not comment) and self.symbol_endline_or_space(char1)) or (comment and self.endline_symbol(char1))):
                 # look for a . followed by \n
                 l0 = l0 + char
                 char = char1
@@ -151,11 +152,17 @@ class PastaParser:
                 else:
                     l1 = l0.replace(' ','')
 
+                # hack to handle something like: 0.5::a % comment, to remove
+                # the part after the %
+                percent = l1.find('%')
+                if percent != -1:
+                    l1 = l1[:percent]
+
                 self.lines_original.append(l1)
             char = char1
             # eat white spaces or empty lines
             char1 = f.read(1)
-            while self.endline_content(char1):
+            while self.symbol_endline_or_space(char1):
                 char1 = f.read(1)
             if char1 == '%':
                 comment = True
