@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
             f.write(":- #count{X:h(X),r(X,_)} = H, #count{Y,X:f2(X,Y),h(Y),r(X,Y)} = FH, 10*FH < 9*H.\n")
 
-            f.write("qry:- f1(A).\nqry:- f2(A, B).\n\n")
+            f.write("qry:- f(0),f(0,1).\n\n")
 
             # selects 50% of the elements
             elements = random.sample(list(set(le)), int(i/2))
