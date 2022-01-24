@@ -1,6 +1,9 @@
 % There are 4 birds (indexed with 1,2,3, and 4), each one with 
 % probability 0.5
-0.5::bird(1..4).
+0.5::bird(1).
+0.5::bird(2).
+0.5::bird(3).
+0.5::bird(4).
 
 % A bird can fly or not fly
 fly(X);nofly(X):- bird(X).

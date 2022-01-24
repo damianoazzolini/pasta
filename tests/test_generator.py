@@ -16,6 +16,10 @@ class TestExtractVars(unittest.TestCase):
     def test_correct(self):
         self.assertCountEqual(["B","C"], generat.Generator.extract_vars("f(a,B,C)"), "Error")
 
+class TestExpandAbducible(unittest.TestCase):
+    def test_correct(self):
+        pass
+
 class TestExpandConditional(unittest.TestCase):
     def test_correct_1(self):
         res = generat.Generator.expand_conditional(

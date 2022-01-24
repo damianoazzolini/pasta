@@ -1,6 +1,15 @@
 % There are 10 birds (indexed with 1,2,...,10), each one with 
 % probability 0.5
-0.5::bird(1..10).
+0.5::bird(1).
+0.5::bird(2).
+0.5::bird(3).
+0.5::bird(4).
+0.5::bird(5).
+0.5::bird(6).
+0.5::bird(7).
+0.5::bird(8).
+0.5::bird(9).
+0.5::bird(10).
 
 % A bird can fly or not fly
 fly(X);nofly(X):- bird(X).

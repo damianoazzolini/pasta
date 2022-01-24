@@ -1,7 +1,8 @@
-from os import stat
+from email import parser
 import time
 import sys
 from typing import Union
+import argparse
 
 # local
 import pasta_parser
@@ -139,14 +140,45 @@ class Pasta:
             sys.exit()
 
         return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8]
+
+    def abduction(self) -> Union[float,float,list]:
+        start_time = time.time()
+        parser = pasta_parser.PastaParser(
+            self.filename, self.precision, self.query, self.evidence)
+        parser.parse()
+
+        if verbose:
+            print("Parsed program")
+        pass
      
 
 if __name__ == "__main__":
+    # command_parser = argparse.ArgumentParser()
+    # command_parser.add_argument("program",help="Program to analyse",type=str)
+    # command_parser.add_argument("-q","--query", help="Query", type=str)
+    # command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
+    # command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
+    # command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
+    # command_parser.add_argument("-p","--precision", help="Precision, default 3", type=int)
+    
+    # args = command_parser.parse_args()
+    # print(args)
+    # sys.exit()
+
+    # TODO
     verbose,pedantic,filename,precision,query,evidence = Pasta.parse_command_line(sys.argv)
-
+    
+    abduction = False
+    
     pasta_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
-    lp,up = pasta_solver.solve()    
+    
+    if abduction:
+        lp,up,abducibles = pasta_solver.abduction()
+    else:
+        lp,up = pasta_solver.solve()    
 
+    # this because the query can be specified in the program and this class
+    # have the query field empty
     if query is None:
         if lp == up:
             print("Lower probability == upper probability for the query: " + lp)

@@ -1,10 +1,15 @@
 '''
 Class defining a parser for a PASTA program.
 '''
+from ctypes import util
 import os
 import sys
 from typing import Union
 import re
+
+import utils
+
+# from matplotlib import lines
 # from typing import Dict, Union
 
 import generator
@@ -27,6 +32,7 @@ class PastaParser:
         self.query = query
         self.evidence = evidence
         self.probabilistic_facts = dict() # pairs [fact,prob]
+        self.abducibles = []
 
     def get_n_prob_facts(self) -> int:
         return len(self.probabilistic_facts)
@@ -50,7 +56,16 @@ class PastaParser:
             return False
         return True
 
-    # from fa(32) returns fa
+    @staticmethod
+    def is_int(n: int) -> bool:
+        try:
+            int(n)
+        except ValueError:
+            return False
+        return True
+
+    # extracts the functor from a compound term. If the term is an atom
+    # returns the atom itself
     @staticmethod
     def get_functor(term: str) -> str:
         r = ""
@@ -60,8 +75,8 @@ class PastaParser:
             i = i + 1
         return r
 
-    # can this be static?
-    def check_consistent_prob_fact(self, line: str) -> Union[float, str]:
+    @staticmethod
+    def check_consistent_prob_fact(line: str) -> Union[float, str]:
         if not line.endswith('.'):
             sys.exit("Missing final . in " + line)
 
@@ -70,7 +85,7 @@ class PastaParser:
         if len(line) != 2:
             sys.exit("Error in parsing: " + str(line))
 
-        if not self.is_number(line[0]):
+        if not PastaParser.is_number(line[0]):
             print("---- ")
             sys.exit("Error: expected a float, found " + str(line[0]))
 
@@ -86,21 +101,6 @@ class PastaParser:
             sys.exit("Invalid probabilistic fact " + str(term))
 
         return prob, term
-
-    # from f(12) returns 12, does some basic checks
-    # returns also True if range, false otherwise
-    @staticmethod
-    def extract_atom_between_brackets(fact: str) -> Union[list, bool]:
-        val = re.findall(r'\(([^()]+)\)', fact)
-
-        if len(val) == 1:
-            if ".." in val[0]:
-                return val[0].split(".."), True
-            else:
-                return val[0].split(','), False
-        else:
-            # fact not defined with a range
-            return None, False
 
     '''
     Parameters:
@@ -149,8 +149,20 @@ class PastaParser:
                         el = el.replace(' ', '')
                         l1 = l1 + el + " not "
                     l1 = l1[:-4]  # remove last not
+                elif l0.startswith('abducible'):
+                    l0 = l0.split('abducible')
+                    for i in range(1,len(l0)):
+                        l0[i] = l0[i].replace(' ', '')
+                    l1 = "abducible"
+                    for el in range(1,len(l0)):
+                        l1 = l1 + ' ' + l0[i]
+                    print(l1)
                 else:
                     l1 = l0.replace(' ','')
+
+                if l0[0].startswith('not_'):
+                    utils.print_waring("The head of a clause that starts with not_ is not suggested.")
+                    utils.print_waring("Hou should change its name. If not, you may get a wrong probability range")
 
                 # hack to handle something like: 0.5::a % comment, to remove
                 # the part after the %
@@ -180,35 +192,19 @@ class PastaParser:
             self.check_reserved(line)
             if "::" in line and not line.startswith('%'):
                 if ':-' in line:
-                    print('Probabilistic clauses are not supported')
-                    print("-> " + line)
-                    sys.exit()
-                if 'not_' in line:
-                    print('Please define probabilistic facts without using not_')
-                    print("-> " + line)
-                    sys.exit()
+                    utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
-                    print('Disjunction is not yet supported in probabilistic facts')
-                    print('please rewrite them as single facts.')
-                    print('Example: 0.6::a;0.2::b. can be written as')
-                    print('0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)')
+                    utils.print_error_and_exit(
+                        "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
                 # line with probability value
                 probability, fact = self.check_consistent_prob_fact(line)
-                arguments = self.extract_atom_between_brackets(fact)
-                functor = self.get_functor(fact)
 
                 self.add_probabilistic_fact(fact,probability)
-                # print(self.probabilistic_facts)
-                # sys.exit()
 
-                dom, args = gen.generate_dom_fact(functor,arguments)
+                clauses = gen.generate_clauses_from_facts(fact,probability,self.precision)
 
-                self.lines_prob.append([dom])
-
-                generat, clauses = gen.generate_generator(functor,args,arguments,probability,self.precision)
-
-                clauses.append(generat)
                 self.lines_prob.append(clauses)
+
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):
                 # remove the "query" functor and handles whether the line
@@ -230,19 +226,27 @@ class PastaParser:
                 expanded_conditional = gen.expand_conditional(line)
                 for el in expanded_conditional:
                     self.lines_prob.append([el])
+            elif line.startswith("abducible"):
+                expanded_abducible, abducibles = gen.expand_abducible(line)
+                self.lines_prob.append([expanded_abducible])
+                self.abducibles.append(abducibles)
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append([line])
             
             # generate the model clause
             # Do here since i need to know how the number of probabilistic facts
-        if n_probabilistic_facts == 0:
-            print("This is not a probabilistic answer set program.")
-            print("No probabilities detected.")
-            print("Please specify at least one probabilistic fact with")
-            print("prob::fact. For example: 0.5::a. states that a has")
-            print("probability 0.5.")
-            sys.exit()
+        # TODO: add a flag abduction since there can be abducibles without probabilistic facts
+        # if n_probabilistic_facts == 0:
+        #     print("This is not a probabilistic answer set program.")
+        #     print("No probabilities detected.")
+        #     print("Please specify at least one probabilistic fact with")
+        #     print("prob::fact. For example: 0.5::a. states that a has")
+        #     print("probability 0.5.")
+        #     sys.exit()
+
+        # print(self.lines_prob)
+        # sys.exit()
 
         # flatten the list, maybe try to avoid this
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
@@ -277,8 +281,7 @@ class PastaParser:
     '''
     def get_content_to_compute_minimal_prob_facts(self) -> list:
         if self.query is None:
-            print("Missing query")
-            sys.exit()
+            sys.exit("Missing query")
         
         if self.evidence is None:
             prog = self.lines_prob + [":- not " + self.query + "."]
@@ -324,29 +327,13 @@ class PastaParser:
         print("Trying to replace it with probability " + str(prob) + ".")
 
     # adds the current probabilistic fact and its probability in the 
-    # list of probabilistic facts. Also explodes the ranges
+    # list of probabilistic facts
     def add_probabilistic_fact(self, term : str, prob : float) -> None:
-        if ".." in term:
-            line = term.split("(")
-            functor = line[0]
-            interval = line[1][:-1] # to remove )
-            interval = interval.split("..")
-            lb = int(interval[0])
-            ub = int(interval[1])
-
-            for i in range(lb, ub + 1):
-                key = functor + "(" + str(i) + ")"
-                if key in self.probabilistic_facts:
-                    self.error_prob_fact_twice(key,prob)
-                    sys.exit()
-                self.probabilistic_facts[key] = int(prob*(10**self.precision))
-        else:
-            # split to remove the . (if present)
-            key = term.split('.')[0]
-            if key in self.probabilistic_facts:
-                self.error_prob_fact_twice(key, prob)
-                sys.exit()
-            self.probabilistic_facts[key] = int(prob*(10**self.precision))
+        key = term.split('.')[0]
+        if key in self.probabilistic_facts:
+            self.error_prob_fact_twice(key, prob)
+            sys.exit()
+        self.probabilistic_facts[key] = int(prob*(10**self.precision))
 
     '''
     string representation of the current class

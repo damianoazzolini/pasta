@@ -3,8 +3,10 @@
 % Birds of type a have an associated probability
 % of 0.5 while birds of type a have an associated 
 % probability of 0.4 
-0.5::bird_a(1..2).
-0.4::bird_b(1..2).
+0.5::bird_a(1).
+0.5::bird_a(2).
+0.4::bird_b(1).
+0.4::bird_b(2).
 
 % A bird (of type a or b) can fly or not fly
 fly_a(X);nofly_a(X):- bird_a(X).
