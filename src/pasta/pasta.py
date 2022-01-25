@@ -1,7 +1,7 @@
-from email import parser
 import time
 import sys
 from typing import Union
+
 import argparse
 
 # local
@@ -35,43 +35,6 @@ class Pasta:
         print("\t--pedantic: pedantic mode (more verbose than --verbose). Default: off.")
         print("\t--precision=,-p=: set the required precision. Example: --precision=3. Default = 3.")
         print("\t--help,-h: print this help page")
-    
-    @staticmethod
-    def parse_command_line(args: str) -> Union[bool, bool, str, int, str, str]:
-        verbose = False
-        pedantic = False
-        filename = ""
-        precision = 3  # default value
-        query = None
-        evidence = None
-        # for i in range(0,len(args)):
-        i = 0
-        while i < len(args):
-            if args[i] == "--verbose" or args[i] == "-v":
-                verbose = True
-            elif args[i] == "--pedantic":
-                verbose = True
-                pedantic = True
-            elif args[i].startswith("--precision=") or args[i].startswith("-p="):
-                precision = int(args[i].split('=')[1])
-            elif args[i] == "--help" or args[i] == "-h":
-                Pasta.print_help()
-                sys.exit()
-            elif args[i].startswith("--query=") or args[i].startswith("-q="):
-                query = args[i].split("=")[1].replace("\"", "")
-            elif args[i].startswith("--evidence=") or args[i].startswith("-q="):
-                evidence = args[i].split("=")[1].replace("\"", "")
-            else:
-                if i + 1 < len(args):
-                    filename = args[i+1]
-                    i = i + 1
-            i = i + 1
-
-        if filename == "":
-            print("Missing filename")
-            sys.exit()
-
-        return verbose, pedantic, filename, precision, query, evidence
 
     @staticmethod
     def truncate_prob(s: float) -> str:
@@ -87,30 +50,30 @@ class Pasta:
 
         return s0 + "." + s[:i+1]
     
-    def solve(self) -> Union[float,float]:
+    def solve(self) -> Union[float,float,list]:
         start_time = time.time()
-        parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
-        parser.parse()
+        program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
+        program_parser.parse()
 
-        if verbose:
+        if self.verbose:
             print("Parsed program")
 
-        content_find_minimal_set = parser.get_content_to_compute_minimal_prob_facts()
+        content_find_minimal_set = program_parser.get_content_to_compute_minimal_set_facts()
 
-        asp_program = parser.get_asp_program()
+        asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(content_find_minimal_set, evidence, asp_program, parser.get_dict_prob_facts(), self.precision)
+        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision)
 
-        exec_time = interface.get_minimal_set_probabilistic_facts()
+        exec_time = interface.get_minimal_set_facts()
 
-        if verbose:
+        if self.verbose:
             print("Computed cautious consequences in %s seconds" % (exec_time))
-            if pedantic:
+            if self.pedantic:
                 print("--- Minimal set of probabilistic facts ---")
                 print(interface.get_cautious_consequences())
                 print("---")
 
-        if pedantic:
+        if self.pedantic:
             print("--- Asp program ---")
             interface.print_asp_program()
             print("---")
@@ -119,75 +82,71 @@ class Pasta:
                 print(e)
             print("---")
 
-        computed_models, n_worlds, grounding_time, computation_time, world_analysis_time = interface.compute_probabilities()
+        if len(program_parser.abducibles) > 0:
+            interface.abduction()
+        else:
+            interface.compute_probabilities()
         end_time = time.time() - start_time
 
-        if verbose:
-            print("Computed models: " + str(computed_models))
-            print("Considered worlds: " + str(n_worlds))
-            print("Grounding time (s): " + str(grounding_time))
-            print("Probability computation time (s): " + str(computation_time))
-            print("World analysis time (s): " + str(world_analysis_time))
+        if self.verbose:
+            print("Computed models: " + str(interface.computed_models))
+            print("Considered worlds: " + str(interface.n_worlds))
+            print("Grounding time (s): " + str(interface.grounding_time))
+            print("Probability computation time (s): " + str(interface.computation_time))
+            print("World analysis time (s): " + str(interface.world_analysis_time))
             print("Total time (s): " + str(end_time))
 
-        uq = interface.get_upper_probability_query()
-        lq = interface.get_lower_probability_query()
+        if len(program_parser.probabilistic_facts) > 0:
+            uq = interface.get_upper_probability_query()
+            lq = interface.get_lower_probability_query()
 
-        if (lq > uq) or lq > 1 or uq > 1:
-            print("Error in computing probabilities")
-            print("Lower: " + '{:.8f}'.format(lq))
-            print("Upper: " + '{:.8f}'.format(uq))
-            sys.exit()
+            if (lq > uq) or lq > 1 or uq > 1:
+                print("Error in computing probabilities")
+                print("Lower: " + '{:.8f}'.format(lq))
+                print("Upper: " + '{:.8f}'.format(uq))
+                sys.exit()
 
-        return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8]
-
-    def abduction(self) -> Union[float,float,list]:
-        start_time = time.time()
-        parser = pasta_parser.PastaParser(
-            self.filename, self.precision, self.query, self.evidence)
-        parser.parse()
-
-        if verbose:
-            print("Parsed program")
-        pass
-     
+        if len(program_parser.abducibles) == 0:
+            return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8], []
+        elif len(program_parser.probabilistic_facts) == 0:
+            return -1, -1, interface.abductive_explanations
 
 if __name__ == "__main__":
-    # command_parser = argparse.ArgumentParser()
-    # command_parser.add_argument("program",help="Program to analyse",type=str)
-    # command_parser.add_argument("-q","--query", help="Query", type=str)
-    # command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
-    # command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
-    # command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
-    # command_parser.add_argument("-p","--precision", help="Precision, default 3", type=int)
+    command_parser = argparse.ArgumentParser()
+    command_parser.add_argument("filename",help="Program to analyse",type=str)
+    command_parser.add_argument("-q","--query", help="Query", type=str)
+    command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
+    command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
+    command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
+    command_parser.add_argument("-p", "--precision", help="Precision, default 3", type=int, default=3)
     
-    # args = command_parser.parse_args()
-    # print(args)
-    # sys.exit()
+    args = command_parser.parse_args()
 
-    # TODO
-    verbose,pedantic,filename,precision,query,evidence = Pasta.parse_command_line(sys.argv)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic)
     
-    abduction = False
-    
-    pasta_solver = Pasta(filename, query, evidence, precision, verbose, pedantic)
-    
-    if abduction:
-        lp,up,abducibles = pasta_solver.abduction()
-    else:
-        lp,up = pasta_solver.solve()    
+    lp, up, abd_explanations = pasta_solver.solve()
 
     # this because the query can be specified in the program and this class
     # have the query field empty
-    if query is None:
-        if lp == up:
-            print("Lower probability == upper probability for the query: " + lp)
+    if float(lp) >= 0 and float(up) >= 0:
+        if args.query is None:
+            if lp == up:
+                print("Lower probability == upper probability for the query: " + lp)
+            else:
+                print("Lower probability for the query: " + lp)
+                print("Upper probability for the query: " + up)
         else:
-            print("Lower probability for the query: " + lp)
-            print("Upper probability for the query: " + up)
-    else:
-        if lp == up:
-            print("Lower probability == upper probability for the query " + query + ": " + lp)
-        else:
-            print("Lower probability for the query " + query + ": " + lp)
-            print("Upper probability for the query " + query + ": " + up)
+            if lp == up:
+                print("Lower probability == upper probability for the query " + args.query + ": " + lp)
+            else:
+                print("Lower probability for the query " + args.query + ": " + lp)
+                print("Upper probability for the query " + args.query + ": " + up)
+    elif lp == -1 and up == -1:
+        print("Abductive explanations ")
+        for i in range(0,len(abd_explanations)):
+            print("Explanation " + str(i))
+            print("{ ", end="")
+            for a in abd_explanations[i]:
+                if a != "q" and not a.startswith("not_"):
+                    print(a[4:] + " ", end="")
+            print("}")

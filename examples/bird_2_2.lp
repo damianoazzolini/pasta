@@ -24,7 +24,8 @@ fly_b(X);nofly_b(X):- bird_b(X).
 fly_1:- fly_a(1).
 fly_1:- fly_b(1).
 
+query(fly_1).
 % Example query: fly_1
 % What is the lower and the upper bound for the probability of
 % the query fly_1?
-% Expected: lower 0.21, upper: 0.52 
+% Expected: lower 0.6, upper: 0.7 

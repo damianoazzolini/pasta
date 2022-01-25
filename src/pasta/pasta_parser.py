@@ -1,13 +1,14 @@
 '''
 Class defining a parser for a PASTA program.
 '''
-from ctypes import util
 import os
 import sys
 from typing import Union
-import re
 
 import utils
+
+import time
+from timeit import default_timer as timer
 
 # from matplotlib import lines
 # from typing import Dict, Union
@@ -24,15 +25,18 @@ class PastaParser:
         - lines_prob: lines obtained by replacing probabilities 
           with log probabilities
     '''
-    def __init__(self, filename : str, precision : int ,query=None, evidence=None) -> None:
+
+    def __init__(self, filename: str, precision: int, query = None, evidence = None, identify_useless_facts = False) -> None:
         self.filename = filename
         self.precision = precision
-        self.lines_original = []
-        self.lines_prob = []
         self.query = query
         self.evidence = evidence
+        # self.identify_useless_facts = False
+        self.lines_original = []
+        self.lines_prob = []
         self.probabilistic_facts = dict() # pairs [fact,prob]
         self.abducibles = []
+        self.prolog_time = 0
 
     def get_n_prob_facts(self) -> int:
         return len(self.probabilistic_facts)
@@ -156,7 +160,7 @@ class PastaParser:
                     l1 = "abducible"
                     for el in range(1,len(l0)):
                         l1 = l1 + ' ' + l0[i]
-                    print(l1)
+                    # print(l1)
                 else:
                     l1 = l0.replace(' ','')
 
@@ -183,9 +187,9 @@ class PastaParser:
             # print(char)
             # print(char1)
         f.close()
-        self.insert_worlds_generator()
+        self.parse_program()
 
-    def insert_worlds_generator(self) -> bool:
+    def parse_program(self) -> bool:
         n_probabilistic_facts = 0
         gen = generator.Generator()
         for line in self.lines_original:
@@ -201,9 +205,9 @@ class PastaParser:
 
                 self.add_probabilistic_fact(fact,probability)
 
-                clauses = gen.generate_clauses_from_facts(fact,probability,self.precision)
+                # clauses = gen.generate_clauses_for_facts(fact,probability,self.precision)
 
-                self.lines_prob.append(clauses)
+                # self.lines_prob.append(clauses)
 
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query"):
@@ -223,51 +227,115 @@ class PastaParser:
                 else:
                     self.evidence = line.split("evidence")[1][:-1][1:]
             elif line.startswith("("):
-                expanded_conditional = gen.expand_conditional(line)
+                expanded_conditional = gen.generate_clauses_for_conditionals(line)
                 for el in expanded_conditional:
                     self.lines_prob.append([el])
             elif line.startswith("abducible"):
-                expanded_abducible, abducibles = gen.expand_abducible(line)
-                self.lines_prob.append([expanded_abducible])
-                self.abducibles.append(abducibles)
+                _, abducible = gen.generate_clauses_for_abducibles(line, 0)
+                # self.lines_prob.append(clauses)
+                # self.abducibles.append(abducible)
+                self.abducibles.append(abducible)
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append([line])
+        if self.query is None:
+            utils.print_error_and_exit("Missing query")
             
-            # generate the model clause
-            # Do here since i need to know how the number of probabilistic facts
-        # TODO: add a flag abduction since there can be abducibles without probabilistic facts
-        # if n_probabilistic_facts == 0:
-        #     print("This is not a probabilistic answer set program.")
-        #     print("No probabilities detected.")
-        #     print("Please specify at least one probabilistic fact with")
-        #     print("prob::fact. For example: 0.5::a. states that a has")
-        #     print("probability 0.5.")
-        #     sys.exit()
-
-        # print(self.lines_prob)
-        # sys.exit()
-
-        # flatten the list, maybe try to avoid this
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
+
+        # if self.identify_useless_facts:
+        #     start = timer()
+        #     from pyswip import Prolog
+        #     prolog = Prolog()
+        #     prolog.consult(
+        #         "/mnt/c/Users/damia/Desktop/Ricerca/Repos/pasta/src/pasta/atoms_extractor.pl")
+        #     filename_pl = "temp.pl"
+        #     f = open(filename_pl,"w")
+        #     f.write(":-style_check(-discontiguous).\n")
+        #     f.write(":-style_check(-singleton).\n\n")
+        #     f.write(":- table " + self.query.split("(")[0] + "/" + str(self.query.count(',') + self.query.count('(')) + ".\n\n")
+        #     n_ics = 0
+        #     goal_index = 0
+        #     for l in self.lines_prob:
+        #         l1, n_ics, goal_index, ic_to_goal = generator.Generator.to_prolog(l,n_ics,goal_index)
+        #         for el in l1:
+        #             # print(el)
+        #             # prolog.assertz(el)
+        #             f.write(el + '\n')
+        #         if ic_to_goal:
+        #             # a = self.query + ":- newGoalFromICInserted" + str(n_ics - 1)
+        #             # prolog.assertz(a)
+        #             f.write(self.query + ":- newGoalFromICInserted" + str(n_ics - 1) + ".\n")
+        #     p_facts_string = "["
+        #     if len(self.probabilistic_facts) > 0:
+        #         for pf in self.probabilistic_facts:
+        #             # prolog.assertz(pf)
+        #             f.write(pf + ".\n")
+        #             p_facts_string = p_facts_string + pf + ","
+        #         p_facts_string = p_facts_string[:-1] + "]"
+        #     else:
+        #         p_facts_string = p_facts_string + "]"
+            
+        #     abd_string = "["
+        #     if len(self.abducibles) > 0:
+        #         for abd in self.abducibles:
+        #             abd_string = abd_string + abd + ","
+        #             # prolog.assertz(abd)
+        #             f.write(abd + ".\n")
+        #         abd_string = abd_string[:-1] + "]"
+        #     else:
+        #         abd_string = abd_string + "]"
+                        
+        #     f.close()
+            
+        #     # call to prolog
+        #     sys.exit()
+            
+        #     prolog.consult("temp.pl")
+            
+        #     query = "get_facts(" + self.query +"," + abd_string + "," + p_facts_string + ",A,F)"
+        #     for sol in prolog.query(query):
+        #         abd = sol["A"]
+        #         prob_facts = sol["F"]
+
+        #     end = timer()
+        #     self.prolog_time = end - start
+        #     # overwrite self.abducibles
+        #     self.abducibles = [str(a) for a in abd]
+        #     # remove prob facts from dict
+        #     prob_facts = [str(a) for a in prob_facts]
+        #     # print(prob_facts)
+        #     # print(self.probabilistic_facts)
+        #     for pf in list(self.probabilistic_facts):
+        #         if pf not in prob_facts:
+        #             del self.probabilistic_facts[pf]
+
+        for fact in self.probabilistic_facts:
+            clauses = gen.generate_clauses_for_facts(
+                fact, self.probabilistic_facts[fact]/(10**self.precision), self.precision)
+            for c in clauses:
+                self.lines_prob.append(c)
+
+        i = 0
+        for abd in self.abducibles:
+            # kind of hack, refactor generate_clauses_for abducibles TODO
+            clauses, _ = gen.generate_clauses_for_abducibles("abducible " + abd + ".", i)
+            i = i + 1
+            for c in clauses:
+                self.lines_prob.append(c)
 
         return True
 
-    # dummy check fo reserved facts
+    # dummy check for reserved facts
     def check_reserved(self, line : str) -> None:
         if line == 'q':
-            print("q is a reserved fact")
-            sys.exit()
+            utils.print_error_and_exit("q is a reserved fact")
         elif line == 'nq':
-            print("nq is a reserved fact")
-            sys.exit()
+            utils.print_error_and_exit("nq is a reserved fact")
         elif line == 'e':
-            print("e is a reserved fact")
-            sys.exit()
+            utils.print_error_and_exit("e is a reserved fact")
         elif line == 'ne':
-            print("ne is a reserved fact")
-            sys.exit()
-
+            utils.print_error_and_exit("ne is a reserved fact")
 
     '''
     Parameters:
@@ -279,10 +347,7 @@ class PastaParser:
         generate the file to pass to ASP to compute the minimal set
         of probabilistic facts to make the query true
     '''
-    def get_content_to_compute_minimal_prob_facts(self) -> list:
-        if self.query is None:
-            sys.exit("Missing query")
-        
+    def get_content_to_compute_minimal_set_facts(self) -> list:
         if self.evidence is None:
             prog = self.lines_prob + [":- not " + self.query + "."]
         else:
@@ -311,7 +376,6 @@ class PastaParser:
             self.lines_prob.append("#show e/0.")
             self.lines_prob.append("ne:- not " + self.evidence + ".")
             self.lines_prob.append("#show ne/0.")
-
 
         return self.lines_prob
 

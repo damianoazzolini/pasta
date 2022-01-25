@@ -1,6 +1,10 @@
 .vscode
 
 src/pasta/test.py 
+temp.pl
+
+atoms_extractor.pl
+prolog_test.pl
 
 prova.lp
 

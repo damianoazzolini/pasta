@@ -105,6 +105,7 @@ class ModelsHandler():
             elif term == "ne":
                 model_evidence = False
             else:
+                # TODO: here i suppose that everything is a compound with arity > 0, and not a term
                 term = term.split('(')
                 if term[1].count(',') == 0:  # arity original prob fact 0 (example: 0.2::a.)
                     id = id + term[0]
@@ -121,7 +122,6 @@ class ModelsHandler():
             # query without evidence
             return id, int(prob), model_query, False
         else:
-            # is this if really needed?
             # can I return directly model_query and model_evidence?
             # also in the case of evidence == None
             if (model_query == True) and (model_evidence == True):

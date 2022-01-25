@@ -20,6 +20,55 @@ class TestExpandAbducible(unittest.TestCase):
     def test_correct(self):
         pass
 
+# class TestToProlog(unittest.TestCase):
+#     def test_fact(self):
+#         line = "fly(1)."
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(line, res, "Error in test fact")
+
+#     def test_disjunctive_clause(self):
+#         line = "fly(X);nofly(X):- bird(X)."
+#         expected = ["fly(X):-bird(X).","nofly(X):-bird(X)."]
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(expected, res, "Error in test disjunctive")
+
+
+#     def test_disjunctive_clause_with_single_body_aggregate(self):
+#         line = "fly(X);nofly(X):- bird(X), #count{X:fly_a(X),bird_a(X)} = FBA."
+#         expected = ["newGoalInserted0:-fly_a(X),bird_a(X).",
+#                     "fly(X):-bird(X),newGoalInserted0.",
+#                     "nofly(X):-bird(X),newGoalInserted0."]
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(expected, res, "Error in test disjunctive single aggregate")
+
+#     def test_disjunctive_clause_with_two_body_aggregate(self):
+#         line = "fly(X);nofly(X):- bird(X), #count{X:fly_a(X),bird_a(X)} = FBA, #count{X:fly_a(X),bird_a(X)} = FBA."
+#         expected = ['newGoalInserted0:-fly_a(X),bird_a(X).', 'newGoalInserted1:-fly_a(X),bird_a(X).',
+#                     'fly(X):-bird(X),newGoalInserted0,newGoalInserted1.', 'nofly(X):-bird(X),newGoalInserted0,newGoalInserted1.']
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(expected, res, "Error in test disjunctive two aggregates")
+
+#     def test_head_aggregate_no_body(self):
+#         line = "0{a}1."
+#         expected = ['a.']
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(
+#             expected, res, "Error in test head aggregate no body")
+
+#     def test_head_aggregate_with_body(self):
+#         line = "0{a}1:- f(a)."
+#         expected = ['a:-f(a).']
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(
+#             expected, res, "Error in test head aggregate with body")
+
+#     def test_integrity_constraint(self):
+#         line = ":- f(a)."
+#         expected = ['newGoalInserted0:-f(a).']
+#         res = generat.Generator.to_prolog(line)
+#         self.assertEqual(
+#             expected, res, "Error in test integrity constraint")
+
 class TestExpandConditional(unittest.TestCase):
     def test_correct_1(self):
         res = generat.Generator.expand_conditional(
