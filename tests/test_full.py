@@ -13,12 +13,16 @@ spec.loader.exec_module(past)
 
 
 class TestBird(unittest.TestCase):
-    def wrap_test(self, filename, query, evidence, test_name, expected_lp, expected_up):
+    def wrap_test(self, filename, query, evidence, test_name, expected_lp, expected_up, expected_abd = None):
         pasta_solver = past.Pasta(filename, query, evidence, 3, False, False)
-        lp, up, _ = pasta_solver.solve()
+        lp, up, abd = pasta_solver.solve()
 
-        self.assertEqual(float(lp), expected_lp, test_name + ": wrong lower probability")
-        self.assertEqual(float(up), expected_up, test_name + ": wrong upper probability")
+        if expected_lp is not None and expected_up is not None:
+            self.assertEqual(float(lp), expected_lp, test_name + ": wrong lower probability")
+            self.assertEqual(float(up), expected_up, test_name + ": wrong upper probability")
+        if expected_abd is not None:
+            self.assertEqual(abd, expected_abd, test_name + ": wrong abductive explanation")
+
 
     def test_queries(self):
         self.wrap_test("../examples/bird_2_2.lp","fly_1", None, "bird_2_2_fly_1",0.6, 0.7)
@@ -36,6 +40,12 @@ class TestBird(unittest.TestCase):
     def test_conditionals(self):
         self.wrap_test("../examples/conditionals/bird_4_cond.lp", "fly", None, "bird_4_cond_q_fly_1", 0.7, 1.0)
         self.wrap_test("../examples/conditionals/smokers.lp", "smk", None, "bird_4_cond_q_fly_1", 0.7, 0.70627)
+
+    def test_deterministic_abduction(self):
+        self.wrap_test("../examples/abduction/ex_1_det.lp", "q", None, "q", None, None, [['q','abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_2_det.lp", "q", None, "q", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "q", None, None,[['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+
 
 if __name__ == '__main__':
     unittest.main(buffer=True)
