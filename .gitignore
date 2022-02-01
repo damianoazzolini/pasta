@@ -6,7 +6,7 @@ temp.pl
 atoms_extractor.pl
 prolog_test.pl
 
-prova.lp
+src/pasta/prova.lp
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

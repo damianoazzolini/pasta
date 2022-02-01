@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import clingo
 from typing import Union
 import time
@@ -20,29 +21,28 @@ class AspInterface:
         - content: list with the program
     '''
 
-    def __init__(self, program_minimal_set: list, evidence: list, asp_program: list, probabilistic_facts: dict, n_abducibles : int, precision=3) -> None:
-        self.cautious_consequences = []
-        self.program_minimal_set = program_minimal_set
-        self.asp_program = asp_program
-        self.lower_probability_query = 0
-        self.upper_probability_query = 0
-        self.upper_probability_evidence = 0
-        self.lower_probability_evidence = 0
-        self.precision = precision
-        self.evidence = evidence
-        self.probabilistic_facts = probabilistic_facts # unused
-        self.n_prob_facts = len(probabilistic_facts)
-        self.n_abducibles = n_abducibles
-        self.constraint_times_list = []
-        self.computed_models = 0
-        self.grounding_time = 0
-        self.n_worlds = 0
-        self.world_analysis_time = 0
-        self.computation_time = 0
-        self.abductive_explanations = []
-
-    def get_cautious_consequences(self) -> str:
-        return self.cautious_consequences
+    def __init__(self, program_minimal_set: list, evidence: list, asp_program : list, probabilistic_facts : dict, n_abducibles : int, precision : int = 3, verbose : bool = False) -> None:
+        self.cautious_consequences : list = []
+        self.program_minimal_set : list = program_minimal_set
+        self.asp_program : list = asp_program
+        self.lower_probability_query : int = 0
+        self.upper_probability_query : int = 0
+        self.upper_probability_evidence : int = 0
+        self.lower_probability_evidence : int = 0
+        self.precision : int = precision
+        self.evidence : str = evidence
+        # self.probabilistic_facts = probabilistic_facts # unused
+        self.n_prob_facts : int = len(probabilistic_facts)
+        self.n_abducibles : int = n_abducibles
+        self.constraint_times_list : list = []
+        self.computed_models : int = 0
+        self.grounding_time : int = 0
+        self.n_worlds : int = 0
+        self.world_analysis_time : int = 0
+        self.computation_time : int = 0
+        self.abductive_explanations : list = []
+        self.abduction_time : int = 0
+        self.verbose : bool = verbose
 
     def get_lower_probability_query(self) -> float:
         return float(self.lower_probability_query)
@@ -136,38 +136,8 @@ class AspInterface:
 
         self.world_analysis_time = time.time() - start_time
 
-    '''
-    Abduction
-    '''
-    def abduction(self):
-        result = []
-        if self.n_prob_facts == 0 and self.n_abducibles > 0:
-            # (deterministic) abduction
-            # iteratively generates a program and query it
-            abducibles_list = []
-            for i in range(0, self.n_abducibles + 1):
-                # print("Models with " + str(i) + " abducibles")
-                currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
 
-                # currently computed è la lista di modelli calcolati
-                for i in range(0,len(currently_computed)):
-                    currently_computed[i] = currently_computed[i].split(' ')
-                    result.append(currently_computed[i])
-                
-                self.computed_models = self.computed_models + len(currently_computed)
-
-                if len(currently_computed) > 0:
-                    for cc in currently_computed:
-                        for el in cc:
-                            if el != "q" and not el.startswith('not_abd'):
-                                abducibles_list.append(el)
-                self.constraint_times_list.append(exec_time)
-        else:
-            # probabilistic abduction
-            pass
-        self.abductive_explanations = result
-
-    def abduction_iter(self, n_abd : int, previously_computed : list) -> Union[str,float]:
+    def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
         ctl = clingo.Control(["0", "--project"])
         for clause in self.asp_program:
             ctl.add('base', [], clause)
@@ -175,7 +145,7 @@ class AspInterface:
         if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 ctl.add('base', [], ":- not " + c + '.')
-        
+
         ctl.add('base', [], ':- not q.')
         ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
         ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
@@ -188,18 +158,63 @@ class AspInterface:
         self.grounding_time = time.time() - start_time
 
         computed_models = []
-        
+
         with ctl.solve(yield_=True) as handle:
             for m in handle:
                 # print(m)
                 computed_models.append(str(m))
                 # n_models = n_models + 1
             handle.get()
-        
+
         computation_time = time.time() - start_time
 
         return computed_models, computation_time
 
+    '''
+    Abduction
+    '''
+    def abduction(self):
+        result = []
+        start_time = time.time()
+        abducibles_list = []
+        model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, None)
+
+        for i in range(0, self.n_abducibles + 1):
+            if self.verbose:
+                print("Models with " + str(i) + " abducibles")
+            currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
+
+            if self.n_prob_facts == 0:
+                # currently computed: list of computed models
+                for i in range(0,len(currently_computed)):
+                    currently_computed[i] = currently_computed[i].split(' ')
+                    result.append(currently_computed[i])
+                
+                self.computed_models = self.computed_models + len(currently_computed)
+
+                # do this only if deterministic abduction
+                if len(currently_computed) > 0:
+                    for cc in currently_computed:
+                        for el in cc:
+                            if el != "q" and not el.startswith('not_abd'):
+                                abducibles_list.append(el)
+            else:
+                for el in currently_computed:
+                    model_handler.add_model_abduction(str(el))
+
+                self.lower_probability_query, self.upper_probability_query = model_handler.compute_lower_upper_probability()
+
+            # keep the best model
+            self.lower_probability_query, self.upper_probability_query = model_handler.keep_best_model()
+            self.constraint_times_list.append(exec_time)
+
+        for el in model_handler.abd_worlds_dict:
+            result.append(el[1:].split(' '))
+
+        self.abduction_time = time.time() - start_time
+        self.abductive_explanations = result
+
+    
     # prints the ASP program
     def print_asp_program(self) -> None:
         for el in self.asp_program:

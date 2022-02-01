@@ -1,5 +1,6 @@
 import time
 import sys
+from tkinter.ttk import Progressbar
 from typing import Union
 
 import argparse
@@ -62,7 +63,7 @@ class Pasta:
 
         asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision)
+        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision, self.verbose)
 
         exec_time = interface.get_minimal_set_facts()
 
@@ -70,7 +71,7 @@ class Pasta:
             print("Computed cautious consequences in %s seconds" % (exec_time))
             if self.pedantic:
                 print("--- Minimal set of probabilistic facts ---")
-                print(interface.get_cautious_consequences())
+                print(interface.cautious_consequences)
                 print("---")
 
         if self.pedantic:
@@ -96,6 +97,8 @@ class Pasta:
             print("World analysis time (s): " + str(interface.world_analysis_time))
             print("Total time (s): " + str(end_time))
 
+        # print(program_parser)
+
         if len(program_parser.probabilistic_facts) > 0:
             uq = interface.get_upper_probability_query()
             lq = interface.get_lower_probability_query()
@@ -106,10 +109,30 @@ class Pasta:
                 print("Upper: " + '{:.8f}'.format(uq))
                 sys.exit()
 
-        if len(program_parser.abducibles) == 0:
-            return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8], []
-        elif len(program_parser.probabilistic_facts) == 0:
-            return -1, -1, interface.abductive_explanations
+        # print(lq)
+        # print(uq)
+        # print(interface.abductive_explanations)
+
+        if len(program_parser.probabilistic_facts) == 0:
+            return None, None, interface.abductive_explanations
+        else:
+            exp = interface.abductive_explanations if interface.n_abducibles > 0 else None
+            return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8], exp
+
+def print_prob(lp : str, up : str, query : str) -> None:
+    if query is None:
+        if lp == up:
+            print("Lower probability == upper probability for the query: " + lp)
+        else:
+            print("Lower probability for the query: " + lp)
+            print("Upper probability for the query: " + up)
+    else:
+        if lp == up:
+            print(
+                "Lower probability == upper probability for the query " + args.query + ": " + lp)
+        else:
+            print("Lower probability for the query " + query + ": " + lp)
+            print("Upper probability for the query " + query + ": " + up)
 
 if __name__ == "__main__":
     command_parser = argparse.ArgumentParser()
@@ -126,27 +149,27 @@ if __name__ == "__main__":
     
     lp, up, abd_explanations = pasta_solver.solve()
 
-    # this because the query can be specified in the program and this class
-    # have the query field empty
-    if float(lp) >= 0 and float(up) >= 0:
-        if args.query is None:
-            if lp == up:
-                print("Lower probability == upper probability for the query: " + lp)
-            else:
-                print("Lower probability for the query: " + lp)
-                print("Upper probability for the query: " + up)
-        else:
-            if lp == up:
-                print("Lower probability == upper probability for the query " + args.query + ": " + lp)
-            else:
-                print("Lower probability for the query " + args.query + ": " + lp)
-                print("Upper probability for the query " + args.query + ": " + up)
-    elif lp == -1 and up == -1:
+    print_prob(lp,up,args.query)
+    if abd_explanations is not None:
         print("Abductive explanations ")
+        # remove dominated
+        ls = []
+        for el in abd_explanations:
+            s = set()
+            for a in el:
+                if a.startswith("abd"):
+                    s.add(a[4:])
+            ls.append(s)
+
+        for i in range(0,len(ls)):
+            for j in range(i+1,len(ls)):
+                if ls[i].issubset(ls[j]):
+                    ls[j] = ''
+
+        abd_explanations = ls
+
+        # print(abd_explanations)
         for i in range(0,len(abd_explanations)):
-            print("Explanation " + str(i))
-            print("{ ", end="")
-            for a in abd_explanations[i]:
-                if a != "q" and not a.startswith("not_"):
-                    print(a[4:] + " ", end="")
-            print("}")
+            if len(abd_explanations[i]) > 0:
+                print("Explanation " + str(i))
+                print(sorted(abd_explanations[i]))

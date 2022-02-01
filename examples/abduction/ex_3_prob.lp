@@ -10,7 +10,7 @@ abducible d.
 
 q:- a, fa.
 q:- b,fb,c,fc.
-a:- a,fa,d,fd.
+q:- a,fa,d,fd.
 
 % query(q).
 % Expected result: {{a,b,c}}

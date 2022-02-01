@@ -19,11 +19,13 @@ class PastaParser:
     '''
     Parameters:
         - filename: name of the file to read
-        - query: query to answer
         - precision: multiplier for the log probabilities
+        - query: query
+        - evidence: evidence
         - lines_original: lines from the parsing of the original file
-        - lines_prob: lines obtained by replacing probabilities 
-          with log probabilities
+        - lines_prob: lines obtained by parsing probabilistic facts
+        - probabilistic_fact: dictionary containing pairs [probabilistic fact, probability]
+        - abducibles: list of abducibles
     '''
 
     def __init__(self, filename: str, precision: int, query = None, evidence = None, identify_useless_facts = False) -> None:
@@ -36,7 +38,6 @@ class PastaParser:
         self.lines_prob = []
         self.probabilistic_facts = dict() # pairs [fact,prob]
         self.abducibles = []
-        self.prolog_time = 0
 
     def get_n_prob_facts(self) -> int:
         return len(self.probabilistic_facts)
@@ -410,4 +411,5 @@ class PastaParser:
         "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \
         "n probabilistic facts:\n" + str(self.get_n_prob_facts()) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
-        "log probabilities file:\n" + str(self.lines_prob)
+        "probabilities file:\n" + str(self.lines_prob) + "\n" + \
+        (("abducibles: " + str(self.abducibles))  if self.abducibles != None else "")

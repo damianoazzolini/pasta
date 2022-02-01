@@ -44,7 +44,12 @@ class TestBird(unittest.TestCase):
     def test_deterministic_abduction(self):
         self.wrap_test("../examples/abduction/ex_1_det.lp", "q", None, "q", None, None, [['q','abd_a','abd_b']])
         self.wrap_test("../examples/abduction/ex_2_det.lp", "q", None, "q", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "q", None, None,[['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "q", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+
+    def test_probabilistic_abduction(self):
+        self.wrap_test("../examples/abduction/ex_1_prob.lp", "q", None, "q", 0.25, 0.25, [['abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_2_prob.lp", "q", None, "q", 0.75, 0.75, [['abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_prob.lp", "q", None, "q", 0.58, 0.58, [['abd_a', 'abd_b', 'abd_c', 'not_abd_d'], ['abd_a', 'abd_b', 'abd_c', 'abd_d']])
 
 
 if __name__ == '__main__':
