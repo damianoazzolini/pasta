@@ -29,15 +29,16 @@ class PastaParser:
     '''
 
     def __init__(self, filename: str, precision: int, query = None, evidence = None, identify_useless_facts = False) -> None:
-        self.filename = filename
-        self.precision = precision
-        self.query = query
-        self.evidence = evidence
-        # self.identify_useless_facts = False
-        self.lines_original = []
-        self.lines_prob = []
+        self.filename : str = filename
+        self.precision : int = precision
+        self.query : str = query
+        self.evidence : str = evidence
+        self.lines_original : list = []
+        self.lines_prob : list = []
         self.probabilistic_facts = dict() # pairs [fact,prob]
-        self.abducibles = []
+        self.abducibles : list = []
+        self.n_probabilistic_ics : int = 0
+        self.body_probabilistic_ics : list = []
 
     def get_n_prob_facts(self) -> int:
         return len(self.probabilistic_facts)
@@ -236,6 +237,24 @@ class PastaParser:
                 # self.lines_prob.append(clauses)
                 # self.abducibles.append(abducible)
                 self.abducibles.append(abducible)
+            elif self.is_number(line.split(':-')[0]):
+                # probabilistic IC p:- body.
+                # print("prob ic")
+                # generate the probabilistic fact
+                new_line = line.split(':-')[0] + "::icf" + str(self.n_probabilistic_ics) + "."
+                probability, fact = self.check_consistent_prob_fact(new_line)
+                self.add_probabilistic_fact(fact, probability)
+                new_clause = "ic" + str(self.n_probabilistic_ics) + ":- " + line.split(':-')[1]
+                self.lines_prob.append([new_clause])
+
+                new_ic_0 = ":- icf" + str(self.n_probabilistic_ics) + ", ic" + str(self.n_probabilistic_ics) + "."
+                self.lines_prob.append([new_ic_0])
+
+                new_ic_1 = ":- not icf" + str(self.n_probabilistic_ics) + ", not ic" + str(self.n_probabilistic_ics) + "."
+                self.lines_prob.append([new_ic_1])
+
+                self.n_probabilistic_ics = self.n_probabilistic_ics + 1
+                
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append([line])
@@ -243,73 +262,6 @@ class PastaParser:
             utils.print_error_and_exit("Missing query")
             
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
-
-        # if self.identify_useless_facts:
-        #     start = timer()
-        #     from pyswip import Prolog
-        #     prolog = Prolog()
-        #     prolog.consult(
-        #         "/mnt/c/Users/damia/Desktop/Ricerca/Repos/pasta/src/pasta/atoms_extractor.pl")
-        #     filename_pl = "temp.pl"
-        #     f = open(filename_pl,"w")
-        #     f.write(":-style_check(-discontiguous).\n")
-        #     f.write(":-style_check(-singleton).\n\n")
-        #     f.write(":- table " + self.query.split("(")[0] + "/" + str(self.query.count(',') + self.query.count('(')) + ".\n\n")
-        #     n_ics = 0
-        #     goal_index = 0
-        #     for l in self.lines_prob:
-        #         l1, n_ics, goal_index, ic_to_goal = generator.Generator.to_prolog(l,n_ics,goal_index)
-        #         for el in l1:
-        #             # print(el)
-        #             # prolog.assertz(el)
-        #             f.write(el + '\n')
-        #         if ic_to_goal:
-        #             # a = self.query + ":- newGoalFromICInserted" + str(n_ics - 1)
-        #             # prolog.assertz(a)
-        #             f.write(self.query + ":- newGoalFromICInserted" + str(n_ics - 1) + ".\n")
-        #     p_facts_string = "["
-        #     if len(self.probabilistic_facts) > 0:
-        #         for pf in self.probabilistic_facts:
-        #             # prolog.assertz(pf)
-        #             f.write(pf + ".\n")
-        #             p_facts_string = p_facts_string + pf + ","
-        #         p_facts_string = p_facts_string[:-1] + "]"
-        #     else:
-        #         p_facts_string = p_facts_string + "]"
-            
-        #     abd_string = "["
-        #     if len(self.abducibles) > 0:
-        #         for abd in self.abducibles:
-        #             abd_string = abd_string + abd + ","
-        #             # prolog.assertz(abd)
-        #             f.write(abd + ".\n")
-        #         abd_string = abd_string[:-1] + "]"
-        #     else:
-        #         abd_string = abd_string + "]"
-                        
-        #     f.close()
-            
-        #     # call to prolog
-        #     sys.exit()
-            
-        #     prolog.consult("temp.pl")
-            
-        #     query = "get_facts(" + self.query +"," + abd_string + "," + p_facts_string + ",A,F)"
-        #     for sol in prolog.query(query):
-        #         abd = sol["A"]
-        #         prob_facts = sol["F"]
-
-        #     end = timer()
-        #     self.prolog_time = end - start
-        #     # overwrite self.abducibles
-        #     self.abducibles = [str(a) for a in abd]
-        #     # remove prob facts from dict
-        #     prob_facts = [str(a) for a in prob_facts]
-        #     # print(prob_facts)
-        #     # print(self.probabilistic_facts)
-        #     for pf in list(self.probabilistic_facts):
-        #         if pf not in prob_facts:
-        #             del self.probabilistic_facts[pf]
 
         for fact in self.probabilistic_facts:
             clauses = gen.generate_clauses_for_facts(
@@ -325,6 +277,9 @@ class PastaParser:
             for c in clauses:
                 self.lines_prob.append(c)
 
+        # for a in self.lines_prob:
+        #     print(a)
+        # sys.exit()
         return True
 
     # dummy check for reserved facts

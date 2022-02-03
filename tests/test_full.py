@@ -42,14 +42,15 @@ class TestBird(unittest.TestCase):
         self.wrap_test("../examples/conditionals/smokers.lp", "smk", None, "bird_4_cond_q_fly_1", 0.7, 0.70627)
 
     def test_deterministic_abduction(self):
-        self.wrap_test("../examples/abduction/ex_1_det.lp", "q", None, "q", None, None, [['q','abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_2_det.lp", "q", None, "q", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "q", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+        self.wrap_test("../examples/abduction/ex_1_det.lp", "q", None, "ex_1_det", None, None, [['q','abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_2_det.lp", "q", None, "ex_2_det", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "ex_3_det", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
 
     def test_probabilistic_abduction(self):
-        self.wrap_test("../examples/abduction/ex_1_prob.lp", "q", None, "q", 0.25, 0.25, [['abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_2_prob.lp", "q", None, "q", 0.75, 0.75, [['abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_3_prob.lp", "q", None, "q", 0.58, 0.58, [['abd_a', 'abd_b', 'abd_c', 'not_abd_d'], ['abd_a', 'abd_b', 'abd_c', 'abd_d']])
+        self.wrap_test("../examples/abduction/ex_1_prob.lp", "q", None, "ex_1_prob", 0.25, 0.25, [['abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_2_prob.lp", "q", None, "ex_2_prob", 0.75, 0.75, [['abd_a', 'abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_prob.lp", "q", None, "ex_3_prob", 0.58, 0.58, [['abd_a', 'abd_b', 'abd_c', 'not_abd_d'], ['abd_a', 'abd_b', 'abd_c', 'abd_d']])
+        self.wrap_test("../examples/abduction/ex_4_prob.lp", "q", None, "ex_4_prob", 0.648, 0.648, [['abd_c', 'abd_e']])
 
 
 if __name__ == '__main__':
