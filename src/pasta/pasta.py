@@ -17,6 +17,8 @@ class Pasta:
         self.precision = precision
         self.verbose = verbose
         self.pedantic = pedantic
+        if pedantic is True:
+            self.verbose = True
 
     @staticmethod
     def print_help() -> None:
@@ -128,8 +130,7 @@ def print_prob(lp : str, up : str, query : str) -> None:
             print("Upper probability for the query: " + up)
     else:
         if lp == up:
-            print(
-                "Lower probability == upper probability for the query " + args.query + ": " + lp)
+            print("Lower probability == upper probability for the query " + query + ": " + lp)
         else:
             print("Lower probability for the query " + query + ": " + lp)
             print("Upper probability for the query " + query + ": " + up)
@@ -149,9 +150,10 @@ if __name__ == "__main__":
     
     lp, up, abd_explanations = pasta_solver.solve()
 
-    print_prob(lp,up,args.query)
+    if lp != None:
+        print_prob(lp,up,args.query)
     if abd_explanations is not None:
-        print("Abductive explanations ")
+        print(str(len(abd_explanations)) + " abductive explanations ")
         # remove dominated
         ls = []
         for el in abd_explanations:
@@ -163,12 +165,12 @@ if __name__ == "__main__":
 
         for i in range(0,len(ls)):
             for j in range(i+1,len(ls)):
-                if ls[i].issubset(ls[j]):
-                    ls[j] = ''
+                if ls[j] != '':
+                    if ls[i].issubset(ls[j]):
+                        ls[j] = ''
 
         abd_explanations = ls
 
-        # print(abd_explanations)
         for i in range(0,len(abd_explanations)):
             if len(abd_explanations[i]) > 0:
                 print("Explanation " + str(i))

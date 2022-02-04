@@ -212,7 +212,7 @@ class PastaParser:
                 # self.lines_prob.append(clauses)
 
                 n_probabilistic_facts = n_probabilistic_facts + 1
-            elif line.startswith("query"):
+            elif line.startswith("query("):
                 # remove the "query" functor and handles whether the line
                 # does not terminate with .
                 # query(fly(1)) -> fly(1)
@@ -220,7 +220,7 @@ class PastaParser:
                     self.query = line.split("query")[1][:-2][1:]
                 else:
                     self.query = line.split("query")[1][:-1][1:]
-            elif line.startswith("evidence"):
+            elif line.startswith("evidence("):
                 if line[-1] == ".":
                     # remove the "evidence" functor and handles whether the line
                     # does not terminate with .
@@ -284,13 +284,13 @@ class PastaParser:
 
     # dummy check for reserved facts
     def check_reserved(self, line : str) -> None:
-        if line == 'q':
+        if line.startswith('q:-'):
             utils.print_error_and_exit("q is a reserved fact")
-        elif line == 'nq':
+        elif line.startswith('nq:-'):
             utils.print_error_and_exit("nq is a reserved fact")
-        elif line == 'e':
+        elif line.startswith('e:-'):
             utils.print_error_and_exit("e is a reserved fact")
-        elif line == 'ne':
+        elif line.startswith('ne:-'):
             utils.print_error_and_exit("ne is a reserved fact")
 
     '''

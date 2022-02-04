@@ -21,7 +21,7 @@ class TestBird(unittest.TestCase):
             self.assertEqual(float(lp), expected_lp, test_name + ": wrong lower probability")
             self.assertEqual(float(up), expected_up, test_name + ": wrong upper probability")
         if expected_abd is not None:
-            self.assertEqual(abd, expected_abd, test_name + ": wrong abductive explanation")
+            self.assertCountEqual(abd, expected_abd, test_name + ": wrong abductive explanation")
 
 
     def test_queries(self):
@@ -42,15 +42,17 @@ class TestBird(unittest.TestCase):
         self.wrap_test("../examples/conditionals/smokers.lp", "smk", None, "bird_4_cond_q_fly_1", 0.7, 0.70627)
 
     def test_deterministic_abduction(self):
-        self.wrap_test("../examples/abduction/ex_1_det.lp", "q", None, "ex_1_det", None, None, [['q','abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_2_det.lp", "q", None, "ex_2_det", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_3_det.lp", "q", None, "ex_3_det", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+        self.wrap_test("../examples/abduction/ex_1_det.lp", "query", None, "ex_1_det", None, None, [['abd_a', 'abd_b', 'q']])
+        self.wrap_test("../examples/abduction/ex_2_det.lp", "query", None, "ex_2_det", None, None, [['q','abd_a','not_abd_b'],['q','not_abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_det.lp", "query", None, "ex_3_det", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
+        self.wrap_test("../examples/abduction/ex_4_det.lp", "query", None, "ex_4_det", None, None, [['abd_a(1)', 'not_abd_b', 'not_abd_c','not_abd_d','q'], ['not_abd_a(1)','abd_b','abd_c','not_abd_d','q']])
+        self.wrap_test("../examples/abduction/smokes_det.lp", "smokes(c)", None, "smokes_det", None, None, [['abd_e(b,c)', 'not_abd_e(a,b)', 'not_abd_e(e,c)', 'not_abd_e(d,e)', 'not_abd_e(a,d)', 'q'], ['abd_e(e,c)', 'abd_e(d,e)', 'not_abd_e(a,b)', 'not_abd_e(a,d)', 'not_abd_e(b,c)', 'q']])
 
     def test_probabilistic_abduction(self):
-        self.wrap_test("../examples/abduction/ex_1_prob.lp", "q", None, "ex_1_prob", 0.25, 0.25, [['abd_a','abd_b']])
-        self.wrap_test("../examples/abduction/ex_2_prob.lp", "q", None, "ex_2_prob", 0.75, 0.75, [['abd_a', 'abd_b']])
-        self.wrap_test("../examples/abduction/ex_3_prob.lp", "q", None, "ex_3_prob", 0.58, 0.58, [['abd_a', 'abd_b', 'abd_c', 'not_abd_d'], ['abd_a', 'abd_b', 'abd_c', 'abd_d']])
-        self.wrap_test("../examples/abduction/ex_4_prob.lp", "q", None, "ex_4_prob", 0.648, 0.648, [['abd_c', 'abd_e']])
+        self.wrap_test("../examples/abduction/ex_1_prob.lp", "query", None, "ex_1_prob", 0.25, 0.25, [['abd_a','abd_b']])
+        self.wrap_test("../examples/abduction/ex_2_prob.lp", "query", None, "ex_2_prob", 0.75, 0.75, [['abd_a', 'abd_b']])
+        self.wrap_test("../examples/abduction/ex_3_prob.lp", "query", None, "ex_3_prob", 0.58, 0.58, [['abd_a', 'abd_b', 'abd_c', 'not_abd_d'], ['abd_a', 'abd_b', 'abd_c', 'abd_d']])
+        self.wrap_test("../examples/abduction/ex_4_prob.lp", "query", None, "ex_4_prob", 0.648, 0.648, [['abd_c', 'abd_e']])
 
 
 if __name__ == '__main__':

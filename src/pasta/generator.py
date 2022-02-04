@@ -124,9 +124,14 @@ class Generator:
 
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
 
-        show_true = "#show " + t1 + "/" + str(commas) + "."
+        show_true = "#show " + t1.split('(')[0] + "/" + str(commas) + "."
 
-        show_false = "#show not_" + t1 + "/" + str(commas) + "."
+        show_false = "#show not_" + t1.split('(')[0] + "/" + str(commas) + "."
+
+
+        # show_true = "#show " + t1 + "/" + str(commas) + "."
+
+        # show_false = "#show not_" + t1 + "/" + str(commas) + "."
 
         # used since in the program i insert a constraint that counts the abducibles
         abd_fact = "abd_fact(" + str(n_abd) + "):-" + term + "."

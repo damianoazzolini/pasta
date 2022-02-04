@@ -42,7 +42,7 @@ class AbdWorld:
             " mnqc: " + str(self.model_not_query_count) + "\n"
         
         for el in self.probabilistic_worlds:
-            s = s + "\t" + self.probabilistic_worlds[el].__str__() + "\n"
+            s = s + "\t" + self.probabilistic_worlds[el] + "\n"
 
         return s
 
@@ -112,6 +112,7 @@ class ModelsHandler():
         return len(self.worlds_dict.keys())
 
     def keep_best_model(self) -> Union[float,float]:
+        # print(self.abd_worlds_dict)
 
         for el in self.abd_worlds_dict:
             acc_lp = 0
@@ -119,6 +120,9 @@ class ModelsHandler():
             # print("id: " + el)
             worlds_comb = self.abd_worlds_dict[el].probabilistic_worlds
             for w_id in worlds_comb:
+                # print(w_id)
+                # print(worlds_comb[w_id].model_query_count)
+                # print(worlds_comb[w_id].model_not_query_count)
                 p = (worlds_comb[w_id].prob /
                      ((10**self.precision) ** self.n_prob_facts))
                 if worlds_comb[w_id].model_query_count != 0:
@@ -126,11 +130,11 @@ class ModelsHandler():
                     if worlds_comb[w_id].model_not_query_count == 0:
                         acc_lp = acc_lp + p
             
-            if acc_lp == self.best_lp:
+            if acc_lp == self.best_lp and acc_lp > 0:
                 # self.best_lp = acc_lp
                 # self.best_up = acc_up
                 self.best_abd_combinations.append(el)
-            elif acc_lp > self.best_lp:
+            elif acc_lp > self.best_lp and acc_lp > 0:
                 self.best_lp = acc_lp
                 self.best_up = acc_up
                 self.best_abd_combinations = []
@@ -148,10 +152,10 @@ class ModelsHandler():
     def extract_id_append_and_prob(self, term : str) -> Union[str,int]:
         term = term.split('(')
         if term[1].count(',') == 0:  # arity original prob fact 0 (example: 0.2::a.)
-            return term[0], int(term[1][:-1])
+            return term[0], int(term[1][:-1]) if (not term[0].startswith('abd_') and not term[0].startswith('not_abd_')) else 1
         else:
             args = term[1][:-1].split(',')
-            prob = int(args[-1])
+            prob = int(args[-1]) if (not term[0].startswith('abd_') and not term[0].startswith('not_abd_')) else 1
             id = ""
             id = id + term[0]
             for i in args[:-1]:
@@ -214,15 +218,15 @@ class ModelsHandler():
                 model_query = True
             elif term == "nq":
                 model_query = False
-            elif '(' not in term:
+            elif term.startswith('abd_') or term.startswith('not_abd'):
                 # abducible
                 id_abd = id_abd + " " + term
             else:
+                # probabilistic fact
                 id_append, prob_mul = self.extract_id_append_and_prob(term)
                 id_prob = id_prob + id_append
                 # replace * with + for log probabilities
                 prob = prob * prob_mul
-
         return id_abd, id_prob, prob, model_query
 
     # checks if the id is in the worlds list
@@ -273,21 +277,14 @@ class ModelsHandler():
         # check if the id of the abduction is present. If so, check for the
         # probability
         if id_abd in self.abd_worlds_dict:
-            # print('IN ' + id_abd)
             self.manage_worlds_dict(self.abd_worlds_dict[id_abd].probabilistic_worlds, None, id_prob, prob, model_query, None)
         else:
             # add new key
-            # print('NEW ' + id_abd)
             self.abd_worlds_dict[id_abd] = AbdWorld(id_abd, id_prob, prob, model_query)
-
-        # print("----------")
-        # for el in self.abd_worlds_dict:
-        #     print(self.abd_worlds_dict[el])
 
     # add_value for abduction
     def add_model_abduction(self, line : str) -> None:
         id_abd, id_prob, prob, model_query = self.get_ids_abduction(line)
-        # print(id_abd)
         self.manage_worlds_dict_abduction(id_abd, id_prob, prob, model_query)
 
     # computes the lower and upper probability

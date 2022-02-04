@@ -146,7 +146,8 @@ class AspInterface:
             for c in self.cautious_consequences:
                 ctl.add('base', [], ":- not " + c + '.')
 
-        ctl.add('base', [], ':- not q.')
+        if self.n_prob_facts is 0:
+            ctl.add('base', [], ':- not q.')
         ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
         ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
 
@@ -180,9 +181,12 @@ class AspInterface:
         model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, None)
 
         for i in range(0, self.n_abducibles + 1):
-            if self.verbose:
-                print("Models with " + str(i) + " abducibles")
             currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
+            if self.verbose:
+                print("Models with " + str(i) + " abducibles: " + str(len(currently_computed)))
+                print(currently_computed)
+
+            # TODO: gestire len(currently_computed) > 0 and i == 0 (vero senza abducibili)
 
             if self.n_prob_facts == 0:
                 # currently computed: list of computed models
