@@ -1,8 +1,8 @@
 abducible a.
 abducible b.
 
-q:- a.
-q:- b.
+query:- a.
+query:- b.
 
-% query(q).
+% query(query).
 % Expected result: {{a},{b}}

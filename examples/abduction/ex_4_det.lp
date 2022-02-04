@@ -1,11 +1,11 @@
-abducible a.
+abducible a(1).
 abducible b.
 abducible c.
 abducible d.
 
-query:- a.
+query:- a(1).
 query:- b,c.
-query:- a,d.
+query:- a(1),d.
 
 % query(query).
 % Expected result: {{a},{b,c}}

@@ -8,10 +8,10 @@ abducible d.
 0.6::fc.
 0.7::fd.
 
-q:- a, fa.
-q:- b,fb,c,fc.
-q:- a,fa,d,fd.
+query:- a, fa.
+query:- b,fb,c,fc.
+query:- a,fa,d,fd.
 
-% query(q).
+% query(query).
 % Expected result: {{a,b,c}}
 % Prob = 0.58

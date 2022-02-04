@@ -1,5 +1,5 @@
-q:- b,c.
-q:- d,e.
+query:- b,c.
+query:- d,e.
 0.3::b.
 abducible c.
 0.6::d.
