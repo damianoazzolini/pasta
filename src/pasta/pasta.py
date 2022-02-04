@@ -153,7 +153,6 @@ if __name__ == "__main__":
     if lp != None:
         print_prob(lp,up,args.query)
     if abd_explanations is not None:
-        print(str(len(abd_explanations)) + " abductive explanations ")
         # remove dominated
         ls = []
         for el in abd_explanations:
@@ -170,7 +169,7 @@ if __name__ == "__main__":
                         ls[j] = ''
 
         abd_explanations = ls
-
+        print("Abductive explanations " + str(sum(1 for ex in abd_explanations if len(ex) > 0)))
         for i in range(0,len(abd_explanations)):
             if len(abd_explanations[i]) > 0:
                 print("Explanation " + str(i))
