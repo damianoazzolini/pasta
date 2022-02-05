@@ -146,13 +146,18 @@ class AspInterface:
             for c in self.cautious_consequences:
                 ctl.add('base', [], ":- not " + c + '.')
 
-        if self.n_prob_facts is 0:
+        if self.n_prob_facts == 0:
             ctl.add('base', [], ':- not q.')
         ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
         ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
 
-        for el in previously_computed:
-            ctl.add('base', [], ':- ' + el + ".")
+        for exp in previously_computed:
+            s = ":- "
+            for el in exp:
+                if el != "q" and not el.startswith('not_abd'):
+                    s = s + el + ","
+            s = s[:-1] + '.'
+            ctl.add('base', [], s)
 
         start_time = time.time()
         ctl.ground([("base", [])])
@@ -196,12 +201,9 @@ class AspInterface:
                 
                 self.computed_models = self.computed_models + len(currently_computed)
 
-                # do this only if deterministic abduction
-                if len(currently_computed) > 0:
-                    for cc in currently_computed:
-                        for el in cc:
-                            if el != "q" and not el.startswith('not_abd'):
-                                abducibles_list.append(el)
+                for cc in currently_computed:
+                    abducibles_list.append(cc)
+
             else:
                 for el in currently_computed:
                     model_handler.add_model_abduction(str(el))
