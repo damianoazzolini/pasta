@@ -47,6 +47,7 @@ class TestBird(unittest.TestCase):
         self.wrap_test("../examples/abduction/ex_3_det.lp", "query", None, "ex_3_det", None, None, [['q', 'abd_a', 'not_abd_b', 'not_abd_c', 'not_abd_d'], ['q', 'not_abd_a', 'abd_b', 'abd_c', 'not_abd_d']])
         self.wrap_test("../examples/abduction/ex_4_det.lp", "query", None, "ex_4_det", None, None, [['abd_a(1)', 'not_abd_b', 'not_abd_c','not_abd_d','q'], ['not_abd_a(1)','abd_b','abd_c','not_abd_d','q']])
         self.wrap_test("../examples/abduction/smokes_det.lp", "smokes(c)", None, "smokes_det", None, None, [['abd_e(b,c)', 'not_abd_e(a,b)', 'not_abd_e(e,c)', 'not_abd_e(d,e)', 'not_abd_e(a,d)', 'q'], ['abd_e(e,c)', 'abd_e(d,e)', 'not_abd_e(a,b)', 'not_abd_e(a,d)', 'not_abd_e(b,c)', 'q']])
+        self.wrap_test("../examples/abduction/ex_5_det.lp", "qr", None, "smokes_det", None, None, [['abd_a', 'abd_b', 'abd_c'], ['abd_a', 'abd_b', 'abd_d','abd_e']])
 
     def test_probabilistic_abduction(self):
         self.wrap_test("../examples/abduction/ex_1_prob.lp", "query", None, "ex_1_prob", 0.25, 0.25, [['abd_a','abd_b']])

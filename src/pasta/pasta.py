@@ -1,6 +1,6 @@
+from pstats import SortKey
 import time
 import sys
-from tkinter.ttk import Progressbar
 from typing import Union
 
 import argparse
@@ -8,6 +8,8 @@ import argparse
 # local
 import pasta_parser
 import asp_interface
+
+profilation = False
 
 class Pasta:
     def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False) -> None:
@@ -65,8 +67,10 @@ class Pasta:
 
         asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision, self.verbose)
+        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision, self.verbose, self.pedantic)
 
+        # interface.print_asp_program()
+        
         exec_time = interface.get_minimal_set_facts()
 
         if self.verbose:
@@ -86,7 +90,27 @@ class Pasta:
             print("---")
 
         if len(program_parser.abducibles) > 0:
+            if profilation:
+                import cProfile
+                import pstats
+                import io
+
+                pr = cProfile.Profile()
+                pr.enable()
+                # https://docs.python.org/3/library/profile.html#pstats.Stats
+            
             interface.abduction()
+
+            if profilation:
+                pr.disable()
+                s = io.StringIO()
+                sortby = SortKey.CUMULATIVE
+                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+                ps.print_stats()
+                fp = open('profilation.txt','w')
+                fp.write(s.getvalue())
+                fp.close()
+
         else:
             interface.compute_probabilities()
         end_time = time.time() - start_time
@@ -164,13 +188,15 @@ if __name__ == "__main__":
 
         for i in range(0,len(ls)):
             for j in range(i+1,len(ls)):
-                if ls[j] != '':
+                if len(ls[i]) > 0:
                     if ls[i].issubset(ls[j]):
                         ls[j] = ''
 
         abd_explanations = ls
         print("Abductive explanations " + str(sum(1 for ex in abd_explanations if len(ex) > 0)))
-        for i in range(0,len(abd_explanations)):
-            if len(abd_explanations[i]) > 0:
-                print("Explanation " + str(i))
-                print(sorted(abd_explanations[i]))
+        index = 0
+        for el in abd_explanations:
+            if len(el) > 0:
+                print("Explanation " + str(index))
+                index = index + 1
+                print(sorted(el))

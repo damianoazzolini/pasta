@@ -218,7 +218,7 @@ class ModelsHandler():
                 model_query = True
             elif term == "nq":
                 model_query = False
-            elif term.startswith('abd_') or term.startswith('not_abd'):
+            elif term.startswith('abd_') or term.startswith('not_abd_'):
                 # abducible
                 id_abd = id_abd + " " + term
             else:

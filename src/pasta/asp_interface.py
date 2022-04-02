@@ -21,10 +21,10 @@ class AspInterface:
         - content: list with the program
     '''
 
-    def __init__(self, program_minimal_set: list, evidence: list, asp_program : list, probabilistic_facts : dict, n_abducibles : int, precision : int = 3, verbose : bool = False) -> None:
+    def __init__(self, program_minimal_set: list, evidence: list, asp_program : list, probabilistic_facts : dict, n_abducibles : int, precision : int = 3, verbose : bool = False, pedantic = False) -> None:
         self.cautious_consequences : list = []
-        self.program_minimal_set : list = program_minimal_set
-        self.asp_program : list = asp_program
+        self.program_minimal_set : list = sorted(set(program_minimal_set))
+        self.asp_program : list = sorted(set(asp_program))
         self.lower_probability_query : int = 0
         self.upper_probability_query : int = 0
         self.upper_probability_evidence : int = 0
@@ -43,6 +43,7 @@ class AspInterface:
         self.abductive_explanations : list = []
         self.abduction_time : int = 0
         self.verbose : bool = verbose
+        self.pedantic : bool = pedantic
 
     def get_lower_probability_query(self) -> float:
         return float(self.lower_probability_query)
@@ -138,6 +139,9 @@ class AspInterface:
 
 
     def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
+        if self.verbose:
+            print(str(n_abd) + " abd")
+
         ctl = clingo.Control(["0", "--project"])
         for clause in self.asp_program:
             ctl.add('base', [], clause)
@@ -174,6 +178,9 @@ class AspInterface:
 
         computation_time = time.time() - start_time
 
+        if self.verbose:
+            print("time: " + str(computation_time))
+
         return computed_models, computation_time
 
     '''
@@ -187,9 +194,11 @@ class AspInterface:
 
         for i in range(0, self.n_abducibles + 1):
             currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
+            self.computed_models = self.computed_models + len(currently_computed)
             if self.verbose:
                 print("Models with " + str(i) + " abducibles: " + str(len(currently_computed)))
-                print(currently_computed)
+                if self.pedantic:
+                    print(currently_computed)
 
             # TODO: gestire len(currently_computed) > 0 and i == 0 (vero senza abducibili)
 
