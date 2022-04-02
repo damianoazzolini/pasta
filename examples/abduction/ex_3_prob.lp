@@ -8,7 +8,7 @@ abducible d.
 0.6::fc.
 0.7::fd.
 
-query:- a, fa.
+query:- a,fa.
 query:- b,fb,c,fc.
 query:- a,fa,d,fd.
 
