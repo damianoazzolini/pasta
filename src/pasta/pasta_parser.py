@@ -40,12 +40,6 @@ class PastaParser:
         self.n_probabilistic_ics : int = 0
         self.body_probabilistic_ics : list = []
 
-    def get_n_prob_facts(self) -> int:
-        return len(self.probabilistic_facts)
-
-    def get_dict_prob_facts(self) -> dict:
-        return self.probabilistic_facts
-
     @staticmethod
     def symbol_endline_or_space(char1: str) -> bool:
         return char1 == '\n' or char1 == '\r\n' or char1 == ' '
@@ -109,8 +103,35 @@ class PastaParser:
         return prob, term
 
     '''
+    Parses a program into an alternative form: probabilistic 
+        facts are converted into external facts
+    '''
+    def parse_approx(self) -> None:
+        if os.path.isfile(self.filename) == False:
+            print("File " + self.filename + " not found")
+            sys.exit()
+
+        f = open(self.filename, "r")
+
+        lines = f.readlines()
+
+        for l in lines:
+            if not l.startswith('%'):
+                if '::' in l:
+                    # probabilistic fact
+                    l = l.replace('\n','').replace('\t','').split('::')
+                    prob = l[0]
+                    term = l[1].replace('\n','').replace('\r','').replace('.','')
+                    self.probabilistic_facts[term] = float(prob)
+                    self.lines_prob.append(f'#external {term}.')
+                elif not l.startswith('\n'):
+                    self.lines_prob.append(l.replace('\n','').replace('\r',''))
+
+        return True
+
+    '''
     Parameters:
-        - verbose: default 0
+        - None
     Returns:
         - list of strings representing the program
     Behavior:
@@ -364,7 +385,7 @@ class PastaParser:
         "query: " + str(self.query) + "\n" + \
         (("evidence: " + str(self.evidence) + "\n") if self.evidence != None else "") + \
         "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \
-        "n probabilistic facts:\n" + str(self.get_n_prob_facts()) + "\n" + \
+        "n probabilistic facts:\n" + str(self.probabilistic_facts()) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
         "probabilities file:\n" + str(self.lines_prob) + "\n" + \
         (("abducibles: " + str(self.abducibles))  if self.abducibles != None else "")

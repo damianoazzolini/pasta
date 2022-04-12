@@ -12,7 +12,7 @@ import asp_interface
 profilation = False
 
 class Pasta:
-    def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False) -> None:
+    def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False, samples=1000, approximate=False) -> None:
         self.filename = filename
         self.query = query
         self.evidence = evidence
@@ -21,6 +21,7 @@ class Pasta:
         self.pedantic = pedantic
         if pedantic is True:
             self.verbose = True
+        self.samples = samples
 
     @staticmethod
     def print_help() -> None:
@@ -54,7 +55,26 @@ class Pasta:
             i = i - 1
 
         return s0 + "." + s[:i+1]
-    
+
+    def approximate_solve(self) -> Union[float,float]:
+        # start_time = time.time()
+        program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
+        program_parser.parse_approx()
+        asp_program = program_parser.get_asp_program()
+
+        interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
+
+        if self.evidence is None:
+            lp, up = interface.compute_approximate_probabilities()
+        else:
+            lp, up = interface.rejection_sampling()
+        # end_time = time.time() - start_time
+
+        return str(lp), str(up)
+        
+        # print(asp_program)
+        return 0,0
+
     def solve(self) -> Union[float,float,list]:
         start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
@@ -67,7 +87,7 @@ class Pasta:
 
         asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.get_dict_prob_facts(), len(program_parser.abducibles), self.precision, self.verbose, self.pedantic)
+        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic)
 
         # interface.print_asp_program()
         
@@ -126,8 +146,8 @@ class Pasta:
         # print(program_parser)
 
         if len(program_parser.probabilistic_facts) > 0:
-            uq = interface.get_upper_probability_query()
-            lq = interface.get_lower_probability_query()
+            uq = interface.upper_probability_query
+            lq = interface.lower_probability_query
 
             if (lq > uq) or lq > 1 or uq > 1:
                 print("Error in computing probabilities")
@@ -167,12 +187,18 @@ if __name__ == "__main__":
     command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
     command_parser.add_argument("-p", "--precision", help="Precision, default 3", type=int, default=3)
+    command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
+    command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
     
     args = command_parser.parse_args()
 
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic, args.samples, args.approximate)
     
-    lp, up, abd_explanations = pasta_solver.solve()
+    if args.approximate is False:
+        lp, up, abd_explanations = pasta_solver.solve()
+    else:
+        lp, up = pasta_solver.approximate_solve()
+        abd_explanations = None
 
     if lp != None:
         print_prob(lp,up,args.query)
