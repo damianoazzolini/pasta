@@ -6,15 +6,6 @@ import time
 # local
 import models_handler
 
-class Context:
-	def id(self, x):
-		return x
-	def seq(self, x, y):
-		return [x, y]
-
-def on_model(m):
-	print (m)
-
 class AspInterface:
 	'''
 	Parameters:
@@ -44,7 +35,7 @@ class AspInterface:
 		self.abduction_time : int = 0
 		self.verbose : bool = verbose
 		self.pedantic : bool = pedantic
-		self.n_samples: int = n_samples
+		self.n_samples : int = n_samples
 		self.prob_facts_dict : dict = prob_facts_dict
 
 	'''
@@ -139,9 +130,219 @@ class AspInterface:
 				id = id + "F"
 				# samples.append(False)
 
-		return id, []
+		return id
 
-	def compute_approximate_probabilities(self):
+	# this can be a static method
+	def pick_random_index(self, block : int, id : str) -> list:
+			# i = random.randint(0,len(id) - 1)
+			# while i == 1:
+			# 	i = random.randint(0,len(id) - 1)
+		return sorted(set([random.randint(0, len(id) - 1) for i in range(0, block)]))
+
+	def resample(self, i : int) -> str:
+		for k in self.prob_facts_dict:
+			key = k
+			i = i - 1
+			if i < 0:
+				break
+
+		if random.random() < self.prob_facts_dict[key]:
+			return 'T'
+		else:
+			return 'F'
+
+	'''
+	MH sampling
+	'''
+	def mh_sampling(self) -> Union[float, float]:
+		ctl = clingo.Control(["0", "--project"])
+		for clause in self.asp_program:
+			ctl.add('base', [], clause)
+		ctl.ground([("base", [])])
+
+		n_samples = self.n_samples
+
+		n_upper = 0
+		n_lower = 0
+
+		# step 0: build initial sample
+		id = self.sample_world()
+		t_count = id.count('T')
+		previous_sampled = t_count if t_count > 0 else 1
+
+		k = 0
+		while k < n_samples:
+			# for k in range(0, n_samples):
+			id = self.sample_world()
+			i = 0
+			for atm in ctl.symbolic_atoms:
+				if atm.is_external:
+					ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
+					i = i + 1
+
+			upper = False
+			lower = True
+			with ctl.solve(yield_=True) as handle:
+				for m in handle:
+					m1 = str(m).split(' ')
+					if 'e' in m1:
+						k = k + 1
+						t_count = id.count('T')
+						current_sampled = t_count if t_count > 0 else 1
+
+						if 'q' in m1 and random.random() < min(1, current_sampled/previous_sampled):
+							upper = True
+							if "nq" in m1:
+								lower = False
+
+			if upper:
+				n_upper = n_upper + 1
+				if lower:
+					n_lower = n_lower + 1
+
+		return n_lower/n_samples, n_upper/n_samples
+
+
+	'''
+	Gibbs sampling
+	'''
+
+	def gibbs_sampling(self, block: int) -> Union[float, float]:
+		ctl = clingo.Control(["0", "--project"])
+		for clause in self.asp_program:
+			ctl.add('base', [], clause)
+		ctl.ground([("base", [])])
+
+		n_samples = self.n_samples
+
+		n_upper = 0
+		n_lower = 0
+		k = 0
+
+		while k < n_samples:
+			# Step 0: sample evidence
+			ev = False
+			while ev is False:
+				id = self.sample_world()
+				i = 0
+				for atm in ctl.symbolic_atoms:
+					if atm.is_external:
+						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
+						i = i + 1
+				with ctl.solve(yield_=True) as handle:
+					for m in handle:
+						m1 = str(m).split(' ')
+						if 'e' in m1:
+							ev = True
+							break
+
+			# non devo mantenere la lista di campioni qui
+			k = k + 1
+
+			# Step 1: switch samples but keep the evidence true
+			ev = False
+			while ev is False:
+				to_resample = self.pick_random_index(block, id)
+				idNew = id
+				# blocked gibbs
+				for i in to_resample:
+					idNew = idNew[:i] + self.resample(i) + idNew[i+1:]
+
+				i = 0
+				for atm in ctl.symbolic_atoms:
+					if atm.is_external:
+						ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
+						i = i + 1
+				with ctl.solve(yield_=True) as handle:
+					for m in handle:
+						m1 = str(m).split(' ')
+						if 'e' in m1:
+							ev = True
+							break
+
+			i = 0
+			for atm in ctl.symbolic_atoms:
+				if atm.is_external:
+					ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
+					i = i + 1
+
+			upper = False
+			lower = True
+			with ctl.solve(yield_=True) as handle:
+				for m in handle:
+					m1 = str(m).split(' ')
+					if 'e' in m1:
+						# k = k + 1
+						if 'q' in m1:
+							upper = True
+							if "nq" in m1:
+								lower = False
+
+			if upper:
+				n_upper = n_upper + 1
+				if lower:
+					n_lower = n_lower + 1
+
+		return n_lower/n_samples, n_upper/n_samples
+
+	'''
+	Rejection Sampling
+	'''
+	def rejection_sampling(self) -> Union[float, float]:
+		sampled = {}
+		
+		ctl = clingo.Control(["0", "--project"])
+		for clause in self.asp_program:
+			ctl.add('base', [], clause)
+		ctl.ground([("base", [])])
+
+		# n_bool_vars = self.n_prob_facts
+		n_samples = self.n_samples
+
+		n_upper = 0
+		n_lower = 0
+		k = 0
+
+		while k < n_samples:
+			id = self.sample_world()
+
+			if id in sampled:
+				k = k + 1
+				n_upper = n_upper + sampled[id][0]
+				n_lower = n_lower + sampled[id][1]
+			else:
+				i = 0
+				for atm in ctl.symbolic_atoms:
+					# atm.symbol.name # qui ho il funtore
+					# atm.symbol.name # qui ho il funtore
+					# atm.symbol.arguments[0].number # qui ho l'indice
+					if atm.is_external:
+						# posso fare questo perché i dizionari sono ordinati in Python 3.7+
+						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
+						i = i + 1
+
+				upper = False
+				lower = True
+				with ctl.solve(yield_=True) as handle:
+					for m in handle:
+						m1 = str(m).split(' ')
+						if 'e' in m1:
+							k = k + 1
+							if 'q' in m1:
+								upper = True
+								if "nq" in m1:
+									lower = False
+
+				if upper:
+					n_upper = n_upper + 1
+					sampled[id] = [1, 0]
+					if lower:
+						n_lower = n_lower + 1
+						sampled[id] = [1, 1]
+
+		return n_lower/n_samples, n_upper/n_samples
+
+	def sample_query(self) -> Union[float, float]:
 		# sampled worlds
 		sampled = {}
 		
@@ -156,10 +357,7 @@ class AspInterface:
 		n_upper = 0
 		n_lower = 0
 		for _ in range(0, n_samples):
-			id = ""
-			# samples = []
-			# i = 0
-			id, _ = self.sample_world()
+			id = self.sample_world()
 
 			if id in sampled:
 				n_upper = n_upper + sampled[id][0]
@@ -195,18 +393,9 @@ class AspInterface:
 						n_lower = n_lower + 1
 						sampled[id] = [1, 1]
 
-				# if "q" in res:
-				# 	n_upper = n_upper + 1
-				# 	sampled[id] = [1, 0]
-				# 	if "nq" not in res:
-				# 		n_lower = n_lower + 1
-				# 		sampled[id] = [1, 1]
-
 		return n_lower/n_samples, n_upper/n_samples
 
-	def rejection_sampling():
-		pass
-
+	# loop for exact abduction
 	def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
 		if self.verbose:
 			print(str(n_abd) + " abd")

@@ -1,4 +1,3 @@
-from pstats import SortKey
 import time
 import sys
 from typing import Union
@@ -11,8 +10,17 @@ import asp_interface
 
 profilation = False
 
+examples_string_exact = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\""
+examples_string_exact_evidence = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --evidence=\"bird(1)\""
+examples_string_approximate = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --approximate"
+examples_string_approximate_rej = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --evidence=\"bird(1)\" --rejection"
+
+examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
+
+pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
+
 class Pasta:
-    def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False, samples=1000, approximate=False) -> None:
+    def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False, samples=1000) -> None:
         self.filename = filename
         self.query = query
         self.evidence = evidence
@@ -22,25 +30,6 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
-
-    @staticmethod
-    def print_help() -> None:
-        print("PASTA: Probabilistic Answer Set programming for STAtistical probabilities")
-        # print("Compute lower and upper bound for a query in")
-        # print("a probabilistic answer set program")
-        print("pasta <program> [OPTIONS]")
-        print("Example: pasta ../../examples/bird_4.lp -q=\"fly(1)\"")
-        print("Example programs: see example folder.")
-        print("Issues: https://github.com/damianoazzolini/pasta/issues")
-        print("Available commands:")
-        print("\t--query=,-q: specifies a query. Example: -q=\"fly(1)\".")
-        print("\t\tIt can also be specified in the program by adding the line query(fly(1)).")
-        print("\t--evidence=,-e: specifies a evidence. Example: -e=\"fly(1)\".")
-        print("\t\tIt can also be specified in the program by adding the line evidence(fly(1)).")
-        print("\t--verbose,-v: verbose mode. Default: off.")
-        print("\t--pedantic: pedantic mode (more verbose than --verbose). Default: off.")
-        print("\t--precision=,-p=: set the required precision. Example: --precision=3. Default = 3.")
-        print("\t--help,-h: print this help page")
 
     @staticmethod
     def truncate_prob(s: float) -> str:
@@ -56,7 +45,7 @@ class Pasta:
 
         return s0 + "." + s[:i+1]
 
-    def approximate_solve(self) -> Union[float,float]:
+    def approximate_solve(self, args) -> Union[float,float]:
         # start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
         program_parser.parse_approx()
@@ -65,15 +54,18 @@ class Pasta:
         interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
 
         if self.evidence is None:
-            lp, up = interface.compute_approximate_probabilities()
+            lp, up = interface.sample_query()
         else:
-            lp, up = interface.rejection_sampling()
+            if args.rejection is True:
+                lp, up = interface.rejection_sampling()
+            elif args.mh is True:
+                lp, up = interface.mh_sampling()
+            elif args.gibbs is True:
+                lp, up = interface.gibbs_sampling(args.block)
+
         # end_time = time.time() - start_time
 
         return str(lp), str(up)
-        
-        # print(asp_program)
-        return 0,0
 
     def solve(self) -> Union[float,float,list]:
         start_time = time.time()
@@ -124,6 +116,7 @@ class Pasta:
             if profilation:
                 pr.disable()
                 s = io.StringIO()
+                from pstats import SortKey
                 sortby = SortKey.CUMULATIVE
                 ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
                 ps.print_stats()
@@ -180,7 +173,8 @@ def print_prob(lp : str, up : str, query : str) -> None:
             print("Upper probability for the query " + query + ": " + up)
 
 if __name__ == "__main__":
-    command_parser = argparse.ArgumentParser()
+    command_parser = argparse.ArgumentParser(
+        description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename",help="Program to analyse",type=str)
     command_parser.add_argument("-q","--query", help="Query", type=str)
     command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
@@ -189,15 +183,19 @@ if __name__ == "__main__":
     command_parser.add_argument("-p", "--precision", help="Precision, default 3", type=int, default=3)
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
     command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
+    command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
+    command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
+    command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
+    command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
     
     args = command_parser.parse_args()
 
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic, args.samples, args.approximate)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic, args.samples)
     
     if args.approximate is False:
         lp, up, abd_explanations = pasta_solver.solve()
     else:
-        lp, up = pasta_solver.approximate_solve()
+        lp, up = pasta_solver.approximate_solve(args)
         abd_explanations = None
 
     if lp != None:

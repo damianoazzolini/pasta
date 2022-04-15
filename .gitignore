@@ -10,6 +10,10 @@ prolog_test.pl
 
 src/pasta/prova.lp
 
+run.sh
+
+*.hidden
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
