@@ -137,12 +137,17 @@ class PastaParser:
     Behavior:
         - parses the file and extract the lines
     '''
-    def parse(self) -> None:
-        if os.path.isfile(self.filename) == False:
+    def parse(self, from_string : str = None) -> None:
+        if from_string is None and os.path.isfile(self.filename) == False:
             print("File " + self.filename + " not found")
             sys.exit()
         
-        f = open(self.filename,"r")
+        if from_string is None:
+            f = open(self.filename,"r")
+        else:
+            import io
+            f = io.StringIO(from_string)
+        
         char = f.read(1)
         if not char:
             print("Empty file")

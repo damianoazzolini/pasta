@@ -67,10 +67,10 @@ class Pasta:
 
         return str(lp), str(up)
 
-    def solve(self) -> Union[float,float,list]:
+    def solve(self, from_string : str = None) -> Union[float,float,list]:
         start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
-        program_parser.parse()
+        program_parser.parse(from_string)
 
         if self.verbose:
             print("Parsed program")
