@@ -45,10 +45,10 @@ class Pasta:
 
         return s0 + "." + s[:i+1]
 
-    def approximate_solve(self, args) -> Union[float,float]:
+    def approximate_solve(self, args, from_string : str = None) -> Union[float,float]:
         # start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
-        program_parser.parse_approx()
+        program_parser.parse_approx(from_string)
         asp_program = program_parser.get_asp_program()
 
         interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)

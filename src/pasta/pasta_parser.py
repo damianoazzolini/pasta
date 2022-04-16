@@ -106,12 +106,16 @@ class PastaParser:
     Parses a program into an alternative form: probabilistic 
         facts are converted into external facts
     '''
-    def parse_approx(self) -> None:
-        if os.path.isfile(self.filename) == False:
+    def parse_approx(self, from_string : str = None) -> None:
+        if from_string is None and os.path.isfile(self.filename) == False:
             print("File " + self.filename + " not found")
             sys.exit()
 
-        f = open(self.filename, "r")
+        if from_string is None:
+            f = open(self.filename,"r")
+        else:
+            import io
+            f = io.StringIO(from_string)
 
         lines = f.readlines()
 
