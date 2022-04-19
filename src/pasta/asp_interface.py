@@ -177,10 +177,10 @@ class AspInterface:
 			id = self.sample_world()
 
 			if id in sampled:
-				k = k + 1
 				current_sampled = sampled[id][2]
 
 				if random.random() < min(1, current_sampled/previous_sampled):
+					k = k + 1
 					n_upper = n_upper + sampled[id][0]
 					n_lower = n_lower + sampled[id][1]
 
@@ -200,12 +200,13 @@ class AspInterface:
 						m1 = str(m).split(' ')
 						if 'e' in m1:
 							sampled_evidence = True
-							k = k + 1
 							t_count = id.count('T')
 							current_sampled = t_count if t_count > 0 else 1
 
-							if 'q' in m1 and random.random() < min(1, current_sampled/previous_sampled):
-								upper = True
+							if random.random() < min(1, current_sampled/previous_sampled):
+								k = k + 1
+								if 'q' in m1:
+									upper = True
 								if "nq" in m1:
 									lower = False
 
@@ -312,11 +313,10 @@ class AspInterface:
 					for m in handle:
 						m1 = str(m).split(' ')
 						if 'e' in m1:
-							# k = k + 1
 							if 'q' in m1:
 								upper = True
-								if "nq" in m1:
-									lower = False
+							if "nq" in m1:
+								lower = False
 
 				if upper:
 					n_upper = n_upper + 1
@@ -347,6 +347,7 @@ class AspInterface:
 		k = 0
 
 		while k < n_samples:
+			ev_sampled = False
 			id = self.sample_world()
 
 			if id in sampled:
@@ -366,16 +367,20 @@ class AspInterface:
 					for m in handle:
 						m1 = str(m).split(' ')
 						if 'e' in m1:
-							k = k + 1
+							ev_sampled = True
 							if 'q' in m1:
 								upper = True
-								if "nq" in m1:
-									lower = False
+							if "nq" in m1:
+								lower = False
 
-				if upper:
+				if ev_sampled is True:
+					k = k + 1
+					sampled[id] = [0, 0]
+
+				if upper is True:
 					n_upper = n_upper + 1
 					sampled[id] = [1, 0]
-					if lower:
+					if lower is True:
 						n_lower = n_lower + 1
 						sampled[id] = [1, 1]
 
@@ -445,7 +450,7 @@ class AspInterface:
 				p = n_lower / k
 				# condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) >= 0.02
 				condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
-				if condition and n_lower > 5 and k - n_lower > 5 and k % 101 is 0:
+				if condition and n_lower > 5 and k - n_lower > 5 and k % 101 == 0:
 					a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
 					break
 		
