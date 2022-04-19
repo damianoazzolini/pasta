@@ -155,6 +155,8 @@ class AspInterface:
 	MH sampling
 	'''
 	def mh_sampling(self) -> Union[float, float]:
+		sampled = {}
+
 		ctl = clingo.Control(["0", "--project"])
 		for clause in self.asp_program:
 			ctl.add('base', [], clause)
@@ -172,33 +174,52 @@ class AspInterface:
 
 		k = 0
 		while k < n_samples:
-			# for k in range(0, n_samples):
 			id = self.sample_world()
-			i = 0
-			for atm in ctl.symbolic_atoms:
-				if atm.is_external:
-					ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
-					i = i + 1
 
-			upper = False
-			lower = True
-			with ctl.solve(yield_=True) as handle:
-				for m in handle:
-					m1 = str(m).split(' ')
-					if 'e' in m1:
-						k = k + 1
-						t_count = id.count('T')
-						current_sampled = t_count if t_count > 0 else 1
+			if id in sampled:
+				k = k + 1
+				current_sampled = sampled[id][2]
 
-						if 'q' in m1 and random.random() < min(1, current_sampled/previous_sampled):
-							upper = True
-							if "nq" in m1:
-								lower = False
+				if random.random() < min(1, current_sampled/previous_sampled):
+					n_upper = n_upper + sampled[id][0]
+					n_lower = n_lower + sampled[id][1]
 
-			if upper:
-				n_upper = n_upper + 1
-				if lower:
-					n_lower = n_lower + 1
+				previous_sampled = current_sampled
+			else:
+				i = 0
+				for atm in ctl.symbolic_atoms:
+					if atm.is_external:
+						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
+						i = i + 1
+
+				upper = False
+				lower = True
+				sampled_evidence = False
+				with ctl.solve(yield_=True) as handle:
+					for m in handle:
+						m1 = str(m).split(' ')
+						if 'e' in m1:
+							sampled_evidence = True
+							k = k + 1
+							t_count = id.count('T')
+							current_sampled = t_count if t_count > 0 else 1
+
+							if 'q' in m1 and random.random() < min(1, current_sampled/previous_sampled):
+								upper = True
+								if "nq" in m1:
+									lower = False
+
+				if sampled_evidence is True:
+					previous_sampled = current_sampled
+				
+				if upper:
+					n_upper = n_upper + 1
+					if sampled_evidence is True:
+						sampled[id] = [1,0,current_sampled]
+					if lower:
+						n_lower = n_lower + 1
+						if sampled_evidence is True:
+							sampled[id] = [1,1,current_sampled]
 
 		return n_lower/n_samples, n_upper/n_samples
 
@@ -206,8 +227,12 @@ class AspInterface:
 	'''
 	Gibbs sampling
 	'''
-
 	def gibbs_sampling(self, block: int) -> Union[float, float]:
+		# list of samples for the evidence
+		sampled_evidence = {}
+		# list of samples for the query
+		sampled_query = {}
+
 		ctl = clingo.Control(["0", "--project"])
 		for clause in self.asp_program:
 			ctl.add('base', [], clause)
@@ -224,64 +249,83 @@ class AspInterface:
 			ev = False
 			while ev is False:
 				id = self.sample_world()
-				i = 0
-				for atm in ctl.symbolic_atoms:
-					if atm.is_external:
-						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
-						i = i + 1
-				with ctl.solve(yield_=True) as handle:
-					for m in handle:
-						m1 = str(m).split(' ')
-						if 'e' in m1:
-							ev = True
-							break
+				if id in sampled_evidence:
+					ev = sampled_evidence[id]
+				else:
+					i = 0
+					for atm in ctl.symbolic_atoms:
+						if atm.is_external:
+							ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
+							i = i + 1
+					with ctl.solve(yield_=True) as handle:
+						for m in handle:
+							m1 = str(m).split(' ')
+							if 'e' in m1:
+								ev = True
+								break
 
-			# non devo mantenere la lista di campioni qui
+					sampled_evidence[id] = ev
+
 			k = k + 1
 
 			# Step 1: switch samples but keep the evidence true
 			ev = False
+
 			while ev is False:
 				to_resample = self.pick_random_index(block, id)
 				idNew = id
 				# blocked gibbs
-				for i in to_resample:
-					idNew = idNew[:i] + self.resample(i) + idNew[i+1:]
+				if idNew in sampled_evidence:
+					ev = sampled_evidence[idNew]
+				else:
+					for i in to_resample:
+						idNew = idNew[:i] + self.resample(i) + idNew[i+1:]
 
+					i = 0
+					for atm in ctl.symbolic_atoms:
+						if atm.is_external:
+							ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
+							i = i + 1
+					with ctl.solve(yield_=True) as handle:
+						for m in handle:
+							m1 = str(m).split(' ')
+							if 'e' in m1:
+								ev = True
+								break
+							
+					sampled_evidence[idNew] = [ev]
+
+			# step 2: ask query
+			if idNew in sampled_query:
+				n_upper = n_upper + sampled_query[idNew][0]
+				n_lower = n_lower + sampled_query[idNew][1]
+			else:
 				i = 0
 				for atm in ctl.symbolic_atoms:
 					if atm.is_external:
 						ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
 						i = i + 1
+
+				upper = False
+				lower = True
 				with ctl.solve(yield_=True) as handle:
 					for m in handle:
 						m1 = str(m).split(' ')
 						if 'e' in m1:
-							ev = True
-							break
+							# k = k + 1
+							if 'q' in m1:
+								upper = True
+								if "nq" in m1:
+									lower = False
 
-			i = 0
-			for atm in ctl.symbolic_atoms:
-				if atm.is_external:
-					ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
-					i = i + 1
+				if upper:
+					n_upper = n_upper + 1
+					sampled_query[idNew] = [1,0]
 
-			upper = False
-			lower = True
-			with ctl.solve(yield_=True) as handle:
-				for m in handle:
-					m1 = str(m).split(' ')
-					if 'e' in m1:
-						# k = k + 1
-						if 'q' in m1:
-							upper = True
-							if "nq" in m1:
-								lower = False
+					if lower:
+						n_lower = n_lower + 1
+						sampled_query[idNew] = [1,1]
 
-			if upper:
-				n_upper = n_upper + 1
-				if lower:
-					n_lower = n_lower + 1
 
 		return n_lower/n_samples, n_upper/n_samples
 
@@ -296,7 +340,6 @@ class AspInterface:
 			ctl.add('base', [], clause)
 		ctl.ground([("base", [])])
 
-		# n_bool_vars = self.n_prob_facts
 		n_samples = self.n_samples
 
 		n_upper = 0
@@ -313,11 +356,7 @@ class AspInterface:
 			else:
 				i = 0
 				for atm in ctl.symbolic_atoms:
-					# atm.symbol.name # qui ho il funtore
-					# atm.symbol.name # qui ho il funtore
-					# atm.symbol.arguments[0].number # qui ho l'indice
 					if atm.is_external:
-						# posso fare questo perché i dizionari sono ordinati in Python 3.7+
 						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
 						i = i + 1
 
@@ -342,7 +381,13 @@ class AspInterface:
 
 		return n_lower/n_samples, n_upper/n_samples
 
-	def sample_query(self) -> Union[float, float]:
+	'''
+	Samples the query self.n_samples times
+	If bound is True, stops when either the number of samples taken k
+	is greater than self.n_samples or 
+	2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
+	'''
+	def sample_query(self, bound : bool = False) -> Union[float, float]:
 		# sampled worlds
 		sampled = {}
 		
@@ -356,7 +401,12 @@ class AspInterface:
 
 		n_upper = 0
 		n_lower = 0
-		for _ in range(0, n_samples):
+		k = 0
+
+		if bound is True:
+			import math
+
+		while k < n_samples:
 			id = self.sample_world()
 
 			if id in sampled:
@@ -365,20 +415,17 @@ class AspInterface:
 			else:
 				i = 0
 				for atm in ctl.symbolic_atoms:
-					# atm.symbol.name # qui ho il funtore
-					# atm.symbol.name # qui ho il funtore
-					# atm.symbol.arguments[0].number # qui ho l'indice
+					# atm.symbol.name # functor
+					# atm.symbol.arguments[0].number # index
 					if atm.is_external:
-						# posso fare questo perché i dizionari sono ordinati in Python 3.7+
+						# possible since dicts are ordered in Python 3.7+
 						ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
 						i = i + 1
 
-				# res = []
 				upper = False
 				lower = True
 				with ctl.solve(yield_=True) as handle:
 					for m in handle:
-						# res.append(str(m))
 						if "q" == str(m):
 							upper = True
 						elif "nq" == str(m):
@@ -392,8 +439,17 @@ class AspInterface:
 					if lower:
 						n_lower = n_lower + 1
 						sampled[id] = [1, 1]
-
-		return n_lower/n_samples, n_upper/n_samples
+			k = k + 1
+			
+			if bound is True:
+				p = n_lower / k
+				# condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) >= 0.02
+				condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
+				if condition and n_lower > 5 and k - n_lower > 5 and k % 101 is 0:
+					a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
+					break
+		
+		return n_lower/k, n_upper/k
 
 	# loop for exact abduction
 	def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
