@@ -38,20 +38,21 @@ class AspInterface:
 		self.n_samples : int = n_samples
 		self.prob_facts_dict : dict = prob_facts_dict
 
-	'''
-	Parameters:
-		- None
-	Return:
-		- str
-	Behavior:
-		compute the minimal set of facts
-		needed to make the query true. This operation is performed
-		only if there is not evidence.
-		Cautious consequences
-		clingo <filename> -e cautious
-	'''
+
 	def get_minimal_set_facts(self) -> float:
-		ctl = clingo.Control(["--enum-mode=cautious"])
+		'''
+		Parameters:
+			- None
+		Return:
+			- str
+		Behavior:
+			compute the minimal set of facts
+			needed to make the query true. This operation is performed
+			only if there is not evidence.
+			Cautious consequences
+			clingo <filename> -e cautious
+		'''
+		ctl = clingo.Control(["--enum-mode=cautious", "-Wnone"])
 		for clause in self.program_minimal_set:
 			ctl.add('base',[],clause)
 
@@ -75,19 +76,20 @@ class AspInterface:
 
 		return clingo_time
 
-	'''
-	Parameters:
-		- None
-	Return:
-		- int: number of computed models
-		- float: grounding time
-		- float: computing probability time
-	Behavior:
-		compute the lower and upper bound for the query
-		clingo 0 <filename> --project
-	'''
+
 	def compute_probabilities(self) -> None:
-		ctl = clingo.Control(["0","--project"])
+		'''
+		Parameters:
+			- None
+		Return:
+			- int: number of computed models
+			- float: grounding time
+			- float: computing probability time
+		Behavior:
+			compute the lower and upper bound for the query
+			clingo 0 <filename> --project
+		'''
+		ctl = clingo.Control(["0","--project","-Wnone"])
 		for clause in self.asp_program:
 			ctl.add('base',[],clause)
 
@@ -118,8 +120,11 @@ class AspInterface:
 
 		self.world_analysis_time = time.time() - start_time
 
-	# samples a world for approximate probability computation 
+
 	def sample_world(self):
+		'''
+		Samples a world for approximate probability computation		
+		'''
 		id = ""
 		# samples = []
 		for key in self.prob_facts_dict:
@@ -132,8 +137,12 @@ class AspInterface:
 
 		return id
 
-	# this can be a static method
+
 	def pick_random_index(self, block : int, id : str) -> list:
+		'''
+		Pick a random index, used in Gibbs sampling.
+		TODO: this can be a static method.
+		'''
 			# i = random.randint(0,len(id) - 1)
 			# while i == 1:
 			# 	i = random.randint(0,len(id) - 1)
@@ -151,10 +160,11 @@ class AspInterface:
 		else:
 			return 'F'
 
-	'''
-	MH sampling
-	'''
+
 	def mh_sampling(self) -> Union[float, float]:
+		'''
+		MH sampling
+		'''
 		sampled = {}
 
 		ctl = clingo.Control(["0", "--project"])
@@ -225,10 +235,10 @@ class AspInterface:
 		return n_lower/n_samples, n_upper/n_samples
 
 
-	'''
-	Gibbs sampling
-	'''
 	def gibbs_sampling(self, block: int) -> Union[float, float]:
+		'''
+		Gibbs sampling
+		'''
 		# list of samples for the evidence
 		sampled_evidence = {}
 		# list of samples for the query
@@ -329,10 +339,11 @@ class AspInterface:
 
 		return n_lower/n_samples, n_upper/n_samples
 
-	'''
-	Rejection Sampling
-	'''
+
 	def rejection_sampling(self) -> Union[float, float]:
+		'''
+		Rejection Sampling
+		'''
 		sampled = {}
 		
 		ctl = clingo.Control(["0", "--project"])
@@ -386,13 +397,14 @@ class AspInterface:
 
 		return n_lower/n_samples, n_upper/n_samples
 
-	'''
-	Samples the query self.n_samples times
-	If bound is True, stops when either the number of samples taken k
-	is greater than self.n_samples or 
-	2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
-	'''
+
 	def sample_query(self, bound : bool = False) -> Union[float, float]:
+		'''
+		Samples the query self.n_samples times
+		If bound is True, stops when either the number of samples taken k
+		is greater than self.n_samples or 
+		2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
+		'''
 		# sampled worlds
 		sampled = {}
 		
@@ -456,8 +468,11 @@ class AspInterface:
 		
 		return n_lower/k, n_upper/k
 
-	# loop for exact abduction
+
 	def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
+		'''
+		Loop for exact abduction
+		'''
 		if self.verbose:
 			print(str(n_abd) + " abd")
 
@@ -473,6 +488,8 @@ class AspInterface:
 			ctl.add('base', [], ':- not q.')
 		ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
 		ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
+		# TODO: instead of, for each iteration, rewrite the whole program,
+		# use multi-shot with Number
 
 		for exp in previously_computed:
 			s = ":- "
@@ -502,10 +519,11 @@ class AspInterface:
 
 		return computed_models, computation_time
 
-	'''
-	Abduction
-	'''
+
 	def abduction(self):
+		'''
+		Abduction
+		'''
 		result = []
 		start_time = time.time()
 		abducibles_list = []
@@ -531,7 +549,6 @@ class AspInterface:
 
 				for cc in currently_computed:
 					abducibles_list.append(cc)
-
 			else:
 				for el in currently_computed:
 					model_handler.add_model_abduction(str(el))
@@ -549,8 +566,10 @@ class AspInterface:
 		self.abductive_explanations = result
 
 	
-	# prints the ASP program
 	def print_asp_program(self) -> None:
+		'''
+		Utility that prints the ASP program
+		'''
 		for el in self.asp_program:
 			print(el)
 		if len(self.cautious_consequences) != 0:
