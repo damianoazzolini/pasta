@@ -20,7 +20,7 @@ examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_s
 pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
 
 class Pasta:
-    def __init__(self, filename : str, query : str, evidence : str , precision=3, verbose=False, pedantic=False, samples=1000) -> None:
+    def __init__(self, filename : str, query : str, evidence : str , precision : int = 3, verbose : bool = False, pedantic : bool = False, samples : int = 1000) -> None:
         self.filename = filename
         self.query = query
         self.evidence = evidence
@@ -32,8 +32,12 @@ class Pasta:
         self.samples = samples
 
     @staticmethod
-    def truncate_prob(s: float) -> str:
-        s = str('{:.8f}'.format(s))
+    def remove_trailing_zeros(n : float) -> str:
+        '''
+        Removes trailing zeroes from floating point numbers
+        Example: 0.25000 -> 0.25
+        '''
+        s = str('{:.8f}'.format(n))
         s0 = s.split('.')[0]
         s = s.split('.')[1]
         i = len(s)
@@ -45,7 +49,7 @@ class Pasta:
 
         return s0 + "." + s[:i+1]
 
-    def approximate_solve(self, args, from_string : str = None) -> Union[float,float]:
+    def approximate_solve(self, args, from_string : str = None) -> 'tuple[str,str]':
         # start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
         program_parser.parse_approx(from_string)
@@ -67,7 +71,7 @@ class Pasta:
 
         return str(lp), str(up)
 
-    def solve(self, from_string : str = None) -> Union[float,float,list]:
+    def solve(self, from_string : str = None) -> 'tuple[float,float,list[str]]':
         start_time = time.time()
         program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
         program_parser.parse(from_string)
@@ -102,28 +106,7 @@ class Pasta:
             print("---")
 
         if len(program_parser.abducibles) > 0:
-            if profilation:
-                import cProfile
-                import pstats
-                import io
-
-                pr = cProfile.Profile()
-                pr.enable()
-                # https://docs.python.org/3/library/profile.html#pstats.Stats
-            
             interface.abduction()
-
-            if profilation:
-                pr.disable()
-                s = io.StringIO()
-                from pstats import SortKey
-                sortby = SortKey.CUMULATIVE
-                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-                ps.print_stats()
-                fp = open('profilation.txt','w')
-                fp.write(s.getvalue())
-                fp.close()
-
         else:
             interface.compute_probabilities()
         end_time = time.time() - start_time
@@ -142,7 +125,7 @@ class Pasta:
             uq = interface.upper_probability_query
             lq = interface.lower_probability_query
 
-            if (lq > uq) or lq > 1 or uq > 1:
+            if (lq > uq) or (int(lq*10e8) > 10e8) or (int(uq*10e8) > 10e8):
                 print("Error in computing probabilities")
                 print("Lower: " + '{:.8f}'.format(lq))
                 print("Upper: " + '{:.8f}'.format(uq))
@@ -156,7 +139,7 @@ class Pasta:
             return None, None, interface.abductive_explanations
         else:
             exp = interface.abductive_explanations if interface.n_abducibles > 0 else None
-            return self.truncate_prob(lq)[:8], self.truncate_prob(uq)[:8], exp
+            return self.remove_trailing_zeros(lq)[:8], self.remove_trailing_zeros(uq)[:8], exp
 
 def print_prob(lp : str, up : str, query : str) -> None:
     if query is None:

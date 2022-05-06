@@ -6,7 +6,6 @@ to the list
 '''
 
 from typing import Union
-import sys
 
 class AbdWorld:
     '''
@@ -14,9 +13,9 @@ class AbdWorld:
     '''
     def __init__(self, id_abd : str,  id_prob : str, prob : int, model_query : bool) -> None:
         self.id : str = id_abd
-        self.model_query_count: int = 0  # needed?
-        self.model_not_query_count: int = 0  # needed?
-        self.probabilistic_worlds = dict()
+        self.model_query_count : int = 0  # needed?
+        self.model_not_query_count : int = 0  # needed?
+        self.probabilistic_worlds : dict[str,World] = dict()
 
         if model_query is True:
             self.model_query_count = 1  # needed?
@@ -45,6 +44,9 @@ class AbdWorld:
             s = s + "\t" + self.probabilistic_worlds[el] + "\n"
 
         return s
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 class World:
     '''
@@ -77,6 +79,9 @@ class World:
             " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + \
             " mc: " + str(self.model_count)
+    
+    def __repr__(self) -> str:
+        return self.__str__()
     
 '''
 Class to handle the models computed by clingo.
@@ -236,7 +241,6 @@ class ModelsHandler():
     # model_evidence = False -> ne in line
     @staticmethod
     def manage_worlds_dict(worlds_dict : dict, evidence : str, id : str, prob : int, model_query : bool, model_evidence : bool) -> None:
-        # print(worlds_dict)
         if id in worlds_dict:
             if evidence is None:
                 if model_query is True:

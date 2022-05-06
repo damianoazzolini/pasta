@@ -7,9 +7,6 @@ from typing import Union
 
 import utils
 
-import time
-from timeit import default_timer as timer
-
 # from matplotlib import lines
 # from typing import Dict, Union
 
@@ -28,17 +25,17 @@ class PastaParser:
         - abducibles: list of abducibles
     '''
 
-    def __init__(self, filename: str, precision: int, query = None, evidence = None, identify_useless_facts = False) -> None:
+    def __init__(self, filename : str, precision : int, query : str = None, evidence : str = None) -> None:
         self.filename : str = filename
         self.precision : int = precision
         self.query : str = query
         self.evidence : str = evidence
-        self.lines_original : list = []
-        self.lines_prob : list = []
-        self.probabilistic_facts = dict() # pairs [fact,prob]
-        self.abducibles : list = []
+        self.lines_original : list[str] = []
+        self.lines_prob : list[str] = []
+        self.probabilistic_facts : dict[str,float] = dict() # pairs [fact,prob]
+        self.abducibles : list[str] = []
         self.n_probabilistic_ics : int = 0
-        self.body_probabilistic_ics : list = []
+        self.body_probabilistic_ics : list[str] = []
 
     @staticmethod
     def symbol_endline_or_space(char1: str) -> bool:
@@ -49,7 +46,7 @@ class PastaParser:
         return char1 == '\n' or char1 == '\r\n'
 
     @staticmethod
-    def is_number(n: Union[int, float]) -> bool:
+    def is_number(n: Union[int, float, str]) -> bool:
         try:
             float(n)
         except ValueError:
@@ -91,8 +88,8 @@ class PastaParser:
 
         prob = float(line[0])
 
-        if prob > 1 or prob <= 0:
-            sys.exit("Probabilities must be in the range ]0,1], found " + str(prob))
+        if prob > 1 or prob < 0:
+            sys.exit("Probabilities must be in the range [0,1], found " + str(prob))
 
         # [:-1] to remove final .
         term = line[1][:-1]
@@ -102,11 +99,12 @@ class PastaParser:
 
         return prob, term
 
-    '''
-    Parses a program into an alternative form: probabilistic 
-        facts are converted into external facts
-    '''
+
     def parse_approx(self, from_string : str = None) -> None:
+        '''
+        Parses a program into an alternative form: probabilistic 
+            facts are converted into external facts
+        '''
         if from_string is None and os.path.isfile(self.filename) == False:
             print("File " + self.filename + " not found")
             sys.exit()
@@ -130,8 +128,6 @@ class PastaParser:
                     self.lines_prob.append(f'#external {term}.')
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
-
-        return True
 
     '''
     Parameters:
@@ -191,7 +187,7 @@ class PastaParser:
                         l0[i] = l0[i].replace(' ', '')
                     l1 = "abducible"
                     for el in range(1,len(l0)):
-                        l1 = l1 + ' ' + l0[i]
+                        l1 = l1 + ' ' + l0[i] # TODO: check this, i is unbound
                     # print(l1)
                 else:
                     l1 = l0.replace(' ','')
@@ -333,7 +329,7 @@ class PastaParser:
         generate the file to pass to ASP to compute the minimal set
         of probabilistic facts to make the query true
     '''
-    def get_content_to_compute_minimal_set_facts(self) -> list:
+    def get_content_to_compute_minimal_set_facts(self) -> 'list[str]':
         if self.evidence is None:
             prog = self.lines_prob + [":- not " + self.query + "."]
         else:
@@ -351,7 +347,7 @@ class PastaParser:
         returns a string that represent the ASP program where models 
         need to be computed
     '''
-    def get_asp_program(self) -> str:
+    def get_asp_program(self) -> 'list[str]':
         self.lines_prob.append("q:- " + self.query + ".")
         self.lines_prob.append("#show q/0.")
         self.lines_prob.append("nq:- not " + self.query + ".")
@@ -364,12 +360,6 @@ class PastaParser:
             self.lines_prob.append("#show ne/0.")
 
         return self.lines_prob
-
-    def get_parsed_file(self) -> str:
-        return self.lines_prob
-
-    def has_evidence(self) -> bool:
-        return self.evidence != None
 
     def error_prob_fact_twice(self, key : str, prob : float) -> None:
         print("Probabilistic fact " + key + " already defined with")

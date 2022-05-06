@@ -12,10 +12,10 @@ class AspInterface:
 		- content: list with the program
 	'''
 
-	def __init__(self, program_minimal_set: list, evidence: list, asp_program : list, probabilistic_facts : dict, n_abducibles : int, precision : int = 3, verbose : bool = False, pedantic = False, n_samples = 1000, prob_facts_dict = None) -> None:
-		self.cautious_consequences : list = []
-		self.program_minimal_set : list = sorted(set(program_minimal_set))
-		self.asp_program : list = sorted(set(asp_program))
+	def __init__(self, program_minimal_set : 'list[str]', evidence : str, asp_program : 'list[str]', probabilistic_facts : 'dict[str,float]', n_abducibles : int, precision : int = 3, verbose : bool = False, pedantic : bool = False, n_samples : int = 1000, prob_facts_dict = None) -> None:
+		self.cautious_consequences : list[str] = []
+		self.program_minimal_set : list[str] = sorted(set(program_minimal_set))
+		self.asp_program : list[str] = sorted(set(asp_program))
 		self.lower_probability_query : int = 0
 		self.upper_probability_query : int = 0
 		self.upper_probability_evidence : int = 0
@@ -23,20 +23,20 @@ class AspInterface:
 		self.precision : int = precision
 		self.evidence : str = evidence
 		# self.probabilistic_facts = probabilistic_facts # unused
-		self.n_prob_facts : int = len(probabilistic_facts)
+		self.n_prob_facts : int = len(probabilistic_facts) # TODO: is probabilistic_facts used?
 		self.n_abducibles : int = n_abducibles
-		self.constraint_times_list : list = []
+		self.constraint_times_list : list[float] = []
 		self.computed_models : int = 0
-		self.grounding_time : int = 0
+		self.grounding_time : float = 0
 		self.n_worlds : int = 0
 		self.world_analysis_time : int = 0
-		self.computation_time : int = 0
-		self.abductive_explanations : list = []
-		self.abduction_time : int = 0
+		self.computation_time : float = 0
+		self.abductive_explanations : list[str] = []
+		self.abduction_time : float = 0
 		self.verbose : bool = verbose
 		self.pedantic : bool = pedantic
 		self.n_samples : int = n_samples
-		self.prob_facts_dict : dict = prob_facts_dict
+		self.prob_facts_dict : dict = prob_facts_dict # same as probabilistic_facts?
 
 
 	def get_minimal_set_facts(self) -> float:
