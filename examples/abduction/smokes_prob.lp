@@ -13,12 +13,16 @@ abducible e(e,c).
 friend(X,Y):- e(X,Y), fe(X,Y). 
 friend(X,Y):- e(Y,X), fe(Y,X).
 
-% :- friend(a,b).
-
 smokes(b). 
-% smokes(d).
+smokes(d).
 
 smokes(X) ; no_smokes(X):- friend(X,Y), smokes(Y).
 
+0.2:- #count{X:no_smokes(X)} = N, #count{X:smokes(X)} = S, 10*S<8*(N+S).
+
 % query: smokes(c)
-% Expected: 0 explanations
+% Lower probability for the query smokes(c): 0.125
+% Upper probability for the query smokes(c): 0.425
+% Abductive explanations 1
+% Explanation 0
+% ['e(b,c)', 'e(d,e)', 'e(e,c)']

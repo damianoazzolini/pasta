@@ -12,3 +12,13 @@ python3 test_utilities.py
 ```
 
 Note: python3.5 is required (for type hint for arguments of functions and testing).
+
+For coverage: python3 -m pip install coverage
+Then,
+coverage run -m unittest test_pasta_parser.py
+and 
+coverage html
+to generate html 
+or 
+coverage report -m
+to have the results printed on the terminal.

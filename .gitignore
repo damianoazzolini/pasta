@@ -1,6 +1,7 @@
 .vscode
-
+html/
 profilation.txt
+*.tmp
 
 src/pasta/test.py 
 temp.pl

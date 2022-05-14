@@ -7,12 +7,14 @@ abducible e(e,c).
 friend(X,Y):- e(X,Y). 
 friend(X,Y):- e(Y,X).
 
-:- friend(a,b).
+% :- friend(a,b).
 
 smokes(b). 
 smokes(d).
 
 smokes(X) ; no_smokes(X):- friend(X,Y), smokes(Y).
+
+:- #count{X:no_smokes(X)} = N, #count{X:smokes(X)} = S, 10*S < 8*(N+S).
 
 % query: smokes(c)
 % Expected: 
