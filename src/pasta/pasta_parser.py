@@ -25,7 +25,13 @@ class PastaParser:
         - abducibles: list of abducibles
     '''
 
-    def __init__(self, filename : str, precision : int, query : str = None, evidence : str = None) -> None:
+    def __init__(
+        self, 
+        filename : str, 
+        precision : int, 
+        query : str = "", 
+        evidence : str = ""
+        ) -> None:
         self.filename : str = filename
         self.precision : int = precision
         self.query : str = query
@@ -37,13 +43,16 @@ class PastaParser:
         self.n_probabilistic_ics : int = 0
         self.body_probabilistic_ics : list[str] = []
 
+
     @staticmethod
     def symbol_endline_or_space(char1: str) -> bool:
         return char1 == '\n' or char1 == '\r\n' or char1 == ' '
 
+
     @staticmethod
     def endline_symbol(char1: str) -> bool:
         return char1 == '\n' or char1 == '\r\n'
+
 
     @staticmethod
     def is_number(n: Union[int, float, str]) -> bool:
@@ -53,6 +62,7 @@ class PastaParser:
             return False
         return True
 
+
     @staticmethod
     def is_int(n: int) -> bool:
         try:
@@ -60,6 +70,7 @@ class PastaParser:
         except ValueError:
             return False
         return True
+
 
     # extracts the functor from a compound term. If the term is an atom
     # returns the atom itself
@@ -72,12 +83,13 @@ class PastaParser:
             i = i + 1
         return r
 
-    @staticmethod
-    def check_consistent_prob_fact(line: str) -> Union[float, str]:
-        if not line.endswith('.'):
-            sys.exit("Missing final . in " + line)
 
-        line = line.split("::")
+    @staticmethod
+    def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
+        if not line_in.endswith('.'):
+            sys.exit("Missing final . in " + line_in)
+
+        line = line_in.split("::")
         # for example: line = ['0.5', 'f(1..3).']
         if len(line) != 2:
             sys.exit("Error in parsing: " + str(line))
@@ -100,16 +112,16 @@ class PastaParser:
         return prob, term
 
 
-    def parse_approx(self, from_string : str = None) -> None:
+    def parse_approx(self, from_string : str = "") -> None:
         '''
         Parses a program into an alternative form: probabilistic 
-            facts are converted into external facts
+        facts are converted into external facts
         '''
-        if from_string is None and os.path.isfile(self.filename) == False:
+        if not from_string and os.path.isfile(self.filename) == False:
             print("File " + self.filename + " not found")
             sys.exit()
 
-        if from_string is None:
+        if not from_string:
             f = open(self.filename,"r")
         else:
             import io
@@ -129,20 +141,21 @@ class PastaParser:
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
 
-    '''
-    Parameters:
-        - None
-    Returns:
-        - list of strings representing the program
-    Behavior:
-        - parses the file and extract the lines
-    '''
-    def parse(self, from_string : str = None) -> None:
-        if from_string is None and os.path.isfile(self.filename) == False:
+
+    def parse(self, from_string : str = "") -> None:
+        '''
+        Parameters:
+            - None
+        Returns:
+            - list of strings representing the program
+        Behavior:
+            - parses the file and extract the lines
+        '''
+        if not from_string and os.path.isfile(self.filename) == False:
             print("File " + self.filename + " not found")
             sys.exit()
         
-        if from_string is None:
+        if not from_string:
             f = open(self.filename,"r")
         else:
             import io
@@ -186,7 +199,7 @@ class PastaParser:
                     for i in range(1,len(l0)):
                         l0[i] = l0[i].replace(' ', '')
                     l1 = "abducible"
-                    for el in range(1,len(l0)):
+                    for i in range(1,len(l0)):
                         l1 = l1 + ' ' + l0[i] # TODO: check this, i is unbound
                     # print(l1)
                 else:
@@ -217,7 +230,11 @@ class PastaParser:
         f.close()
         self.parse_program()
 
+
     def parse_program(self) -> bool:
+        '''
+        Second layer of program parsing
+        '''
         n_probabilistic_facts = 0
         gen = generator.Generator()
         for line in self.lines_original:
@@ -284,7 +301,7 @@ class PastaParser:
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append([line])
-        if self.query is None:
+        if not self.query:
             utils.print_error_and_exit("Missing query")
             
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
@@ -308,8 +325,11 @@ class PastaParser:
         # sys.exit()
         return True
 
-    # dummy check for reserved facts
+
     def check_reserved(self, line : str) -> None:
+        '''
+        Dummy check for reserved names (q, nq, e, ne)
+        '''
         if line.startswith('q:-'):
             utils.print_error_and_exit("q is a reserved fact")
         elif line.startswith('nq:-'):
@@ -319,72 +339,74 @@ class PastaParser:
         elif line.startswith('ne:-'):
             utils.print_error_and_exit("ne is a reserved fact")
 
-    '''
-    Parameters:
-        - None
-    Returns:
-        - str: program used to compute the minimal set of probabilistic
-        facts to make the query true
-    Behavior:
-        generate the file to pass to ASP to compute the minimal set
-        of probabilistic facts to make the query true
-    '''
+
     def get_content_to_compute_minimal_set_facts(self) -> 'list[str]':
-        if self.evidence is None:
+        '''
+        Parameters:
+            - None
+        Returns:
+            - str: program used to compute the minimal set of probabilistic
+            facts to make the query true
+        Behavior:
+            generate the file to pass to ASP to compute the minimal set
+            of probabilistic facts to make the query true
+        '''
+        if not self.evidence:
             prog = self.lines_prob + [":- not " + self.query + "."]
         else:
             prog = self.lines_prob + [":- not " + self.evidence + "."]
         
         return prog
 
-    '''
-    Parameters:
-        - None
-    Returns:
-        - str: string representing the program that can be used to 
-        compute lower and upper probability
-    Behavior:
-        returns a string that represent the ASP program where models 
-        need to be computed
-    '''
+
     def get_asp_program(self) -> 'list[str]':
-        self.lines_prob.append("q:- " + self.query + ".")
+        '''
+        Parameters:
+            - None
+        Returns:
+            - str: string representing the program that can be used to 
+            compute lower and upper probability
+        Behavior:
+            returns a string that represent the ASP program where models 
+            need to be computed
+        '''
+        self.lines_prob.append(f"q:- {self.query}.")
         self.lines_prob.append("#show q/0.")
-        self.lines_prob.append("nq:- not " + self.query + ".")
+        self.lines_prob.append(f"nq:- not {self.query}.")
         self.lines_prob.append("#show nq/0.")
 
-        if self.evidence is not None:
-            self.lines_prob.append("e:- " + self.evidence + ".")
+        if self.evidence:
+            self.lines_prob.append(f"e:- {self.evidence}.")
             self.lines_prob.append("#show e/0.")
-            self.lines_prob.append("ne:- not " + self.evidence + ".")
+            self.lines_prob.append(f"ne:- not {self.evidence}.")
             self.lines_prob.append("#show ne/0.")
 
         return self.lines_prob
 
-    def error_prob_fact_twice(self, key : str, prob : float) -> None:
-        print("Probabilistic fact " + key + " already defined with")
-        print("probability " + str(self.probabilistic_facts[key]/(10**self.precision)) + ".")
-        print("Trying to replace it with probability " + str(prob) + ".")
 
-    # adds the current probabilistic fact and its probability in the 
-    # list of probabilistic facts
     def add_probabilistic_fact(self, term : str, prob : float) -> None:
+        '''
+        Adds the current probabilistic fact and its probability in the 
+        list of probabilistic facts
+        '''
         key = term.split('.')[0]
         if key in self.probabilistic_facts:
-            self.error_prob_fact_twice(key, prob)
+            utils.warning_prob_fact_twice(
+                key, prob, self.probabilistic_facts[key]/(10**self.precision))
             sys.exit()
         self.probabilistic_facts[key] = int(prob*(10**self.precision))
 
-    '''
-    string representation of the current class
-    '''
+
     def __repr__(self) -> str:
+        '''
+        String representation of the current class
+        '''
         return "filename: " + self.filename + "\n" + \
         "precision: " + str(self.precision) + "\n" + \
         "query: " + str(self.query) + "\n" + \
-        (("evidence: " + str(self.evidence) + "\n") if self.evidence != None else "") + \
+        (("evidence: " + str(self.evidence) + "\n") if self.evidence else "") + \
         "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \
-        "n probabilistic facts:\n" + str(self.probabilistic_facts()) + "\n" + \
+        "n probabilistic facts:\n" + str(self.probabilistic_facts) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
         "probabilities file:\n" + str(self.lines_prob) + "\n" + \
-        (("abducibles: " + str(self.abducibles))  if self.abducibles != None else "")
+        (("abducibles: " + str(self.abducibles))  if len(self.abducibles) > 0 else "")

@@ -60,11 +60,11 @@ class AspInterface:
 		start_time = time.time()
 
 		temp_cautious = []
-		with ctl.solve(yield_=True) as handle:
-			for m in handle:
+		with ctl.solve(yield_=True) as handle:  # type: ignore
+			for m in handle:  # type: ignore
 				# i need only the last one
-				temp_cautious = str(m).split(' ')
-			handle.get()
+				temp_cautious = str(m).split(' ')  # type: ignore
+			handle.get()  # type: ignore
 
 		for el in temp_cautious:
 			# if el != '' and (el.split(',')[-2] + ')' if el.count(',') > 0 else el.split('(')[0]) in self.probabilistic_facts:
@@ -104,11 +104,11 @@ class AspInterface:
 		start_time = time.time()
 		model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, self.evidence)
 
-		with ctl.solve(yield_=True) as handle:
-			for m in handle:
-				model_handler.add_value(str(m))
+		with ctl.solve(yield_=True) as handle:  # type: ignore
+			for m in handle:  # type: ignore
+				model_handler.add_value(str(m))  # type: ignore
 				self.computed_models = self.computed_models + 1
-			handle.get()
+			handle.get()   # type: ignore
 		self.computation_time = time.time() - start_time
 
 		# print(model_handler) # prints the models in world format
@@ -161,7 +161,7 @@ class AspInterface:
 			return 'F'
 
 
-	def mh_sampling(self) -> Union[float, float]:
+	def mh_sampling(self) -> 'tuple[float, float]':
 		'''
 		MH sampling
 		'''
@@ -235,7 +235,7 @@ class AspInterface:
 		return n_lower/n_samples, n_upper/n_samples
 
 
-	def gibbs_sampling(self, block: int) -> Union[float, float]:
+	def gibbs_sampling(self, block: int) -> 'tuple[float, float]':
 		'''
 		Gibbs sampling
 		'''
@@ -268,9 +268,9 @@ class AspInterface:
 						if atm.is_external:
 							ctl.assign_external(atm.literal, True if id[i] == 'T' else False)
 							i = i + 1
-					with ctl.solve(yield_=True) as handle:
-						for m in handle:
-							m1 = str(m).split(' ')
+					with ctl.solve(yield_=True) as handle:  # type: ignore
+						for m in handle:  # type: ignore
+							m1 = str(m).split(' ')  # type: ignore
 							if 'e' in m1:
 								ev = True
 								break
@@ -319,9 +319,9 @@ class AspInterface:
 
 				upper = False
 				lower = True
-				with ctl.solve(yield_=True) as handle:
-					for m in handle:
-						m1 = str(m).split(' ')
+				with ctl.solve(yield_=True) as handle:  # type: ignore
+					for m in handle:  # type: ignore
+						m1 = str(m).split(' ')  # type: ignore
 						if 'e' in m1:
 							if 'q' in m1:
 								upper = True
@@ -340,7 +340,7 @@ class AspInterface:
 		return n_lower/n_samples, n_upper/n_samples
 
 
-	def rejection_sampling(self) -> Union[float, float]:
+	def rejection_sampling(self) -> 'tuple[float, float]':
 		'''
 		Rejection Sampling
 		'''
@@ -374,9 +374,9 @@ class AspInterface:
 
 				upper = False
 				lower = True
-				with ctl.solve(yield_=True) as handle:
-					for m in handle:
-						m1 = str(m).split(' ')
+				with ctl.solve(yield_=True) as handle:  # type: ignore
+					for m in handle:  # type: ignore
+						m1 = str(m).split(' ')  # type: ignore
 						if 'e' in m1:
 							ev_sampled = True
 							if 'q' in m1:
@@ -398,7 +398,7 @@ class AspInterface:
 		return n_lower/n_samples, n_upper/n_samples
 
 
-	def sample_query(self, bound : bool = False) -> Union[float, float]:
+	def sample_query(self, bound : bool = False) -> 'tuple[float, float]':
 		'''
 		Samples the query self.n_samples times
 		If bound is True, stops when either the number of samples taken k
@@ -441,14 +441,14 @@ class AspInterface:
 
 				upper = False
 				lower = True
-				with ctl.solve(yield_=True) as handle:
-					for m in handle:
-						if "q" == str(m):
+				with ctl.solve(yield_=True) as handle:  # type: ignore
+					for m in handle:  # type: ignore
+						if "q" == str(m):  # type: ignore
 							upper = True
-						elif "nq" == str(m):
+						elif "nq" == str(m):  # type: ignore
 							lower = False
 				
-						handle.get()
+						handle.get()  # type: ignore
 
 				if upper:
 					n_upper = n_upper + 1
@@ -469,7 +469,7 @@ class AspInterface:
 		return n_lower/k, n_upper/k
 
 
-	def abduction_iter(self, n_abd: int, previously_computed : list) -> Union[str, float]:
+	def abduction_iter(self, n_abd: int, previously_computed : list) -> 'tuple[str, float]':
 		'''
 		Loop for exact abduction
 		'''
@@ -505,12 +505,12 @@ class AspInterface:
 
 		computed_models = []
 
-		with ctl.solve(yield_=True) as handle:
-			for m in handle:
+		with ctl.solve(yield_=True) as handle:  # type: ignore
+			for m in handle:  # type: ignore
 				# print(m)
-				computed_models.append(str(m))
+				computed_models.append(str(m))  # type: ignore
 				# n_models = n_models + 1
-			handle.get()
+			handle.get()  # type: ignore
 
 		computation_time = time.time() - start_time
 
@@ -520,14 +520,14 @@ class AspInterface:
 		return computed_models, computation_time
 
 
-	def abduction(self):
+	def abduction(self) -> None:
 		'''
 		Abduction
 		'''
 		result = []
 		start_time = time.time()
 		abducibles_list = []
-		model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, None)
+		model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, "")
 
 		for i in range(0, self.n_abducibles + 1):
 			currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
@@ -565,7 +565,18 @@ class AspInterface:
 		self.abduction_time = time.time() - start_time
 		self.abductive_explanations = result
 
+
+	def log_infos(self) -> None:
+		'''
+		Log some execution details
+		'''
+		print("Computed models: " + str(self.computed_models))
+		print("Considered worlds: " + str(self.n_worlds))
+		print("Grounding time (s): " + str(self.grounding_time))
+		print("Probability computation time (s): " + str(self.computation_time))
+		print("World analysis time (s): " + str(self.world_analysis_time))
 	
+
 	def print_asp_program(self) -> None:
 		'''
 		Utility that prints the ASP program

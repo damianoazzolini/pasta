@@ -74,7 +74,7 @@ class Pasta:
         pass
 
 
-    def approximate_solve(self, args : argparse.Namespace, from_string : str = None) -> 'tuple[float,float]':
+    def approximate_solve(self, args : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
         '''
         Inference through sampling
         '''
@@ -102,7 +102,7 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = None) -> asp_interface.AspInterface:
+    def setup_interface(self, from_string : str = "") -> asp_interface.AspInterface:
         '''
         Setup clingo interface
         '''
@@ -140,7 +140,7 @@ class Pasta:
         return interface
 
 
-    def abduction(self, from_string: str = None) -> 'tuple[float,float,list[str]]':
+    def abduction(self, from_string: str = "") -> 'tuple[float,float,list[str]]':
         '''
         Probabilistic and deterministic abduction
         '''
@@ -155,7 +155,7 @@ class Pasta:
         return lp, up, explanation
     
     
-    def inference(self, from_string : str = None) -> 'tuple[float,float]':
+    def inference(self, from_string : str = "") -> 'tuple[float,float]':
         '''
         Exact inference
         '''
@@ -182,8 +182,8 @@ class Pasta:
 
 
     @staticmethod
-    def remove_dominated_explanations(abd_exp : 'list[str]') -> 'list[str]':
-        ls : list[str] = []
+    def remove_dominated_explanations(abd_exp : 'list[str]') -> 'list[set[str]]':
+        ls : list[set[str]] = []
         for el in abd_exp:
             s : set[str] = set()
             for a in el:
@@ -194,8 +194,9 @@ class Pasta:
         for i in range(0,len(ls)):
             for j in range(i+1,len(ls)):
                 if len(ls[i]) > 0:
-                    if ls[i].issubset(ls[j]):
-                        ls[j] = ''
+                    #type ignore
+                    if ls[i].issubset(ls[j]):  # type: ignore
+                        ls[j] = set()  # type: ignore
 
         return ls
 
@@ -215,8 +216,6 @@ class Pasta:
                 print(f"Explanation {index}")
                 index = index + 1
                 print(sorted(el))
-            
-
 
 
 if __name__ == "__main__":
