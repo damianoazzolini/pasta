@@ -1,5 +1,3 @@
-from curses.ascii import isupper
-from typing import Union
 import sys
 
 import utils
@@ -17,7 +15,7 @@ class Generator:
     # dom_f(1..3). from f(1..3).
     # dom_a from a
     @staticmethod
-    def generate_clauses_for_facts(term: str, probability: float, precision: int):
+    def generate_clauses_for_facts(term : str, probability : float, precision : int) -> 'list[str]':
         generator_term = '0{' + term + '}1.'
 
         if "(" not in term:
@@ -39,10 +37,10 @@ class Generator:
         return [generator_term,new_fact_true,new_fact_false,show_true,show_false]
 
     @staticmethod
-    def extract_vars(term: str) -> list:
+    def extract_vars(term: str) -> 'list[str]':
         term = term.replace('(', ',').replace(')', ',')
-        term = term.split(',')
-        return [var for var in term if (len(var) > 0 and var[0].isupper())]
+        term_list = term.split(',')
+        return [var for var in term_list if (len(var) > 0 and var[0].isupper())]
 
     @staticmethod
     def generate_clauses_for_conditionals(conditional : str) -> list:
@@ -102,7 +100,7 @@ class Generator:
         return [disjunct,cu,cl]
 
     @staticmethod
-    def generate_clauses_for_abducibles(line: str, n_abd : int) -> Union[str,str]:
+    def generate_clauses_for_abducibles(line: str, n_abd: int) -> 'tuple[list[str], str]':
         if len(line.split(' ')) != 2:
             utils.print_error_and_exit("Error in line " + line)
         
