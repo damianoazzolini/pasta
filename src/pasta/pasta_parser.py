@@ -307,6 +307,12 @@ class PastaParser:
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
 
         for fact in self.probabilistic_facts:
+            # To handle 0.1::a. a. q:- a.
+            # Without this, the computed prob is 0.1, while the correct
+            # prob should be 1.
+            if fact + '.' in self.lines_prob:
+                self.probabilistic_facts[fact] = 10**self.precision
+
             clauses = gen.generate_clauses_for_facts(
                 fact, self.probabilistic_facts[fact]/(10**self.precision), self.precision)
             for c in clauses:
