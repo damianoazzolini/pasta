@@ -23,7 +23,6 @@ class Pasta:
         filename : str, 
         query : str, 
         evidence : str , 
-        precision : int = 3, 
         verbose : bool = False, 
         pedantic : bool = False, 
         samples : int = 1000
@@ -31,7 +30,6 @@ class Pasta:
         self.filename = filename
         self.query = query
         self.evidence = evidence
-        self.precision = precision
         self.verbose = verbose
         self.pedantic = pedantic
         if pedantic is True:
@@ -80,12 +78,12 @@ class Pasta:
         Inference through sampling
         '''
         
-        program_parser = pasta_parser.PastaParser(self.filename, self.precision, self.query, self.evidence)
+        program_parser = pasta_parser.PastaParser(self.filename, self.query, self.evidence)
         program_parser.parse_approx(from_string)
         asp_program = program_parser.get_asp_program()
 
-        self.interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
-        
+        self.interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
+
 
         if self.evidence is None:
             lp, up = self.interface.sample_query()
@@ -109,7 +107,7 @@ class Pasta:
         Setup clingo interface
         '''
         program_parser = pasta_parser.PastaParser(
-            self.filename, self.precision, self.query, self.evidence)
+            self.filename, self.query, self.evidence)
         program_parser.parse(from_string)
 
         if self.verbose:
@@ -122,9 +120,8 @@ class Pasta:
             content_find_minimal_set, 
             self.evidence, 
             asp_program, 
-            program_parser.probabilistic_facts, 
+            program_parser.probabilistic_facts,
             len(program_parser.abducibles), 
-            self.precision, 
             self.verbose, 
             self.pedantic
         )
@@ -234,7 +231,6 @@ if __name__ == "__main__":
     command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
     command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
-    command_parser.add_argument("-p", "--precision", help="Precision, default 3", type=int, default=3)
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
     command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
     command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
@@ -246,7 +242,7 @@ if __name__ == "__main__":
     
     args = command_parser.parse_args()
 
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.precision, args.verbose, args.pedantic, args.samples)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples)
     
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()

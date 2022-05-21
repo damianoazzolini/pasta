@@ -18,7 +18,6 @@ class AspInterface:
 		asp_program : 'list[str]', 
 		probabilistic_facts : 'dict[str,float]', 
 		n_abducibles : int, 
-		precision : int = 3, 
 		verbose : bool = False, 
 		pedantic : bool = False, 
 		n_samples : int = 1000
@@ -30,7 +29,6 @@ class AspInterface:
 		self.upper_probability_query : int = 0
 		self.upper_probability_evidence : int = 0
 		self.lower_probability_evidence : int = 0
-		self.precision : int = precision
 		self.evidence : str = evidence
 		# self.probabilistic_facts = probabilistic_facts # unused
 		self.n_prob_facts : int = len(probabilistic_facts) # TODO: is probabilistic_facts used?
@@ -49,7 +47,6 @@ class AspInterface:
 		self.prob_facts_dict : dict[str,float] = probabilistic_facts
 		self.model_handler : models_handler.ModelsHandler = \
 			models_handler.ModelsHandler(
-				self.precision, 
 				self.prob_facts_dict,
 				self.evidence)
 
@@ -117,7 +114,6 @@ class AspInterface:
 		self.grounding_time = time.time() - start_time
 
 		start_time = time.time()
-		# model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, self.evidence)
 
 		with ctl.solve(yield_=True) as handle:  # type: ignore
 			for m in handle:  # type: ignore
@@ -130,8 +126,6 @@ class AspInterface:
 
 		start_time = time.time()
 		self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
-
-		# print(self.model_handler.worlds_dict)
 
 		self.n_worlds = self.model_handler.get_number_worlds()
 
@@ -544,7 +538,7 @@ class AspInterface:
 		result = []
 		start_time = time.time()
 		abducibles_list = []
-		model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, "")
+		model_handler = models_handler.ModelsHandler(self.n_prob_facts, "")
 
 		for i in range(0, self.n_abducibles + 1):
 			currently_computed, exec_time = self.abduction_iter(i, abducibles_list)

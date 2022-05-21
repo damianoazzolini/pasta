@@ -11,5 +11,5 @@ sick :- not warm.
 query(sick).
 
 % Expected result
-% Lower probability for the query: 0.199
-% Upper probability for the query: 0.2374
+% Lower probability for the query: 0.2
+% Upper probability for the query: 0.2384

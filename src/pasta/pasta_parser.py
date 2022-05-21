@@ -16,7 +16,6 @@ class PastaParser:
     '''
     Parameters:
         - filename: name of the file to read
-        - precision: multiplier for the log probabilities
         - query: query
         - evidence: evidence
         - lines_original: lines from the parsing of the original file
@@ -28,12 +27,10 @@ class PastaParser:
     def __init__(
         self, 
         filename : str, 
-        precision : int, 
         query : str = "", 
         evidence : str = ""
         ) -> None:
         self.filename : str = filename
-        self.precision : int = precision
         self.query : str = query
         self.evidence : str = evidence
         self.lines_original : list[str] = []
@@ -250,8 +247,6 @@ class PastaParser:
 
                 self.add_probabilistic_fact(fact,probability)
 
-                # clauses = gen.generate_clauses_for_facts(fact,probability,self.precision)
-
                 # self.lines_prob.append(clauses)
 
                 n_probabilistic_facts = n_probabilistic_facts + 1
@@ -311,10 +306,9 @@ class PastaParser:
             # Without this, the computed prob is 0.1, while the correct
             # prob should be 1.
             if fact + '.' in self.lines_prob:
-                self.probabilistic_facts[fact] = 10**self.precision
+                self.probabilistic_facts[fact] = 1
 
-            clauses = gen.generate_clauses_for_facts(
-                fact, self.probabilistic_facts[fact]/(10**self.precision), self.precision)
+            clauses = gen.generate_clauses_for_facts(fact, self.probabilistic_facts[fact])
             for c in clauses:
                 self.lines_prob.append(c)
 
@@ -398,9 +392,9 @@ class PastaParser:
         key = term.split('.')[0]
         if key in self.probabilistic_facts:
             utils.warning_prob_fact_twice(
-                key, prob, self.probabilistic_facts[key]/(10**self.precision))
+                key, prob, self.probabilistic_facts[key])
             sys.exit()
-        self.probabilistic_facts[key] = int(prob*(10**self.precision))
+        self.probabilistic_facts[key] = float(prob)
 
 
     def __repr__(self) -> str:
@@ -408,7 +402,6 @@ class PastaParser:
         String representation of the current class
         '''
         return "filename: " + self.filename + "\n" + \
-        "precision: " + str(self.precision) + "\n" + \
         "query: " + str(self.query) + "\n" + \
         (("evidence: " + str(self.evidence) + "\n") if self.evidence else "") + \
         "probabilistic facts:\n" + str([str(x) + " " + str(y) for x, y in self.probabilistic_facts.items()]) + "\n" + \

@@ -15,26 +15,18 @@ class Generator:
     # dom_f(1..3). from f(1..3).
     # dom_a from a
     @staticmethod
-    def generate_clauses_for_facts(term : str, probability : float, precision : int) -> 'list[str]':
+    def generate_clauses_for_facts(term : str, probability : float) -> 'list[str]':
         generator_term = '0{' + term + '}1.'
 
-        if "(" not in term:
-            t1 = term + "("
-            commas = 0
-        else:
-            # compound
-            t1 = term[:-1] + ","
-            commas = term.count(',') + 1
+        commas = 0 if "(" not in term else term.count(',') + 1
 
-        new_fact_true = t1 + str(int(probability * (10**precision))) + ') :- ' + term + '.'
+        fact_false = f"not_{term}:- not {term}."
 
-        new_fact_false = "not_" + t1 + str(int((1 - probability) * (10**precision))) + ') :- not ' + term + '.'
+        show_true = f"#show {term.split('(')[0]}/{commas}."
 
-        show_true = "#show " + term.split('(')[0] + "/" + str(commas + 1) + "."
+        show_false = f"#show not_{term.split('(')[0]}/{commas}."
 
-        show_false = "#show not_" + term.split('(')[0] + "/" + str(commas + 1) + "."
-
-        return [generator_term,new_fact_true,new_fact_false,show_true,show_false]
+        return [generator_term, fact_false, show_true, show_false]
 
     @staticmethod
     def extract_vars(term: str) -> 'list[str]':

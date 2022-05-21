@@ -7,6 +7,8 @@ to the list
 
 from typing import Union
 
+import sys
+
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
@@ -48,13 +50,14 @@ class AbdWorld:
     def __repr__(self) -> str:
         return self.__str__()
 
+
 class World:
     '''
     id is the string composed by the occurrences of the variables
     '''
-    def __init__(self, id : str, prob : int) -> None:
-        self.id : str = id
-        self.prob : int = prob
+    def __init__(self, prob : float) -> None:
+        # self.id : str = id
+        self.prob: float = prob
         # meaning of these two: 
         # if not evidence: model_not_query_count -> q 
         #                  model_query_count -> q
@@ -75,24 +78,24 @@ class World:
         self.model_count = self.model_count + 1
 
     def __str__(self) -> str:
-        return "id: " + self.id + " prob: " + str(self.prob) + \
+        return "probability: " + str(self.prob) + \
             " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + \
             " mc: " + str(self.model_count)
     
     def __repr__(self) -> str:
         return self.__str__()
-    
-'''
-Class to handle the models computed by clingo.
-'''
+
+
 class ModelsHandler():
+    '''
+    Class to handle the models computed by clingo
+    '''
     def __init__(self, 
-        precision : int, 
-        prob_facts_dict, 
+        prob_facts_dict : 'dict[str,float]', 
         evidence : str
         ) -> None:
-        self.worlds_dict = dict()
+        self.worlds_dict : 'dict[str,World]' = dict()
         self.abd_worlds_dict = dict()
         self.prob_facts_dict = prob_facts_dict
         self.best_lp : int = 0 # best prob found so far with abduction
@@ -102,7 +105,6 @@ class ModelsHandler():
         self.lower_query_prob : float = 0
         self.upper_evidence_prob : float = 0
         self.lower_evidence_prob : float = 0
-        self.precision : int = precision
         self.n_prob_facts : int = len(prob_facts_dict)
         self.evidence : str = evidence
 
@@ -134,8 +136,7 @@ class ModelsHandler():
                 # print(w_id)
                 # print(worlds_comb[w_id].model_query_count)
                 # print(worlds_comb[w_id].model_not_query_count)
-                p = (worlds_comb[w_id].prob /
-                     ((10**self.precision) ** self.n_prob_facts))
+                p = worlds_comb[w_id].prob
                 if worlds_comb[w_id].model_query_count != 0:
                     acc_up = acc_up + p
                     if worlds_comb[w_id].model_not_query_count == 0:
@@ -160,32 +161,48 @@ class ModelsHandler():
         return self.best_lp, self.best_up
 
                     
-    def extract_id_append_and_prob(self, term : str) -> Union[str,int]:
-        term = term.split('(')
-        if term[1].count(',') == 0:  # arity original prob fact 0 (example: 0.2::a.)
-            return term[0], int(term[1][:-1]) if (not term[0].startswith('abd_') and not term[0].startswith('not_abd_')) else 1
-        else:
-            args = term[1][:-1].split(',')
-            prob = int(args[-1]) if (not term[0].startswith('abd_') and not term[0].startswith('not_abd_')) else 1
-            id = ""
-            id = id + term[0]
-            for i in args[:-1]:
-                id = id + i
-            return id, prob
+    def extract_pos_and_prob(self, term : str) -> 'tuple[int,int,float]':
+        '''
+        Computes the position in the dict to generate the string and the probability
+        of the current fact
+        '''
+        index = 0
+        probability = 0
+        positive = True
+        if term.startswith('not_'):
+            term = term.split('not_')[1]
+            positive = False
 
-    # @staticmethod
-    # ["bird(1,693)", "bird(2,693)", "bird(3,693)", "bird(4,693)", "nq", "ne"]
-    # returns 11213141, 693 + 693 + 693 + 693, True
-    # if q in line -> returns True else False in query
-    # if e in line -> returns True else False in evidence
-    # 11213141 means: 1 true, 2 true. 3 true, 4 true
-    def get_id_prob_world(self, line: str, evidence: str) -> Union[str, int, bool, bool]:
-        line = line.split(' ')
+        for el in self.prob_facts_dict:
+            if term == el:
+                probability = self.prob_facts_dict[el] if positive else 1 - \
+                    self.prob_facts_dict[el]
+                break
+            else:
+                index = index + 1
+        
+        return index, 1 if positive else 0, probability
+
+
+    # def compute_world_probability(self, id : str) -> float:
+    #     '''
+    #     Computes the probability of a world in the form of 01 string
+    #     '''
+    #     return 1.0
+
+
+    def get_id_prob_world(self, line: str, evidence: str) -> 'tuple[str, float, bool, bool]':
+        '''
+        From a line representing an answer set returns its id as a 01 string, its probability
+        and whether it contributes to the lower and upper probability
+        '''
+        line_list = line.split(' ')
         model_query = False  # model q and e for evidence, q without evidence
         model_evidence = False  # model nq and e for evidence, nq without evidence
-        id = ""
-        prob = 1
-        for term in line:
+        id = "0" * len(self.prob_facts_dict)
+        probability = 1
+        for term in line_list:
+            # print(f"Current term: {term}, len: {len(term)}")
             if term == "q":
                 model_query = True
             elif term == "nq":
@@ -195,28 +212,30 @@ class ModelsHandler():
             elif term == "ne":
                 model_evidence = False
             else:
-                id_append, prob_mul = self.extract_id_append_and_prob(term)
-                id = id + id_append
-                # replace * with + for log probabilities
-                prob = prob * prob_mul
-        if evidence == None:
+                position, true_or_false, prob = self.extract_pos_and_prob(term)
+                id = id[:position] + str(true_or_false) + id[position + 1 :]
+                probability = probability * prob
+
+        # print(f"id: {id}")
+        # print(f"probability: {probability}")
+        # print(f"model_query: {model_query}")
+        if evidence == "" or evidence is None:
             # query without evidence
-            return id, int(prob), model_query, False
+            return id, probability, model_query, False
         else:
             # can I return directly model_query and model_evidence?
             # also in the case of evidence == None
             if (model_query == True) and (model_evidence == True):
-                return id, int(prob), True, True
+                return id, probability, True, True
             elif (model_query == False) and (model_evidence == True):
-                return id, int(prob), False, True
+                return id, probability, False, True
             else:
                 # all the other cases, don't care
-                return id, int(prob), False, False
+                return id, probability, False, False
 
     # return: id_abd, id_prob, prob, model_query, similar to get_id_prob_world
     def get_ids_abduction(self, line : str) -> Union[str, str, int, bool]:
         # print(line)
-        # sys.exit()
         line = line.split(' ')
         model_query = False
         id_abd = ""
@@ -238,30 +257,38 @@ class ModelsHandler():
                 prob = prob * prob_mul
         return id_abd, id_prob, prob, model_query
 
-    # checks if the id is in the worlds list
-    # query = True -> q in line
-    # query = False -> nq in line
-    # model_evidence = True -> e in line
-    # model_evidence = False -> ne in line
-    @staticmethod
-    def manage_worlds_dict(worlds_dict : dict, evidence : str, id : str, prob : int, model_query : bool, model_evidence : bool) -> None:
-        if id in worlds_dict:
-            if evidence is None:
+
+    def manage_worlds_dict(self, 
+        id : str, 
+        prob : float, 
+        model_query : bool, 
+        model_evidence : bool
+        ) -> None:
+        '''
+        Checks whether the id is in the list of worlds and update
+        it accordingly.
+        query = True -> q in line
+        query = False -> nq in line
+        model_evidence = True -> e in line
+        model_evidence = False -> ne in line
+        '''
+        if id in self.worlds_dict:
+            if self.evidence == "" or self.evidence is None:
                 if model_query is True:
-                    worlds_dict[id].increment_model_query_count()
+                    self.worlds_dict[id].increment_model_query_count()
                 else:
-                    worlds_dict[id].increment_model_not_query_count()
+                    self.worlds_dict[id].increment_model_not_query_count()
             else:
-                worlds_dict[id].increment_model_count()
+                self.worlds_dict[id].increment_model_count()
                 if (model_query == True) and (model_evidence == True):
-                    worlds_dict[id].increment_model_query_count()  # q e
+                    self.worlds_dict[id].increment_model_query_count()  # q e
                 elif (model_query == False) and (model_evidence == True):
-                    worlds_dict[id].increment_model_not_query_count() # nq e
+                    self.worlds_dict[id].increment_model_not_query_count() # nq e
             return
         
         # element not found -> add a new world
-        w = World(id,prob)
-        if evidence is None:
+        w = World(prob)
+        if self.evidence is None:
             if model_query == True:
                 w.increment_model_query_count()
             else:
@@ -273,12 +300,20 @@ class ModelsHandler():
             elif (model_query == False) and (model_evidence == True):
                 w.increment_model_not_query_count()  # nq e
         
-        worlds_dict[id] = w
+        self.worlds_dict[id] = w
+
 
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
-        id, prob, model_query, model_evidence = self.get_id_prob_world(line,self.evidence)
-        self.manage_worlds_dict(self.worlds_dict, self.evidence, id, prob, model_query, model_evidence)
+        '''
+        Analyzes the stable models and construct the worlds
+        '''
+        # print(line)
+        # print(self.prob_facts_dict)
+        # sys.exit()
+        id, probability, model_query, model_evidence = self.get_id_prob_world(line,self.evidence)
+        # print(model_query)
+        self.manage_worlds_dict(id, probability, model_query, model_evidence)
 
     def manage_worlds_dict_abduction(self, id_abd : str, id_prob : str, prob : int, model_query : bool) -> None:
         # check if the id of the abduction is present. If so, check for the
@@ -294,11 +329,14 @@ class ModelsHandler():
         id_abd, id_prob, prob, model_query = self.get_ids_abduction(line)
         self.manage_worlds_dict_abduction(id_abd, id_prob, prob, model_query)
 
-    # computes the lower and upper probability
-    def compute_lower_upper_probability(self) -> Union[int,int]:
+
+    def compute_lower_upper_probability(self) -> 'tuple[float,float]':
+        '''
+        Computes lower and upper probability
+        '''
         for w in self.worlds_dict:
-            p = (self.worlds_dict[w].prob /
-                 ((10**self.precision) ** self.n_prob_facts))
+            p = self.worlds_dict[w].prob
+            
             if self.evidence is None:
                 if self.worlds_dict[w].model_query_count != 0:
                     if self.worlds_dict[w].model_not_query_count == 0:
@@ -320,10 +358,6 @@ class ModelsHandler():
         if self.evidence is None:
             return self.lower_query_prob, self.upper_query_prob
         else:
-            # print("upper evidence: " + str(self.upper_evidence_prob))
-            # print("lower evidence: " + str(self.lower_evidence_prob))
-            # print("upper query: " + str(self.upper_query_prob))
-            # print("lower query: " + str(self.lower_query_prob))
             if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
                 return 0,0
             elif (self.lower_query_prob + self.upper_evidence_prob == 0) and self.upper_query_prob > 0:
@@ -337,7 +371,7 @@ class ModelsHandler():
                     uqp = self.upper_query_prob / (self.upper_query_prob + self.lower_evidence_prob)
                 else:
                     uqp = 0
-                return lqp,uqp 
+                return lqp, uqp 
 
 
     def __repr__(self) -> str:
