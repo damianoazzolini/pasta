@@ -12,7 +12,17 @@ class AspInterface:
 		- content: list with the program
 	'''
 
-	def __init__(self, program_minimal_set : 'list[str]', evidence : str, asp_program : 'list[str]', probabilistic_facts : 'dict[str,float]', n_abducibles : int, precision : int = 3, verbose : bool = False, pedantic : bool = False, n_samples : int = 1000, prob_facts_dict = None) -> None:
+	def __init__(self, 
+		program_minimal_set : 'list[str]', 
+		evidence : str, 
+		asp_program : 'list[str]', 
+		probabilistic_facts : 'dict[str,float]', 
+		n_abducibles : int, 
+		precision : int = 3, 
+		verbose : bool = False, 
+		pedantic : bool = False, 
+		n_samples : int = 1000
+		) -> None:
 		self.cautious_consequences : list[str] = []
 		self.program_minimal_set : list[str] = sorted(set(program_minimal_set))
 		self.asp_program : list[str] = sorted(set(asp_program))
@@ -36,7 +46,12 @@ class AspInterface:
 		self.verbose : bool = verbose
 		self.pedantic : bool = pedantic
 		self.n_samples : int = n_samples
-		self.prob_facts_dict : dict = prob_facts_dict # same as probabilistic_facts?
+		self.prob_facts_dict : dict[str,float] = probabilistic_facts
+		self.model_handler : models_handler.ModelsHandler = \
+			models_handler.ModelsHandler(
+				self.precision, 
+				self.prob_facts_dict,
+				self.evidence)
 
 
 	def get_minimal_set_facts(self) -> float:
@@ -102,11 +117,11 @@ class AspInterface:
 		self.grounding_time = time.time() - start_time
 
 		start_time = time.time()
-		model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, self.evidence)
+		# model_handler = models_handler.ModelsHandler(self.precision, self.n_prob_facts, self.evidence)
 
 		with ctl.solve(yield_=True) as handle:  # type: ignore
 			for m in handle:  # type: ignore
-				model_handler.add_value(str(m))  # type: ignore
+				self.model_handler.add_value(str(m))  # type: ignore
 				self.computed_models = self.computed_models + 1
 			handle.get()   # type: ignore
 		self.computation_time = time.time() - start_time
@@ -114,9 +129,11 @@ class AspInterface:
 		# print(model_handler) # prints the models in world format
 
 		start_time = time.time()
-		self.lower_probability_query, self.upper_probability_query = model_handler.compute_lower_upper_probability()
+		self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
-		self.n_worlds = model_handler.get_number_worlds()
+		# print(self.model_handler.worlds_dict)
+
+		self.n_worlds = self.model_handler.get_number_worlds()
 
 		self.world_analysis_time = time.time() - start_time
 

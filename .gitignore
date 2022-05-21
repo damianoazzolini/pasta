@@ -2,6 +2,16 @@
 html/
 profilation.txt
 *.tmp
+a.py
+quick.py
+smoke_stress.lp
+
+bongard_stress.lp
+bg.lp
+
+examples_generator.py
+
+FIXME
 
 src/pasta/test.py 
 temp.pl

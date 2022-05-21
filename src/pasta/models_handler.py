@@ -87,9 +87,14 @@ class World:
 Class to handle the models computed by clingo.
 '''
 class ModelsHandler():
-    def __init__(self, precision : int, n_prob_facts : int, evidence : str) -> None:
+    def __init__(self, 
+        precision : int, 
+        prob_facts_dict, 
+        evidence : str
+        ) -> None:
         self.worlds_dict = dict()
         self.abd_worlds_dict = dict()
+        self.prob_facts_dict = prob_facts_dict
         self.best_lp : int = 0 # best prob found so far with abduction
         self.best_up : int = 0 # best prob found so far with abduction
         self.best_abd_combinations = []
@@ -98,8 +103,9 @@ class ModelsHandler():
         self.upper_evidence_prob : float = 0
         self.lower_evidence_prob : float = 0
         self.precision : int = precision
-        self.n_prob_facts : int = n_prob_facts
+        self.n_prob_facts : int = len(prob_facts_dict)
         self.evidence : str = evidence
+
 
     def increment_lower_query_prob(self, p : float) -> None:
         self.lower_query_prob = self.lower_query_prob + p
@@ -193,8 +199,6 @@ class ModelsHandler():
                 id = id + id_append
                 # replace * with + for log probabilities
                 prob = prob * prob_mul
-                
-
         if evidence == None:
             # query without evidence
             return id, int(prob), model_query, False
@@ -273,7 +277,6 @@ class ModelsHandler():
 
     # gets the stable model, extract the probabilities etc
     def add_value(self, line : str) -> None:
-        # print(line)
         id, prob, model_query, model_evidence = self.get_id_prob_world(line,self.evidence)
         self.manage_worlds_dict(self.worlds_dict, self.evidence, id, prob, model_query, model_evidence)
 

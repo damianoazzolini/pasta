@@ -3,21 +3,19 @@ pos:- circle(A), inside(B,A), pa.
 pos:- circle(A), triangle(B), pb.
 ').
 
-#target(pos).
-
 #learnable(pa).
 #learnable(pb).
 
 #train(1,2,3,4).
 
-#pos_example(1,triangle(o5)).
-#pos_example(1,circle(o3)).
+#positive(1,triangle(o5)).
+#positive(1,circle(o3)).
 
-#pos_example(2,triangle(o5)).
-#pos_example(2,circle(o3)).
+#positive(2,triangle(o5)).
+#positive(2,circle(o3)).
 
-#neg_example(3,triangle(o5)).
-#neg_example(3,circle(o3)).
+#negative(3,triangle(o5)).
+#negative(3,circle(o3)).
 
-#neg_example(4,triangle(o5)).
-#neg_example(4,circle(o3)).
+#negative(4,triangle(o5)).
+#negative(4,circle(o3)).

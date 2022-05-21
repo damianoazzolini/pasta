@@ -37,6 +37,7 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
+        self.interface : asp_interface.AspInterface = None
 
 
     @staticmethod
@@ -83,17 +84,18 @@ class Pasta:
         program_parser.parse_approx(from_string)
         asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
+        self.interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.precision, self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
+        
 
         if self.evidence is None:
-            lp, up = interface.sample_query()
+            lp, up = self.interface.sample_query()
         else:
             if args.rejection is True:
-                lp, up = interface.rejection_sampling()
+                lp, up = self.interface.rejection_sampling()
             elif args.mh is True:
-                lp, up = interface.mh_sampling()
+                lp, up = self.interface.mh_sampling()
             elif args.gibbs is True:
-                lp, up = interface.gibbs_sampling(args.block)
+                lp, up = self.interface.gibbs_sampling(args.block)
             else:
                 lp = 0
                 up = 0
@@ -102,7 +104,7 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = "") -> asp_interface.AspInterface:
+    def setup_interface(self, from_string : str = "") -> None:
         '''
         Setup clingo interface
         '''
@@ -116,39 +118,45 @@ class Pasta:
         content_find_minimal_set = program_parser.get_content_to_compute_minimal_set_facts()
         asp_program = program_parser.get_asp_program()
 
-        interface = asp_interface.AspInterface(content_find_minimal_set, self.evidence, asp_program, program_parser.probabilistic_facts, len(
-            program_parser.abducibles), self.precision, self.verbose, self.pedantic)
+        self.interface = asp_interface.AspInterface(
+            content_find_minimal_set, 
+            self.evidence, 
+            asp_program, 
+            program_parser.probabilistic_facts, 
+            len(program_parser.abducibles), 
+            self.precision, 
+            self.verbose, 
+            self.pedantic
+        )
 
-        exec_time = interface.get_minimal_set_facts()
+        exec_time = self.interface.get_minimal_set_facts()
 
         if self.verbose:
             print("Computed cautious consequences in %s seconds" % (exec_time))
             if self.pedantic:
                 print("--- Minimal set of probabilistic facts ---")
-                print(interface.cautious_consequences)
+                print(self.interface.cautious_consequences)
                 print("---")
 
         if self.pedantic:
             print("--- Asp program ---")
-            interface.print_asp_program()
+            self.interface.print_asp_program()
             print("---")
             print("--- Program to find minimal sets ---")
             for e in content_find_minimal_set:
                 print(e)
             print("---")
         
-        return interface
-
 
     def abduction(self, from_string: str = "") -> 'tuple[float,float,list[str]]':
         '''
         Probabilistic and deterministic abduction
         '''
-        interface = self.setup_interface(from_string)
-        interface.abduction()
-        lp = interface.lower_probability_query
-        up = interface.upper_probability_query
-        explanation = interface.abductive_explanations
+        self.setup_interface(from_string)
+        self.interface.abduction()
+        lp = self.interface.lower_probability_query
+        up = self.interface.upper_probability_query
+        explanation = self.interface.abductive_explanations
 
         self.check_lp_up(lp,up)
 
@@ -159,10 +167,10 @@ class Pasta:
         '''
         Exact inference
         '''
-        interface = self.setup_interface(from_string)
-        interface.compute_probabilities()
-        lp = interface.lower_probability_query
-        up = interface.upper_probability_query
+        self.setup_interface(from_string)
+        self.interface.compute_probabilities()
+        lp = self.interface.lower_probability_query
+        up = self.interface.upper_probability_query
 
         self.check_lp_up(lp,up)
 

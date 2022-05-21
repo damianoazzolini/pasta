@@ -1,6 +1,11 @@
+from bleach import clean
 import pasta
 import math
 import time
+
+import sys
+
+import re
 
 
 # FLY
@@ -63,34 +68,126 @@ target_predicate_dummy = "f"
 test_set_dummy = [["b"],["b"],["a"],["a","b"]]
 pos_neg_test_set_dummy = [1,1,0,1]
 
+interpretation_string = "interpretation"
+
 
 # Cosa significano gli esempi negativi? Che la query è falsa in tutti
 # i modelli in cui ci sono quegli esempi?
 
-def generate_program_string(facts_prob : 'dict[str,float]', ex : 'list[str]', pos_neg : int, target_predicate : str, program : str) -> str:
+def generate_program_string(
+    facts_prob : 'dict[str,float]', 
+    atoms : 'list[str]', 
+    program : str) -> str:
+    
     s = ""
     s = s + program
-    to_assert = ""
+    to_assert = f"{interpretation_string}:- "
 
-    for e in ex:
-        to_assert = to_assert + e + ".\n"
+    for e in atoms:
+        to_assert = to_assert + e + ", "
+    to_assert = to_assert[:-2] + ".\n"
 
     for k in facts_prob:
         s = s + f"{facts_prob[k]}::{k}.\n"
 
-    return s + to_assert + f"np:- not {target_predicate}.\n"
+    return s + to_assert +"\n"
 
 
-def compute_probability_example(facts_prob: 'dict[str,float]', example : 'list[str]', pos_neg : int, target_predicate : str, program : str, upper : bool) -> 'tuple[float,float]':
-    s = generate_program_string(facts_prob, example, pos_neg, target_predicate, program)
+def get_tuple_regex(facts_prob : 'dict[str,float]'):
+    l = []
+    for el in facts_prob.keys():
+        e = el.replace('(','').replace(')','')
+        l.append(e)
+        l.append("not_" + e)
+    return tuple(l)
 
-    if pos_neg == 0:
-        pasta_solver = pasta.Pasta("", "np", None)
+
+# FIXME: i need to perform these super complicated string manipulations
+# since the worlds ids are strings with the name of the facts, rather
+# than 01 strings
+def compute_probability_interpretation(
+        facts_prob : 'dict[str,float]',
+        example : 'list[str]',
+        program : str,
+        index : int,
+        interpretations_to_worlds: 'dict[int,list[tuple[str,int,int]]]') -> 'tuple[float,float]':
+
+    if index not in interpretations_to_worlds:
+        s = generate_program_string(facts_prob, example, program)
+
+        # print("--- program")
+        # print(example)
+        # print(s)
+
+        pasta_solver = pasta.Pasta("", interpretation_string, None)
+        up : float = 0
+        lp : float = 0
+        lp, up = pasta_solver.inference(from_string=s)
+
+        # print(pasta_solver.interface.model_handler.worlds_dict)
+        # print(get_tuple_regex(facts_prob))
+        # print('---')
+        for w in pasta_solver.interface.model_handler.worlds_dict:
+            el = pasta_solver.interface.model_handler.worlds_dict[w]
+            # print(el)
+            if index not in interpretations_to_worlds: 
+                interpretations_to_worlds[index] = [[
+                    w, 
+                    1 if el.model_not_query_count == 0 and el.model_query_count > 0 else 0,
+                    1 if el.model_query_count > 0 else 0
+                ]]
+            else:
+                interpretations_to_worlds[index].append([
+                    w, 
+                    1 if el.model_not_query_count == 0 and el.model_query_count > 0 else 0,
+                    1 if el.model_query_count > 0 else 0
+                    ])
+        # print(facts_prob)
+
+        # print('---- DICT')
+        # for el in interpretations_to_worlds:
+        #     print(interpretations_to_worlds[el])
+
+
+        # import sys
+        # sys.exit()
     else:
-        pasta_solver = pasta.Pasta("", target_predicate, None)
-    
-    lp, up, _ = pasta_solver.solve(from_string=s)
-    
+        # l'interpretazione è nel dizionario, calcolo la probabilità
+        # partendo da la stringa
+        # print('found')
+        lp = 0
+        up = 0
+        worlds_list = interpretations_to_worlds[index]
+        for world in worlds_list:
+            id = world[0]
+            lpw = world[1]
+            upw = world[2]
+            delimiters = get_tuple_regex(facts_prob)
+            regexPattern = '|'.join(map(re.escape, delimiters))
+            id_w_list = re.findall(regexPattern, id)
+
+            lp_contribution = 1
+            up_contribution = 1
+            for f_w in id_w_list:
+                # identifico il fatto
+                prob = -1
+                for fact in facts_prob:
+                    clean_fact = fact.replace('(','').replace(')','')
+                    if clean_fact == f_w:
+                        prob = facts_prob[fact]
+                        break
+                    elif "not_" + clean_fact == f_w:
+                        prob = 1 - facts_prob[fact]
+                        break
+                # calcolo il contributo
+                lp_contribution = lp_contribution * prob
+                up_contribution = up_contribution * prob
+
+            lp = lp + lp_contribution * lpw
+            up = up + up_contribution * upw
+
+    print(lp)
+    print(up)
     return lp, up
     
 
@@ -101,72 +198,75 @@ def test_results(test_set: 'list[list[str]]', pos_neg_test_set: 'list[int]', fac
 
     from sklearn.metrics import roc_auc_score
     import numpy as np
-    from sklearn.metrics import (precision_recall_curve, PrecisionRecallDisplay)
-    import matplotlib.pyplot as plt
+    # from sklearn.metrics import (precision_recall_curve, PrecisionRecallDisplay)
+    # import matplotlib.pyplot as plt
     # from sklearn.metrics import RocCurveDisplay
 
     probs_lp : list[float] = []
     probs_up : list[float] = []
+    ll = 0
     for i in range(0, len(test_set)):
-        lp, up = compute_probability_example(facts_prob, test_set[i], pos_neg_test_set[i], target_predicate, program, upper)
+        lp, up = compute_probability_interpretation(facts_prob, test_set[i], pos_neg_test_set[i], target_predicate, program, upper)
         probs_lp.append(lp)
         probs_up.append(up)
+        ll = ll + to_logprob(lp, up, upper)
     
-    print(probs_lp)
-    print(probs_up)
+    print(f"Negative LL: {ll}")
+    print(f"Probs lp: {probs_lp}")
+    print(f"Probs up: {probs_up}")
     
     pos_neg_test_set_np = np.asarray(pos_neg_test_set, dtype=np.int0)
     probs_lp_np = np.asarray(probs_lp, dtype=np.float32)
     probs_up_np = np.asarray(probs_up, dtype=np.float32)
 
-    print(pos_neg_test_set_np)
-    print(probs_up_np)
+    # print(pos_neg_test_set_np)
+    # print(probs_up_np)
 
     auc_lp = roc_auc_score(pos_neg_test_set_np, probs_lp_np)
     auc_up = roc_auc_score(pos_neg_test_set_np, probs_up_np)
 
-    print(auc_lp)
-    print(auc_up)
+    print(f"auc_lp: {auc_lp}")
+    print(f"auc up: {auc_up}")
     
-    from sklearn import metrics
-    fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_lp_np)
-    roc_auc = metrics.auc(fpr, tpr)
-    display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
-    display.plot()
-    plt.show()
+    # from sklearn import metrics
+    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_lp_np)
+    # roc_auc = metrics.auc(fpr, tpr)
+    # display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
+    # display.plot()
+    # plt.show()
 
-    fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_up_np)
-    roc_auc = metrics.auc(fpr, tpr)
-    display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
-    display.plot()
-    plt.show()
+    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_up_np)
+    # roc_auc = metrics.auc(fpr, tpr)
+    # display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
+    # display.plot()
+    # plt.show()
 
-    precision_lp, recall_lp, _ = precision_recall_curve(pos_neg_test_set, probs_lp_np)
-    disp = PrecisionRecallDisplay(precision=precision_lp, recall=recall_lp)
-    disp.plot()
-    plt.show()
+    # precision_lp, recall_lp, _ = precision_recall_curve(pos_neg_test_set, probs_lp_np)
+    # disp = PrecisionRecallDisplay(precision=precision_lp, recall=recall_lp)
+    # disp.plot()
+    # plt.show()
 
-    precision_up, recall_up, _ = precision_recall_curve(pos_neg_test_set, probs_up_np)
-    disp = PrecisionRecallDisplay(precision=precision_up, recall=recall_up)
-    disp.plot()
-    plt.show()
+    # precision_up, recall_up, _ = precision_recall_curve(pos_neg_test_set, probs_up_np)
+    # disp = PrecisionRecallDisplay(precision=precision_up, recall=recall_up)
+    # disp.plot()
+    # plt.show()
 
 
     return auc_lp, auc_up
 
-def to_logprob(lp : float, up : float, upper : bool):    
+
+def to_logprob(lp : float, up : float, upper : bool) -> float:    
     if upper:
         return math.log(float(up)) if float(up) != 0 else 0
     else:
         return math.log(float(lp)) if float(lp) != 0 else 0
 
 
-def parse_input_learning(filename : str, from_string : str = ""):
+def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float]]':
     '''
-    #example(pos,Id,'atom') where Id is the Id of the Answer set and atom is the correspondent atom
+    #example(pos,Id,'atom') where Id is the Id of the (partial) answer set and atom is the correspondent atom
     #test(IdList)
     #train(IdList)
-    #target('atom') where atom is the target predicate in the head of a rule
     #program('program') where program is a set of clauses
     #learnable(atom) where atom is a probabilistic fact with init probability 0.5
     '''
@@ -181,54 +281,50 @@ def parse_input_learning(filename : str, from_string : str = ""):
 
     i = 0
     program = ""
-    target = ""
+    # target = ""
     prob_facts_dict : dict[str,float] = dict()
-    pos_examples_dict : dict[int,list[str]] = dict()
-    neg_examples_dict : dict[int,list[str]] = dict()
-    pos_neg_examples : list[int] = []
+    interpretations_dict : dict[int,list[str]] = dict()
     
     training_set : list[list[str]] = []
     test_set : list[list[str]] = []
-    pos_neg_training : list[int] = []
-    pos_neg_test : list[int] = []
 
     train_ids : list[int] = []
     test_ids : list[int] = []
 
     while i < len(lines):
+        lines[i] = lines[i].replace('\n','')
         if lines[i].startswith("#program('"):
             i = i + 1
             while(not (lines[i].startswith("')."))):
                 program = program + lines[i]
                 i = i + 1
-        elif lines[i].startswith("#target("):
-            ll = lines[i].split("#target(")
-            target = ll[1].replace('\n','')[:-2]
-            i = i + 1
+        # elif lines[i].startswith("#target("):
+        #     ll = lines[i].split("#target(")
+        #     target = ll[1].replace('\n','')[:-2]
+        #     i = i + 1
         elif lines[i].startswith("#learnable("):
             ll = lines[i].split("#learnable(")
             name = ll[1].replace('\n','')[:-2]
             prob_facts_dict[name] = 0.5
             i = i + 1
-        elif lines[i].startswith("#pos_example("):
-            ll = lines[i].split("#pos_example(")
-            number = ll[1].split(',')[0]
-            atom = ll[1].replace('\n','')[len(number) + 1 : -2]
-            if int(number) in pos_examples_dict.keys():
-                pos_examples_dict[int(number)].append(atom)
+        elif lines[i].startswith("#positive("):
+            ll = lines[i].split("#positive(")
+            id_interpretation = int(ll[1].split(',')[0])
+            atom = ll[1].replace('\n','')[len(str(id_interpretation)) + 1 : -2]
+            if id_interpretation in interpretations_dict.keys():
+                interpretations_dict[id_interpretation].append(atom)
             else:
-                pos_examples_dict[int(number)] = [atom]
-            pos_neg_examples.append(1)
+                interpretations_dict[id_interpretation] = [atom]
             i = i + 1
-        elif lines[i].startswith("#neg_example("):
-            ll = lines[i].split("#neg_example(")
-            number = ll[1].split(',')[0]
-            atom = ll[1].replace('\n','')[len(number) + 1 : -2]
-            if int(number) in neg_examples_dict.keys():
-                neg_examples_dict[int(number)].append(atom)
+        elif lines[i].startswith("#negative("):
+            ll = lines[i].split("#negative(")
+            id_interpretation = int(ll[1].split(',')[0])
+            atom = ll[1].replace('\n','')[len(str(id_interpretation)) + 1 : -2]
+            if id_interpretation in interpretations_dict.keys():
+                interpretations_dict[id_interpretation].append(f"not {atom}")
             else:
-                neg_examples_dict[int(number)] = [atom]
-            pos_neg_examples.append(0)
+                interpretations_dict[id_interpretation] = [f"not {atom}"]
+
             i = i + 1
         elif lines[i].startswith("#train("):
             ll = lines[i].split("#train(")
@@ -241,50 +337,48 @@ def parse_input_learning(filename : str, from_string : str = ""):
         else:
             i = i + 1
 
-
-    for el in pos_examples_dict:
-        print(pos_examples_dict[el])
-
-    for el in neg_examples_dict:
-        print(neg_examples_dict[el])
-
     for id in train_ids:
-        if id in pos_examples_dict:
-            training_set.append(pos_examples_dict[int(id)])
-            pos_neg_training.append(1)
-        elif id in neg_examples_dict:    
-            training_set.append(neg_examples_dict[int(id)])
-            pos_neg_training.append(0)
+        training_set.append(interpretations_dict[int(id)])
 
     for id in test_ids:
-        if id in pos_examples_dict:
-            test_set.append(pos_examples_dict[int(id)])
-            pos_neg_test.append(1)
-        elif id in neg_examples_dict:
-            test_set.append(neg_examples_dict[int(id)])
-            pos_neg_test.append(0)
+        test_set.append(interpretations_dict[int(id)])
 
-    print(training_set)
-    print(test_set)
-    print(target)
-    print(test_ids)
-    print(train_ids)
-    print(program)
+    # for el in interpretations_dict:
+    #     print(f"{el}: {interpretations_dict[el]}")
 
-    return training_set, pos_neg_training, test_set, pos_neg_test, program, target, prob_facts_dict
+    # print("Training set:")
+    # print(training_set)
+    # print("Test set:")
+    # print(test_set)
+    # print("Test ids:")
+    # print(test_ids)
+    # print("Train ids:")
+    # print(train_ids)
+    # print("Program:")
+    # print(program)
 
-def learn_parameters(training_set : 'list[list[str]]', pos_neg_training : 'list[int]', test_set : 'list[list[str]]', pos_neg_test : 'list[int]', program : str, target_predicate : str, prob_facts_dict : 'dict[str,float]', upper : bool = False, verbose : bool = False):
-    # training_set = examples_dummy
-    # pos_neg = pos_neg_dummy
-    # program = prg_dummy
-    # target_predicate = target_predicate_dummy
-    # facts_prob['c'] = 0.1
-    # facts_prob['d'] = 0.1
+    # import sys
+    # sys.exit()
 
-    # test_set = test_set_dummy
-    # pos_neg_test_set = pos_neg_test_set_dummy
+    return training_set, test_set, program, prob_facts_dict
 
-    start_time = time.time()
+def learn_parameters(
+    training_set : 'list[list[str]]', 
+    test_set : 'list[list[str]]', 
+    program : str,
+    prob_facts_dict : 'dict[str,float]',
+    upper : bool = False, 
+    verbose : bool = False) -> None:
+
+    # start_time = time.time()
+
+    # associate every interpretation i (int of the dict) to a list
+    # that represents the id of the world as a 01 string and two integers
+    # that indicates if contributes to the lower and upper probability
+    # Example: the interpretation 1 has the world 0110 and 1010 that
+    # contributes respectively to upper and both lower and upper
+    # 1 -> [ [0110,0,1], [1010,1,1] ] 
+    interpretations_to_worlds : 'dict[int,list[tuple[str,int,int]]]' = dict()
 
     ll0 = -10000000
     epsilon = 10e-5
@@ -292,11 +386,14 @@ def learn_parameters(training_set : 'list[list[str]]', pos_neg_training : 'list[
     # compute negative LL
     p = 0
     for i in range(0, len(training_set)):
-        lp, up = compute_probability_example(
-            prob_facts_dict, training_set[i], pos_neg_training[i], target_predicate, program, upper)
+        lp, up = compute_probability_interpretation(
+            prob_facts_dict, training_set[i], program, i, interpretations_to_worlds)
         p = p + to_logprob(lp, up, upper)
 
-    ll1 = -p
+    ll1 = p
+
+    # devo mantenere un dict che associa P(I) ad una lista di id di mondi
+    # ed un dict che associa P(f_i | I) ad una lista di id di mondi
 
     # loop
     n_iterations = 0
@@ -313,25 +410,25 @@ def learn_parameters(training_set : 'list[list[str]]', pos_neg_training : 'list[
             lower1 = 0
 
             for i in range(0, len(training_set)):
-                # sum_exected_val_true = 0
-                # sum_exected_val_false = 0
+                # sum_expected_val_true = 0
+                # sum_expected_val_false = 0
                 # compute expected val
                 s = generate_program_string(
-                    prob_facts_dict, training_set[i], pos_neg_training[i], target_predicate, program)
+                    prob_facts_dict, training_set[i], program)
 
                 # Expectation: compute E[C_i1 | e]
-                e = target_predicate if pos_neg_training[i] > 0 else "np"
+                # e = target_predicate if pos_neg_training[i] > 0 else "np"
 
-                pasta_solver = pasta.Pasta("", key, e)
-                lp, up, _ = pasta_solver.solve(from_string=s)
+                pasta_solver = pasta.Pasta("", key, interpretation_string)
+                lp, up = pasta_solver.inference(from_string=s)
 
                 upper1 = upper1 + float(up)
                 lower1 = lower1 + float(lp)
 
                 # Expectation: compute E[C_i0 | e]
-                pasta_solver = pasta.Pasta("", "nfp", e)
+                pasta_solver = pasta.Pasta("", "nfp", interpretation_string)
                 s = s + f"nfp:- not {key}.\n"
-                lp, up, _ = pasta_solver.solve(from_string=s)
+                lp, up = pasta_solver.inference(from_string=s)
 
                 upper0 = upper0 + float(up)
                 lower0 = lower0 + float(lp)
@@ -357,37 +454,37 @@ def learn_parameters(training_set : 'list[list[str]]', pos_neg_training : 'list[
         p = 0
         # for ex in examples:
         for i in range(0, len(training_set)):
-            lp, up = compute_probability_example(
-                prob_facts_dict, training_set[i], pos_neg_training[i], target_predicate, program, upper)
+            lp, up = compute_probability_interpretation(
+                prob_facts_dict, training_set[i], program, i, interpretations_to_worlds)
             p = p + to_logprob(lp, up, upper)
 
-        ll1 = -p
+        ll1 = p
 
     print(f"ll0: {ll0} ll1: {ll1} Iterations: {n_iterations}")
     print(prob_facts_dict)
 
-    end_time = time.time() - start_time
+    # end_time = time.time() - start_time
 
-    print(end_time)
-
-    print(test_results(test_set, pos_neg_test,
-                       prob_facts_dict, target_predicate, program))
+    # test_results(test_set, prob_facts_dict, program)
 
 
 if __name__ == "__main__":
 
-    program = "background_bongard.lp"
-    # program = "background_example.lp"
+    # program = "background_example_bongard_dummy.lp"
+    # program = "../../examples/learning/background_bayesian_network.lp"
+    program = "../../examples/learning/background_shop.lp"
+    # program = "../../examples/learning/background_smoke.lp"
+    # program = "bongard_stress.lp"
+    # program = "smoke_stress.lp"
 
-    tr, pn_tr, ts, pn_ts, program, target, prob_facts_dict = parse_input_learning(
-        program)
+    training_set, test_set, program, prob_facts_dict = parse_input_learning(program)
     upper = True
     verbose = False
     start_time = time.time()
-    learn_parameters(tr,pn_tr,ts,pn_ts,program,target,prob_facts_dict,upper,verbose)
+    learn_parameters(training_set, test_set, program, prob_facts_dict, upper, verbose)
     end_time = time.time() - start_time
 
-    print(end_time)
+    print(f"Elapsed time: {end_time}")
 
     # import sys
     # sys.exit()
