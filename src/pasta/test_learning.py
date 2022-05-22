@@ -1,4 +1,5 @@
 from bleach import clean
+from sympy import comp, true
 import pasta
 import math
 import time
@@ -75,9 +76,14 @@ interpretation_string = "interpretation"
 # i modelli in cui ci sono quegli esempi?
 
 def generate_program_string(
-    facts_prob : 'dict[str,float]', 
+    facts_prob : 'dict[str,float]',
+    offset : int,
     atoms : 'list[str]', 
-    program : str) -> str:
+    program : str
+    ) -> str:
+    '''
+    Generates a string containing the PASP program
+    '''
     
     s = ""
     s = s + program
@@ -88,108 +94,277 @@ def generate_program_string(
     to_assert = to_assert[:-2] + ".\n"
 
     for k in facts_prob:
-        s = s + f"{facts_prob[k]}::{k}.\n"
+        if offset == 0:
+            s = s + f"{facts_prob[k]}::{k}.\n"
+        else:
+            offset = offset - 1
 
     return s + to_assert +"\n"
 
 
-def get_tuple_regex(facts_prob : 'dict[str,float]'):
-    l = []
-    for el in facts_prob.keys():
-        e = el.replace('(','').replace(')','')
-        l.append(e)
-        l.append("not_" + e)
-    return tuple(l)
+# def get_tuple_regex(facts_prob : 'dict[str,float]'):
+#     l = []
+#     for el in facts_prob.keys():
+#         e = el.replace('(','').replace(')','')
+#         l.append(e)
+#         l.append("not_" + e)
+#     return tuple(l)
 
 
-# FIXME: i need to perform these super complicated string manipulations
-# since the worlds ids are strings with the name of the facts, rather
-# than 01 strings
+def get_prob_from_id(id : str, facts_prob : 'dict[str,float]') -> float:
+    index = 0
+    probability = 1
+    for el in facts_prob:
+        contribution = facts_prob[el] if id[index] == '1' else (1 - facts_prob[el])
+        probability = probability * contribution
+        index = index + 1
+    return probability
+
+
+def add_element_to_dict(worlds_dict, dict_to_store, key):
+    for w in worlds_dict:
+        el = worlds_dict[w]
+        if key not in dict_to_store: 
+            dict_to_store[key] = [[
+                w, 
+                el.model_not_query_count,
+                el.model_query_count,
+                el.model_count
+            ]]  # type: ignore
+        else:
+            dict_to_store[key].append([
+                w, 
+                el.model_not_query_count,
+                el.model_query_count,
+                el.model_count
+            ])  # type: ignore
+
+
+def get_prob_from_dict(dict_with_data, facts_prob, key):
+    lp = 0
+    up = 0
+    worlds_list = dict_with_data[key]
+    for world in worlds_list:
+        id = world[0]
+        mnqc = world[1]
+        mqc = world[2]
+        # mc = world[3]
+        lpw = 1 if (mnqc == 0 and mqc > 0) else 0
+        upw = 1 if mqc > 0 else 0
+        # print(world)
+        # ['110', 0, 1]
+        # [ID, Lower, Upper]
+        # sys.exit()
+
+        # print(facts_prob)
+        current_prob = get_prob_from_id(id, facts_prob)
+        
+        lp = lp + current_prob * lpw
+        up = up + current_prob * upw
+    return lp, up
+
+
+def get_conditional_prob_from_dict(dict_with_data, facts_prob, key):
+    worlds_list = dict_with_data[key]
+
+    lqp = 0
+    uqp = 0
+    lep = 0
+    uep = 0
+
+    for world in worlds_list:
+        id = world[0]
+        mnqe = world[1]
+        mqe = world[2]
+        nm = world[3]
+        # print(world)
+        # ['110', 0, 1]
+        # [ID, Lower, Upper]
+        # sys.exit()
+
+        # print(facts_prob)
+        current_prob = get_prob_from_id(id, facts_prob)
+
+        if mqe > 0:
+            if mqe == nm:
+                lqp = lqp + current_prob
+                # self.increment_lower_query_prob(p)
+            uqp = uqp + current_prob
+            # self.increment_upper_query_prob(p)
+        if mnqe > 0:
+            if mnqe == nm:
+                lep = lep + current_prob
+                # self.increment_lower_evidence_prob(p)
+            uep = uep + current_prob
+            # self.increment_upper_evidence_prob(p)
+
+    if (uqp + lep == 0) and uep > 0:
+        return 0, 0
+    elif (lqp + uep == 0) and uqp > 0:
+        return 1, 1
+    else:
+        if lqp + uep > 0:
+            lqp = lqp / (lqp + uep)
+        else:
+            lqp = 0
+        if uqp + lep > 0:
+            uqp = uqp / (uqp + lep)
+        else:
+            uqp = 0
+        return lqp, uqp
+
+
 def compute_probability_interpretation(
         facts_prob : 'dict[str,float]',
         example : 'list[str]',
         program : str,
-        index : int,
-        interpretations_to_worlds: 'dict[int,list[tuple[str,int,int]]]') -> 'tuple[float,float]':
-
-    if index not in interpretations_to_worlds:
-        s = generate_program_string(facts_prob, example, program)
+        key : int,
+        interpretations_to_worlds: 'dict[int,list[tuple[str,int,int,int]]]'
+        ) -> 'tuple[float,float]':
+    '''
+    Computation of the probability of an interpretation: P(I)
+    '''
+    # print(f"key: {key}")
+    if key not in interpretations_to_worlds:
+        s = generate_program_string(facts_prob, offset, example, program)
 
         # print("--- program")
         # print(example)
         # print(s)
 
-        pasta_solver = pasta.Pasta("", interpretation_string, None)
+        pasta_solver = pasta.Pasta("", interpretation_string, None)  # type: ignore
         up : float = 0
         lp : float = 0
-        lp, up = pasta_solver.inference(from_string=s)
+        lp, up = pasta_solver.inference(from_string = s)  # type: ignore
+
+        # print(pasta_solver.interface.model_handler.worlds_dict)
+        # print(pasta_solver.interface.prob_facts_dict)
+        # print(f"Computed: lp: {lp}, up: {up}")
 
         # print(pasta_solver.interface.model_handler.worlds_dict)
         # print(get_tuple_regex(facts_prob))
         # print('---')
-        for w in pasta_solver.interface.model_handler.worlds_dict:
-            el = pasta_solver.interface.model_handler.worlds_dict[w]
-            # print(el)
-            if index not in interpretations_to_worlds: 
-                interpretations_to_worlds[index] = [[
-                    w, 
-                    1 if el.model_not_query_count == 0 and el.model_query_count > 0 else 0,
-                    1 if el.model_query_count > 0 else 0
-                ]]
-            else:
-                interpretations_to_worlds[index].append([
-                    w, 
-                    1 if el.model_not_query_count == 0 and el.model_query_count > 0 else 0,
-                    1 if el.model_query_count > 0 else 0
-                    ])
-        # print(facts_prob)
 
-        # print('---- DICT')
-        # for el in interpretations_to_worlds:
-        #     print(interpretations_to_worlds[el])
+        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, interpretations_to_worlds, key)
 
-
-        # import sys
-        # sys.exit()
+    
+        # for w in pasta_solver.interface.model_handler.worlds_dict:
+        #     el = pasta_solver.interface.model_handler.worlds_dict[w]
+        #     if key not in interpretations_to_worlds: 
+        #         interpretations_to_worlds[key] = [[
+        #             w, 
+        #             1 if (el.model_not_query_count == 0 and el.model_query_count > 0) else 0,
+        #             1 if el.model_query_count > 0 else 0
+        #         ]]  # type: ignore
+        #     else:
+        #         interpretations_to_worlds[key].append([
+        #             w, 
+        #             1 if (el.model_not_query_count == 0 and el.model_query_count > 0) else 0,
+        #             1 if el.model_query_count > 0 else 0
+        #         ])  # type: ignore
     else:
         # l'interpretazione è nel dizionario, calcolo la probabilità
         # partendo da la stringa
         # print('found')
-        lp = 0
-        up = 0
-        worlds_list = interpretations_to_worlds[index]
-        for world in worlds_list:
-            id = world[0]
-            lpw = world[1]
-            upw = world[2]
-            delimiters = get_tuple_regex(facts_prob)
-            regexPattern = '|'.join(map(re.escape, delimiters))
-            id_w_list = re.findall(regexPattern, id)
 
-            lp_contribution = 1
-            up_contribution = 1
-            for f_w in id_w_list:
-                # identifico il fatto
-                prob = -1
-                for fact in facts_prob:
-                    clean_fact = fact.replace('(','').replace(')','')
-                    if clean_fact == f_w:
-                        prob = facts_prob[fact]
-                        break
-                    elif "not_" + clean_fact == f_w:
-                        prob = 1 - facts_prob[fact]
-                        break
-                # calcolo il contributo
-                lp_contribution = lp_contribution * prob
-                up_contribution = up_contribution * prob
+        lp, up = get_prob_from_dict(interpretations_to_worlds, facts_prob, key)
 
-            lp = lp + lp_contribution * lpw
-            up = up + up_contribution * upw
+        # lp = 0
+        # up = 0
+        # worlds_list = interpretations_to_worlds[key]
+        # for world in worlds_list:
+        #     id = world[0]
+        #     lpw = world[1]
+        #     upw = world[2]
+        #     # print(world)
+        #     # ['110', 0, 1]
+        #     # [ID, Lower, Upper]
+        #     # sys.exit()
 
-    print(lp)
-    print(up)
+        #     # print(facts_prob)
+        #     current_prob = get_prob_from_id(id, facts_prob)
+            
+        #     lp = lp + current_prob * lpw
+        #     up = up + current_prob * upw
+
+        # print(f"Got: lp: {lp}, up: {up}")
+
+    # print(f"lp: {lp}, up: {up}")
     return lp, up
     
+
+def compute_expected_values(
+        facts_prob : 'dict[str,float]',
+        offset : int,
+        atoms : 'list[str]', 
+        program : str,
+        prob_fact : str,
+        key : int,
+        computed_expectation_dict : 'dict[str,list[tuple[str,int,int,int]]]'
+        ) -> 'tuple[float,float,float,float]':
+
+    # se ho già i mondi per calcolare E[f_i = True | I]
+    # dove f_i è prob fact e I è key allora faccio come
+    # in compute_probability_interpretation
+    # altrimenti chiamo il solver e poi aggiungo nel dict
+    # chiave probFact<bool><Interpretation>, quindi ho 
+    # 2 * |prob facts| * |interpretations| entry 
+    # facr pf: pfT e pfF che andranno sempre in coppia
+
+    idT = prob_fact + "_T" + str(key)
+    idF = prob_fact + "_F" + str(key)
+
+    if idT not in computed_expectation_dict:
+    # if True:
+        # call the solver
+        s = generate_program_string(facts_prob, offset, atoms, program)
+
+        # Expectation: compute E[f_i = True | I]
+        pasta_solver = pasta.Pasta("", prob_fact, interpretation_string)  # type: ignore
+        lp1, up1 = pasta_solver.inference(from_string = s)  # type: ignore
+
+        # store the computed worlds
+        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idT)
+
+        # print("Worlds true")
+        # print(pasta_solver.interface.model_handler.worlds_dict)
+
+        # print("Expectation dict")
+        # print(computed_expectation_dict)
+
+        # Expectation: compute E[f_i = False | I]
+        pasta_solver = pasta.Pasta("", "nfp", interpretation_string)  # type: ignore
+        s = s + f"nfp:- not {prob_fact}.\n"
+        lp0, up0 = pasta_solver.inference(from_string = s)  # type: ignore
+
+        # store the computed worlds
+        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idF)
+
+        # print(f"Computed: lp1: {lp1}, lp0: {lp0}, up1: {up1}, up0: {up0}" )
+
+        # print(computed_expectation_dict)
+        # sys.exit()
+
+        # add to the dict
+    # if idT in computed_expectation_dict:
+    else:
+        # get prob from dict
+        lp1 = 0
+        up1 = 0
+        lp0 = 0 
+        up0 = 0
+
+        lp1, up1 = get_conditional_prob_from_dict(computed_expectation_dict, facts_prob, idT)
+        lp0, up0 = get_conditional_prob_from_dict(
+            computed_expectation_dict, facts_prob, idF)
+
+        # print(computed_expectation_dict)
+        # print(f"Got: lp1: {lp1}, lp0: {lp0}, up1: {up1}, up0: {up0}" )
+   
+        # sys.exit()
+
+
+    return lp1, up1, lp0, up0
 
 # test
 
@@ -262,7 +437,7 @@ def to_logprob(lp : float, up : float, upper : bool) -> float:
         return math.log(float(lp)) if float(lp) != 0 else 0
 
 
-def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float]]':
+def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float],int]':
     '''
     #example(pos,Id,'atom') where Id is the Id of the (partial) answer set and atom is the correspondent atom
     #test(IdList)
@@ -291,12 +466,20 @@ def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[
     train_ids : list[int] = []
     test_ids : list[int] = []
 
+    offset = 0
+
     while i < len(lines):
         lines[i] = lines[i].replace('\n','')
         if lines[i].startswith("#program('"):
             i = i + 1
             while(not (lines[i].startswith("')."))):
                 program = program + lines[i]
+                # look for prob facts in the program that need to be considered
+                # in the dict but whose probabilities cannot be set
+                if '::' in lines[i]:
+                    prob_fact = lines[i].split('::')[1].replace('\n','').replace('.','').replace(' ','')
+                    prob_facts_dict[prob_fact] = float(lines[i].split('::')[0])
+                    offset = offset + 1
                 i = i + 1
         # elif lines[i].startswith("#target("):
         #     ll = lines[i].split("#target(")
@@ -360,28 +543,33 @@ def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[
     # import sys
     # sys.exit()
 
-    return training_set, test_set, program, prob_facts_dict
+    return training_set, test_set, program, prob_facts_dict, offset
 
 def learn_parameters(
     training_set : 'list[list[str]]', 
     test_set : 'list[list[str]]', 
     program : str,
     prob_facts_dict : 'dict[str,float]',
+    offset : int,
     upper : bool = False, 
     verbose : bool = False) -> None:
 
     # start_time = time.time()
 
-    # associate every interpretation i (int of the dict) to a list
-    # that represents the id of the world as a 01 string and two integers
-    # that indicates if contributes to the lower and upper probability
+    # associates every interpretation i (int of the dict) to a list
+    # that represents the id of the world as a 01 string and three integers
+    # that indicates the number of models for the not query, the number
+    # of models for the query and the total number of models 
     # Example: the interpretation 1 has the world 0110 and 1010 that
-    # contributes respectively to upper and both lower and upper
-    # 1 -> [ [0110,0,1], [1010,1,1] ] 
-    interpretations_to_worlds : 'dict[int,list[tuple[str,int,int]]]' = dict()
+    # with certain values for the counts
+    # 1 -> [ [0110,0,1,1], [1010,1,1,1] ] 
+    interpretations_to_worlds : 'dict[int,list[tuple[str,int,int,int]]]' = dict()
 
     ll0 = -10000000
     epsilon = 10e-5
+
+
+    computed_expectation_dict : 'dict[str,list[tuple[str,int,int,int]]]' = dict()
 
     # compute negative LL
     p = 0
@@ -392,63 +580,59 @@ def learn_parameters(
 
     ll1 = p
 
-    # devo mantenere un dict che associa P(I) ad una lista di id di mondi
+    # FATTO: devo mantenere un dict che associa P(I) ad una lista di id di mondi
     # ed un dict che associa P(f_i | I) ad una lista di id di mondi
 
     # loop
     n_iterations = 0
+    offset_value = offset
+
     while abs(ll1 - ll0) > epsilon:
         n_iterations = n_iterations + 1
         print(f"ll0: {ll0} ll1: {ll1}")
         ll0 = ll1
         # fisso un fatto e calcolo la somma degli E per ogni esempio
         expected_dict = {}
-        for key in prob_facts_dict:
-            upper0 = 0
-            upper1 = 0
-            lower0 = 0
-            lower1 = 0
+        # Expectation
+        for prob_fact in prob_facts_dict:
+            if offset == 0:
+                upper0 = 0
+                upper1 = 0
+                lower0 = 0
+                lower1 = 0
 
-            for i in range(0, len(training_set)):
-                # sum_expected_val_true = 0
-                # sum_expected_val_false = 0
-                # compute expected val
-                s = generate_program_string(
-                    prob_facts_dict, training_set[i], program)
+                for i in range(0, len(training_set)):
+                    lp1, up1, lp0, up0 = compute_expected_values(
+                        prob_facts_dict, offset_value, training_set[i], program, prob_fact, i, computed_expectation_dict)
 
-                # Expectation: compute E[C_i1 | e]
-                # e = target_predicate if pos_neg_training[i] > 0 else "np"
+                    upper1 = upper1 + up1
+                    lower1 = lower1 + lp1
+                    upper0 = upper0 + up0
+                    lower0 = lower0 + lp0
 
-                pasta_solver = pasta.Pasta("", key, interpretation_string)
-                lp, up = pasta_solver.inference(from_string=s)
+                expected_dict[prob_fact] = [lower0, lower1, upper0, upper1]
+            else:
+                offset = offset - 1
 
-                upper1 = upper1 + float(up)
-                lower1 = lower1 + float(lp)
+        offset = offset_value
 
-                # Expectation: compute E[C_i0 | e]
-                pasta_solver = pasta.Pasta("", "nfp", interpretation_string)
-                s = s + f"nfp:- not {key}.\n"
-                lp, up = pasta_solver.inference(from_string=s)
-
-                upper0 = upper0 + float(up)
-                lower0 = lower0 + float(lp)
-
-            expected_dict[key] = [lower0, lower1, upper0, upper1]
-
-        # Maximization: update probabilities \sum E[C_i1|e] / \sum (E[C_i1|e] + E[C_i0|e])
         if verbose:
             print(expected_dict)
             print(prob_facts_dict)
 
+        # Maximization: update probabilities E[f_i = T | I] / (E[f_i = T | I] + E[f_i = F | I])
         for k in prob_facts_dict:
-            # per upper
-            if upper:
-                prob_facts_dict[k] = expected_dict[k][3] / \
-                    (expected_dict[k][3] + expected_dict[k][2])
-            # per lower
+            if offset == 0:
+                # per upper
+                if upper:
+                    prob_facts_dict[k] = expected_dict[k][3] / \
+                        (expected_dict[k][3] + expected_dict[k][2])
+                # per lower
+                else:
+                    prob_facts_dict[k] = expected_dict[k][1] / \
+                        (expected_dict[k][0] + expected_dict[k][1])
             else:
-                prob_facts_dict[k] = expected_dict[k][1] / \
-                    (expected_dict[k][0] + expected_dict[k][1])
+                offset = offset - 1
 
         # Compute negative LL
         p = 0
@@ -459,8 +643,10 @@ def learn_parameters(
             p = p + to_logprob(lp, up, upper)
 
         ll1 = p
+        offset = offset_value
 
-    print(f"ll0: {ll0} ll1: {ll1} Iterations: {n_iterations}")
+    print(f"ll0: {ll0} ll1: {ll1}")
+    print(f"Iterations: {n_iterations}")
     print(prob_facts_dict)
 
     # end_time = time.time() - start_time
@@ -472,16 +658,16 @@ if __name__ == "__main__":
 
     # program = "background_example_bongard_dummy.lp"
     # program = "../../examples/learning/background_bayesian_network.lp"
-    program = "../../examples/learning/background_shop.lp"
+    # program = "../../examples/learning/background_shop.lp"
     # program = "../../examples/learning/background_smoke.lp"
     # program = "bongard_stress.lp"
-    # program = "smoke_stress.lp"
+    program = "smoke_stress.lp"
 
-    training_set, test_set, program, prob_facts_dict = parse_input_learning(program)
+    training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
     upper = True
     verbose = False
     start_time = time.time()
-    learn_parameters(training_set, test_set, program, prob_facts_dict, upper, verbose)
+    learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
     end_time = time.time() - start_time
 
     print(f"Elapsed time: {end_time}")
