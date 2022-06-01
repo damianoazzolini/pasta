@@ -1,9 +1,7 @@
 import random
 import clingo
-from typing import Union
 import time
 
-# local
 import models_handler
 
 class AspInterface:
@@ -25,10 +23,10 @@ class AspInterface:
 		self.cautious_consequences : list[str] = []
 		self.program_minimal_set : list[str] = sorted(set(program_minimal_set))
 		self.asp_program : list[str] = sorted(set(asp_program))
-		self.lower_probability_query : int = 0
-		self.upper_probability_query : int = 0
-		self.upper_probability_evidence : int = 0
-		self.lower_probability_evidence : int = 0
+		self.lower_probability_query : float = 0
+		self.upper_probability_query : float = 0
+		self.upper_probability_evidence : float = 0
+		self.lower_probability_evidence : float = 0
 		self.evidence : str = evidence
 		# self.probabilistic_facts = probabilistic_facts # unused
 		self.n_prob_facts : int = len(probabilistic_facts) # TODO: is probabilistic_facts used?
@@ -37,7 +35,7 @@ class AspInterface:
 		self.computed_models : int = 0
 		self.grounding_time : float = 0
 		self.n_worlds : int = 0
-		self.world_analysis_time : int = 0
+		self.world_analysis_time : float = 0
 		self.computation_time : float = 0
 		self.abductive_explanations : list[str] = []
 		self.abduction_time : float = 0
@@ -50,7 +48,7 @@ class AspInterface:
 				self.prob_facts_dict,
 				self.evidence)
 
-
+	
 	def get_minimal_set_facts(self) -> float:
 		'''
 		Parameters:
@@ -216,9 +214,9 @@ class AspInterface:
 				upper = False
 				lower = True
 				sampled_evidence = False
-				with ctl.solve(yield_=True) as handle:
-					for m in handle:
-						m1 = str(m).split(' ')
+				with ctl.solve(yield_=True) as handle:  # type: ignore
+					for m in handle:  # type: ignore
+						m1 = str(m).split(' ')  # type: ignore
 						if 'e' in m1:
 							sampled_evidence = True
 							t_count = id.count('T')
