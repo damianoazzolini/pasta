@@ -234,19 +234,21 @@ if __name__ == "__main__":
     command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
     command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
-    command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
-    command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
-    command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
-    command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
-    command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
-    command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
-    command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
+    # command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
+    # command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
+    # command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
+    # command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
+    # command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
+    # command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
+    # command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     
     args = command_parser.parse_args()
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples)
     
+    args.approximate = False
+
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()
         Pasta.print_result_abduction(lp, up, abd_explanations)
