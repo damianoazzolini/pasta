@@ -8,20 +8,20 @@ bird(4).
 0.7::fly_w(1).
 
 % The following two lines are equivalent to the conditional
-% (fly(X) | bird(X))[0.6,1].
+(fly(X) | bird(X))[0.6,1].
 
 % A bird can fly or not fly
-fly(X) ; not_fly(X):- bird(X).
+% fly(X) ; not_fly(X):- bird(X).
 
 % At least 60% of the birds flies
-:- #count{X:fly(X),bird(X)} = FB, 
-   #count{X:bird(X)} = B, 
-   10*FB < 6*B.
+% :- #count{X:fly(X),bird(X)} = FB, 
+   % #count{X:bird(X)} = B, 
+   % 10*FB < 6*B.
 
 fly:- fly(1).
 fly:- fly_w(1).
 
-% Query: fly(1)
+% Query: fly
 % Expected: lower 0.7, upper 1.0
 % That is, there are 2 worlds, 1 where fly(1) (the probabilistic
 % fact) is true, the other where it is false

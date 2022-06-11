@@ -29,6 +29,5 @@ buy(X);notbuy(X):- reached(X).
 :- #count{X:reached(X),buy(X)} = RB, #count{X:reached(X)} = R, 10*RB < 7*R.
 
 % Example query: buy(5)
-% What is the lower and the upper bound of the probability for fly(1)?
-% Expected: lower: 0.273, upper: 0.29 (with precision 3)
-% For this example, you can get more accurate results with precision 5
+% What is the lower and the upper bound of the probability for buy(5)?
+% Expected: lower: 0.2734, upper: 0.29

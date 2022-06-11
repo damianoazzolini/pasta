@@ -27,6 +27,8 @@ alarm:- alarm2.
 #negative(3,burglary).
 
 #train(1,2,3).
+#test(1,2,3).
 
 % Expected
-% {'burglary': 0.3333333333333333, 'p_alarm1': 0.5, 'p_alarm2': 0.9986666666666667, 'p_alarm3': 0.0}
+% Iterations: 71
+% {'burglary': 0.3333333333333333, 'p_alarm1': 0.5, 'p_alarm2': 0.9986666666666667, 'p_alarm3': 0.000}
