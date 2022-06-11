@@ -35,7 +35,7 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
-        self.interface : asp_interface.AspInterface = None
+        self.interface : asp_interface.AspInterface
 
 
     @staticmethod
@@ -121,7 +121,7 @@ class Pasta:
             self.evidence, 
             asp_program, 
             program_parser.probabilistic_facts,
-            len(program_parser.abducibles), 
+            program_parser.abducibles, 
             self.verbose, 
             self.pedantic
         )
@@ -145,7 +145,7 @@ class Pasta:
             print("---")
         
 
-    def abduction(self, from_string: str = "") -> 'tuple[float,float,list[str]]':
+    def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
         '''
         Probabilistic and deterministic abduction
         '''
@@ -153,11 +153,10 @@ class Pasta:
         self.interface.abduction()
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
-        explanation = self.interface.abductive_explanations
 
         self.check_lp_up(lp,up)
 
-        return lp, up, explanation
+        return lp, up, self.interface.abductive_explanations
     
     
     def inference(self, from_string : str = "") -> 'tuple[float,float]':
@@ -165,6 +164,7 @@ class Pasta:
         Exact inference
         '''
         self.setup_interface(from_string)
+        # self.interface.identify_useless_variables()
         self.interface.compute_probabilities()
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
@@ -187,28 +187,31 @@ class Pasta:
 
 
     @staticmethod
-    def remove_dominated_explanations(abd_exp : 'list[str]') -> 'list[set[str]]':
-        ls : list[set[str]] = []
-        for el in abd_exp:
-            s : set[str] = set()
-            for a in el:
-                if a.startswith("abd"):
-                    s.add(a[4:])
-            ls.append(s)
+    def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
+        ls : list[set[str]] = [] 
+        for exp in abd_exp:
+            e : set[str] = set()
+            for el in exp:
+                if not el.startswith('not') and el != 'q':
+                    if el.startswith('abd_'):
+                        e.add(el[4:])
+                    else:
+                        e.add(el)
+            ls.append(e)
 
         for i in range(0,len(ls)):
             for j in range(i+1,len(ls)):
                 if len(ls[i]) > 0:
-                    #type ignore
-                    if ls[i].issubset(ls[j]):  # type: ignore
+                    if ls[i].issubset(ls[j]):
                         ls[j] = set()  # type: ignore
 
         return ls
 
+
     @staticmethod
-    def print_result_abduction(lp: float, up: float, abd_exp: 'list[str]') -> None:
+    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]') -> None:
         abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
-        
+        # abd_exp_no_dup = abd_exp
         if len(abd_exp_no_dup) > 0 and up != 0:
             Pasta.print_prob(lp,up)
         

@@ -1,5 +1,3 @@
-from bleach import clean
-from sympy import comp, true
 import pasta
 import math
 import time
@@ -8,6 +6,7 @@ import sys
 
 import re
 
+LOGZERO = 0.01
 
 # FLY
 prg_fly = '''
@@ -124,6 +123,7 @@ def get_prob_from_id(id : str, facts_prob : 'dict[str,float]') -> float:
 def add_element_to_dict(worlds_dict, dict_to_store, key):
     for w in worlds_dict:
         el = worlds_dict[w]
+        # if el.model_query_count != 0:
         if key not in dict_to_store: 
             dict_to_store[key] = [[
                 w, 
@@ -164,7 +164,12 @@ def get_prob_from_dict(dict_with_data, facts_prob, key):
     return lp, up
 
 
-def get_conditional_prob_from_dict(dict_with_data, facts_prob, key):
+def get_conditional_prob_from_dict(dict_with_data, facts_prob, key
+    ) -> 'tuple[float,float]':
+
+    # if key not in dict_with_data:
+    #     return 0,0
+
     worlds_list = dict_with_data[key]
 
     lqp = 0
@@ -224,72 +229,19 @@ def compute_probability_interpretation(
     '''
     Computation of the probability of an interpretation: P(I)
     '''
-    # print(f"key: {key}")
+
     if key not in interpretations_to_worlds:
         s = generate_program_string(facts_prob, offset, example, program)
-
-        # print("--- program")
-        # print(example)
-        # print(s)
 
         pasta_solver = pasta.Pasta("", interpretation_string, None)  # type: ignore
         up : float = 0
         lp : float = 0
         lp, up = pasta_solver.inference(from_string = s)  # type: ignore
 
-        # print(pasta_solver.interface.model_handler.worlds_dict)
-        # print(pasta_solver.interface.prob_facts_dict)
-        # print(f"Computed: lp: {lp}, up: {up}")
-
-        # print(pasta_solver.interface.model_handler.worlds_dict)
-        # print(get_tuple_regex(facts_prob))
-        # print('---')
-
         add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, interpretations_to_worlds, key)
-
-    
-        # for w in pasta_solver.interface.model_handler.worlds_dict:
-        #     el = pasta_solver.interface.model_handler.worlds_dict[w]
-        #     if key not in interpretations_to_worlds: 
-        #         interpretations_to_worlds[key] = [[
-        #             w, 
-        #             1 if (el.model_not_query_count == 0 and el.model_query_count > 0) else 0,
-        #             1 if el.model_query_count > 0 else 0
-        #         ]]  # type: ignore
-        #     else:
-        #         interpretations_to_worlds[key].append([
-        #             w, 
-        #             1 if (el.model_not_query_count == 0 and el.model_query_count > 0) else 0,
-        #             1 if el.model_query_count > 0 else 0
-        #         ])  # type: ignore
     else:
-        # l'interpretazione è nel dizionario, calcolo la probabilità
-        # partendo da la stringa
-        # print('found')
-
         lp, up = get_prob_from_dict(interpretations_to_worlds, facts_prob, key)
 
-        # lp = 0
-        # up = 0
-        # worlds_list = interpretations_to_worlds[key]
-        # for world in worlds_list:
-        #     id = world[0]
-        #     lpw = world[1]
-        #     upw = world[2]
-        #     # print(world)
-        #     # ['110', 0, 1]
-        #     # [ID, Lower, Upper]
-        #     # sys.exit()
-
-        #     # print(facts_prob)
-        #     current_prob = get_prob_from_id(id, facts_prob)
-            
-        #     lp = lp + current_prob * lpw
-        #     up = up + current_prob * upw
-
-        # print(f"Got: lp: {lp}, up: {up}")
-
-    # print(f"lp: {lp}, up: {up}")
     return lp, up
     
 
@@ -303,19 +255,10 @@ def compute_expected_values(
         computed_expectation_dict : 'dict[str,list[tuple[str,int,int,int]]]'
         ) -> 'tuple[float,float,float,float]':
 
-    # se ho già i mondi per calcolare E[f_i = True | I]
-    # dove f_i è prob fact e I è key allora faccio come
-    # in compute_probability_interpretation
-    # altrimenti chiamo il solver e poi aggiungo nel dict
-    # chiave probFact<bool><Interpretation>, quindi ho 
-    # 2 * |prob facts| * |interpretations| entry 
-    # facr pf: pfT e pfF che andranno sempre in coppia
-
     idT = prob_fact + "_T" + str(key)
     idF = prob_fact + "_F" + str(key)
 
     if idT not in computed_expectation_dict:
-    # if True:
         # call the solver
         s = generate_program_string(facts_prob, offset, atoms, program)
 
@@ -326,12 +269,6 @@ def compute_expected_values(
         # store the computed worlds
         add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idT)
 
-        # print("Worlds true")
-        # print(pasta_solver.interface.model_handler.worlds_dict)
-
-        # print("Expectation dict")
-        # print(computed_expectation_dict)
-
         # Expectation: compute E[f_i = False | I]
         pasta_solver = pasta.Pasta("", "nfp", interpretation_string)  # type: ignore
         s = s + f"nfp:- not {prob_fact}.\n"
@@ -339,102 +276,149 @@ def compute_expected_values(
 
         # store the computed worlds
         add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idF)
-
-        # print(f"Computed: lp1: {lp1}, lp0: {lp0}, up1: {up1}, up0: {up0}" )
-
-        # print(computed_expectation_dict)
-        # sys.exit()
-
-        # add to the dict
-    # if idT in computed_expectation_dict:
     else:
         # get prob from dict
-        lp1 = 0
-        up1 = 0
-        lp0 = 0 
-        up0 = 0
+        lp1 : float = 0
+        up1 : float = 0
+        lp0 : float = 0 
+        up0 : float = 0
 
         lp1, up1 = get_conditional_prob_from_dict(computed_expectation_dict, facts_prob, idT)
-        lp0, up0 = get_conditional_prob_from_dict(
-            computed_expectation_dict, facts_prob, idF)
-
-        # print(computed_expectation_dict)
-        # print(f"Got: lp1: {lp1}, lp0: {lp0}, up1: {up1}, up0: {up0}" )
-   
-        # sys.exit()
-
+        lp0, up0 = get_conditional_prob_from_dict(computed_expectation_dict, facts_prob, idF)
 
     return lp1, up1, lp0, up0
 
 # test
 
 
-def test_results(test_set: 'list[list[str]]', pos_neg_test_set: 'list[int]', facts_prob: 'dict[str,float]', target_predicate: str, program: str) -> float:
+def test_results(
+    test_set : 'list[list[str]]',
+    interpretations_to_worlds : 'dict[int,list[tuple[str,int,int,int]]]',
+    prob_facts_dict: 'dict[str,float]',
+    program: str
+    ) -> None:
 
-    from sklearn.metrics import roc_auc_score
-    import numpy as np
+    # from sklearn.metrics import roc_auc_score
+    # import numpy as np
     # from sklearn.metrics import (precision_recall_curve, PrecisionRecallDisplay)
     # import matplotlib.pyplot as plt
     # from sklearn.metrics import RocCurveDisplay
 
-    probs_lp : list[float] = []
-    probs_up : list[float] = []
-    ll = 0
+    # probs_lp : list[float] = []
+    # probs_up : list[float] = []
+    # ll = 0
+    p = 0
+    # pos_neg = []
+    # ints = []
     for i in range(0, len(test_set)):
-        lp, up = compute_probability_interpretation(facts_prob, test_set[i], pos_neg_test_set[i], target_predicate, program, upper)
-        probs_lp.append(lp)
-        probs_up.append(up)
-        ll = ll + to_logprob(lp, up, upper)
+        # print(test_set[i])
+        # pl = []
+        # nl = []
+        # for el in test_set[i]:
+        #     if el.startswith('not '):
+        #         nl.append(el.split('not ')[1])
+        #     else:
+        #         pl.append(el)
+        # if len(nl) > 0:
+        #     pos_neg.append(0)
+        #     ints.append(nl)
+        # if len(pl) > 0:
+        #     pos_neg.append(1)
+        #     ints.append(pl)
+
+        lp, up = compute_probability_interpretation(
+            prob_facts_dict, test_set[i], program, i, interpretations_to_worlds)
+
+        # lp, up = compute_probability_interpretation(
+        #     prob_facts_dict, nl, program, i + 1000, interpretations_to_worlds)
+        p = p + to_logprob(lp, up, False)
+
+        # if len(nl) > 0:
+        #     probs_lp.append(lp)
+        #     probs_up.append(up)
+        
+        # probs_lp.append(lp)
+        # probs_up.append(up)
+
+        # lp, up = compute_probability_interpretation(
+        #     prob_facts_dict, pl, program, i - 1000, interpretations_to_worlds)
+
+        # p = p + to_logprob(lp, up, False)
+        
+        # if len(pl) > 0:
+        #     probs_lp.append(lp)
+        #     probs_up.append(up)
+
+        # nl = []
+        # pl = []
+
+    print(f"LL: {p}")
+
+    # print(pos_neg)
+    # print(ints)
+    # print(probs_lp)
+
+    # for i in range(0, len(test_set)):
+    #     lp, up = compute_probability_interpretation(facts_prob, test_set[i], pos_neg_test_set[i], target_predicate, program, upper)
+    #     probs_lp.append(lp)
+    #     probs_up.append(up)
+    #     ll = ll + to_logprob(lp, up, upper)
     
-    print(f"Negative LL: {ll}")
-    print(f"Probs lp: {probs_lp}")
-    print(f"Probs up: {probs_up}")
+    # print(f"Negative LL: {ll}")
+    # print(f"Probs lp: {probs_lp}")
+    # print(f"Probs up: {probs_up}")
+    # examples_0_1 = [1 for _ in range(0,len(test_set))]
     
-    pos_neg_test_set_np = np.asarray(pos_neg_test_set, dtype=np.int0)
-    probs_lp_np = np.asarray(probs_lp, dtype=np.float32)
-    probs_up_np = np.asarray(probs_up, dtype=np.float32)
+    # import numpy as np
+    # pos_neg_test_set_np = np.asarray(pos_neg, dtype=np.int0)
+    # probs_lp_np = np.asarray(probs_lp, dtype=np.float32)
+    # probs_up_np = np.asarray(probs_up, dtype=np.float32)
 
-    # print(pos_neg_test_set_np)
-    # print(probs_up_np)
+    # # print(pos_neg_test_set_np)
+    # # print(probs_up_np)
 
-    auc_lp = roc_auc_score(pos_neg_test_set_np, probs_lp_np)
-    auc_up = roc_auc_score(pos_neg_test_set_np, probs_up_np)
+    # auc_lp = roc_auc_score(pos_neg_test_set_np, probs_lp_np)
+    # auc_up = roc_auc_score(pos_neg_test_set_np, probs_up_np)
 
-    print(f"auc_lp: {auc_lp}")
-    print(f"auc up: {auc_up}")
+    # print(f"auc_lp: {auc_lp}")
+    # print(f"auc up: {auc_up}")
     
     # from sklearn import metrics
-    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_lp_np)
+    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set_np, probs_lp_np)
     # roc_auc = metrics.auc(fpr, tpr)
     # display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
     # display.plot()
     # plt.show()
 
-    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set, probs_up_np)
+    # fpr, tpr, thresholds = metrics.roc_curve(pos_neg_test_set_np, probs_up_np)
     # roc_auc = metrics.auc(fpr, tpr)
     # display = metrics.RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
     # display.plot()
     # plt.show()
 
-    # precision_lp, recall_lp, _ = precision_recall_curve(pos_neg_test_set, probs_lp_np)
+    # precision_lp, recall_lp, _ = precision_recall_curve(pos_neg_test_set_np, probs_lp_np)
     # disp = PrecisionRecallDisplay(precision=precision_lp, recall=recall_lp)
     # disp.plot()
     # plt.show()
 
-    # precision_up, recall_up, _ = precision_recall_curve(pos_neg_test_set, probs_up_np)
+    # precision_up, recall_up, _ = precision_recall_curve(pos_neg_test_set_np, )
     # disp = PrecisionRecallDisplay(precision=precision_up, recall=recall_up)
     # disp.plot()
     # plt.show()
 
 
-    return auc_lp, auc_up
+    return None
 
 
-def to_logprob(lp : float, up : float, upper : bool) -> float:    
+def to_logprob(
+    lp : float, 
+    up : float, 
+    upper : bool
+    ) -> float:    
     if upper:
-        return math.log(float(up)) if float(up) != 0 else 0
+        return math.log(float(up)) if float(up) != 0 else math.log(LOGZERO)
     else:
-        return math.log(float(lp)) if float(lp) != 0 else 0
+        return math.log(float(lp)) if float(lp) != 0 else math.log(LOGZERO)
 
 
 def parse_input_learning(filename : str, from_string : str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float],int]':
@@ -552,7 +536,8 @@ def learn_parameters(
     prob_facts_dict : 'dict[str,float]',
     offset : int,
     upper : bool = False, 
-    verbose : bool = False) -> None:
+    verbose : bool = False
+) -> 'dict[int,list[tuple[str,int,int,int]]]':
 
     # start_time = time.time()
 
@@ -577,6 +562,7 @@ def learn_parameters(
         lp, up = compute_probability_interpretation(
             prob_facts_dict, training_set[i], program, i, interpretations_to_worlds)
         p = p + to_logprob(lp, up, upper)
+        print(f"interpretation: {i}")
 
     ll1 = p
 
@@ -587,12 +573,12 @@ def learn_parameters(
     n_iterations = 0
     offset_value = offset
 
-    while abs(ll1 - ll0) > epsilon:
+    while (ll1 - ll0) > epsilon:
         n_iterations = n_iterations + 1
         print(f"ll0: {ll0} ll1: {ll1}")
         ll0 = ll1
         # fisso un fatto e calcolo la somma degli E per ogni esempio
-        expected_dict = {}
+        expected_dict : 'dict[str,list[float]]' = {}
         # Expectation
         for prob_fact in prob_facts_dict:
             if offset == 0:
@@ -649,6 +635,8 @@ def learn_parameters(
     print(f"Iterations: {n_iterations}")
     print(prob_facts_dict)
 
+    return interpretations_to_worlds
+
     # end_time = time.time() - start_time
 
     # test_results(test_set, prob_facts_dict, program)
@@ -661,16 +649,20 @@ if __name__ == "__main__":
     # program = "../../examples/learning/background_shop.lp"
     # program = "../../examples/learning/background_smoke.lp"
     # program = "bongard_stress.lp"
-    program = "smoke_stress.lp"
+    # program = "smoke_stress.lp"
+    program = "shop_4.lp"
+    # program = "../../examples/learning/background_smoke_2.lp"
 
     training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
-    upper = True
+    upper = False
     verbose = False
     start_time = time.time()
-    learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
+    interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
     end_time = time.time() - start_time
 
     print(f"Elapsed time: {end_time}")
+
+    test_results(test_set,interpretations_to_worlds,prob_facts_dict,program)
 
     # import sys
     # sys.exit()

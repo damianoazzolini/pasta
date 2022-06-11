@@ -15,7 +15,7 @@ class AspInterface:
 		evidence : str, 
 		asp_program : 'list[str]', 
 		probabilistic_facts : 'dict[str,float]', 
-		n_abducibles : int, 
+		abducibles_list : 'list[str]', 
 		verbose : bool = False, 
 		pedantic : bool = False, 
 		n_samples : int = 1000
@@ -30,14 +30,15 @@ class AspInterface:
 		self.evidence : str = evidence
 		# self.probabilistic_facts = probabilistic_facts # unused
 		self.n_prob_facts : int = len(probabilistic_facts) # TODO: is probabilistic_facts used?
-		self.n_abducibles : int = n_abducibles
+		self.abducibles_list : list[str] = abducibles_list
+		self.n_abducibles : int = len(self.abducibles_list)
 		self.constraint_times_list : list[float] = []
 		self.computed_models : int = 0
 		self.grounding_time : float = 0
 		self.n_worlds : int = 0
 		self.world_analysis_time : float = 0
 		self.computation_time : float = 0
-		self.abductive_explanations : list[str] = []
+		self.abductive_explanations : 'list[list[str]]' = []
 		self.abduction_time : float = 0
 		self.verbose : bool = verbose
 		self.pedantic : bool = pedantic
@@ -46,7 +47,8 @@ class AspInterface:
 		self.model_handler : models_handler.ModelsHandler = \
 			models_handler.ModelsHandler(
 				self.prob_facts_dict,
-				self.evidence)
+				self.evidence,
+				self.abducibles_list)
 
 	
 	def get_minimal_set_facts(self) -> float:
@@ -120,8 +122,6 @@ class AspInterface:
 			handle.get()   # type: ignore
 		self.computation_time = time.time() - start_time
 
-		# print(model_handler) # prints the models in world format
-
 		start_time = time.time()
 		self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
@@ -147,7 +147,7 @@ class AspInterface:
 		return id
 
 
-	def pick_random_index(self, block : int, id : str) -> list:
+	def pick_random_index(self, block : int, id : str) -> 'list[int]':
 		'''
 		Pick a random index, used in Gibbs sampling.
 		TODO: this can be a static method.
@@ -478,7 +478,7 @@ class AspInterface:
 		return n_lower/k, n_upper/k
 
 
-	def abduction_iter(self, n_abd: int, previously_computed : list) -> 'tuple[str, float]':
+	def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':
 		'''
 		Loop for exact abduction
 		'''
@@ -512,11 +512,10 @@ class AspInterface:
 		ctl.ground([("base", [])])
 		self.grounding_time = time.time() - start_time
 
-		computed_models = []
+		computed_models : list[str] = []
 
 		with ctl.solve(yield_=True) as handle:  # type: ignore
 			for m in handle:  # type: ignore
-				# print(m)
 				computed_models.append(str(m))  # type: ignore
 				# n_models = n_models + 1
 			handle.get()  # type: ignore
@@ -533,13 +532,12 @@ class AspInterface:
 		'''
 		Abduction
 		'''
-		result = []
+		computed_abducibles_list : list[str] = []
+
 		start_time = time.time()
-		abducibles_list = []
-		model_handler = models_handler.ModelsHandler(self.n_prob_facts, "")
 
 		for i in range(0, self.n_abducibles + 1):
-			currently_computed, exec_time = self.abduction_iter(i, abducibles_list)
+			currently_computed, exec_time = self.abduction_iter(i, computed_abducibles_list)
 			self.computed_models = self.computed_models + len(currently_computed)
 			if self.verbose:
 				print("Models with " + str(i) + " abducibles: " + str(len(currently_computed)))
@@ -552,27 +550,26 @@ class AspInterface:
 				# currently computed: list of computed models
 				for i in range(0,len(currently_computed)):
 					currently_computed[i] = currently_computed[i].split(' ')
-					result.append(currently_computed[i])
+					self.abductive_explanations.append(currently_computed[i])
 				
 				self.computed_models = self.computed_models + len(currently_computed)
 
 				for cc in currently_computed:
-					abducibles_list.append(cc)
+					computed_abducibles_list.append(cc)
 			else:
 				for el in currently_computed:
-					model_handler.add_model_abduction(str(el))
+					self.model_handler.add_model_abduction(str(el))
 
-				self.lower_probability_query, self.upper_probability_query = model_handler.compute_lower_upper_probability()
+				self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
 			# keep the best model
-			self.lower_probability_query, self.upper_probability_query = model_handler.keep_best_model()
+			self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model()
 			self.constraint_times_list.append(exec_time)
 
-		for el in model_handler.abd_worlds_dict:
-			result.append(el[1:].split(' '))
-
+		for el in self.model_handler.abd_worlds_dict:
+			self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
+		
 		self.abduction_time = time.time() - start_time
-		self.abductive_explanations = result
 
 
 	def log_infos(self) -> None:

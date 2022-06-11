@@ -3,5 +3,5 @@ abducible b.
 
 query:- a,b.
 
-% query(query).
+% Query: query
 % Expected result: {{a,b}}
