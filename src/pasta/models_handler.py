@@ -5,8 +5,6 @@ some cases only model_not_query is true, so the world does not contribute
 to the list
 '''
 
-import sys
-
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
@@ -102,9 +100,9 @@ class ModelsHandler():
         self.worlds_dict : 'dict[str,World]' = dict()
         self.abd_worlds_dict : 'dict[str,AbdWorld]' = dict()
         self.prob_facts_dict = prob_facts_dict
-        self.best_lp : int = 0 # best prob found so far with abduction
-        self.best_up : int = 0 # best prob found so far with abduction
-        self.best_abd_combinations = []
+        self.best_lp : float = 0 # best prob found so far with abduction
+        self.best_up : float = 0 # best prob found so far with abduction
+        self.best_abd_combinations : 'list[str]' = []
         self.upper_query_prob : float = 0
         self.lower_query_prob : float = 0
         self.upper_evidence_prob : float = 0
