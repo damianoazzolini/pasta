@@ -1,6 +1,6 @@
 import sys
 
-import utils
+from utils import print_error_and_exit
 
 '''
 Class defining a generator of an ASP program
@@ -97,10 +97,10 @@ class Generator:
     @staticmethod
     def generate_clauses_for_abducibles(line: str, n_abd: int) -> 'tuple[list[str], str]':
         if len(line.split(' ')) != 2:
-            utils.print_error_and_exit("Error in line " + line)
+            print_error_and_exit("Error in line " + line)
         
         if not line.endswith('.'):
-            utils.print_error_and_exit("Missing final . in " + line)
+            print_error_and_exit("Missing final . in " + line)
         
         # TODO: add sanity checks for the atom: no variables and correct syntax
         line_list = line.split(' ')

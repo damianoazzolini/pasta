@@ -3,9 +3,12 @@ import sys
 import argparse
 
 # local
-import pasta_parser
-import asp_interface
-import utils
+# from pasta.pasta_parser import PastaParser
+from pasta_parser import PastaParser
+# import pasta_parser
+from asp_interface import AspInterface
+# import asp_interface
+from utils import print_error_and_exit
 
 
 examples_string_exact = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\""
@@ -22,7 +25,7 @@ class Pasta:
         self, 
         filename : str, 
         query : str, 
-        evidence : str , 
+        evidence : str = "", 
         verbose : bool = False, 
         pedantic : bool = False, 
         samples : int = 1000
@@ -35,7 +38,7 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
-        self.interface : asp_interface.AspInterface
+        self.interface : AspInterface
 
 
     @staticmethod
@@ -78,11 +81,11 @@ class Pasta:
         Inference through sampling
         '''
         
-        program_parser = pasta_parser.PastaParser(self.filename, self.query, self.evidence)
+        program_parser = PastaParser(self.filename, self.query, self.evidence)
         program_parser.parse_approx(from_string)
         asp_program = program_parser.get_asp_program()
 
-        self.interface = asp_interface.AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
+        self.interface = AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
 
 
         if self.evidence is None:
@@ -97,7 +100,7 @@ class Pasta:
             else:
                 lp = 0
                 up = 0
-                utils.print_error_and_exit("Sampling method found")
+                print_error_and_exit("Sampling method found")
                 
         return lp, up
 
@@ -106,7 +109,7 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        program_parser = pasta_parser.PastaParser(
+        program_parser = PastaParser(
             self.filename, self.query, self.evidence)
         program_parser.parse(from_string)
 
@@ -116,7 +119,7 @@ class Pasta:
         content_find_minimal_set = program_parser.get_content_to_compute_minimal_set_facts()
         asp_program = program_parser.get_asp_program()
 
-        self.interface = asp_interface.AspInterface(
+        self.interface = AspInterface(
             content_find_minimal_set, 
             self.evidence, 
             asp_program, 
@@ -234,13 +237,13 @@ if __name__ == "__main__":
     command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
     command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
-    # command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
-    # command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
-    # command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
-    # command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
-    # command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
-    # command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
-    # command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
+    command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
+    command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
+    command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
+    command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
+    command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
+    command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
+    command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     
     args = command_parser.parse_args()

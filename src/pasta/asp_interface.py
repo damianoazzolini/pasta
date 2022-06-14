@@ -2,7 +2,8 @@ import random
 import clingo
 import time
 
-import models_handler
+from models_handler import ModelsHandler
+
 
 class AspInterface:
 	'''
@@ -44,8 +45,8 @@ class AspInterface:
 		self.pedantic : bool = pedantic
 		self.n_samples : int = n_samples
 		self.prob_facts_dict : dict[str,float] = probabilistic_facts
-		self.model_handler : models_handler.ModelsHandler = \
-			models_handler.ModelsHandler(
+		self.model_handler : ModelsHandler = \
+			ModelsHandler(
 				self.prob_facts_dict,
 				self.evidence,
 				self.abducibles_list)

@@ -5,12 +5,9 @@ import os
 import sys
 from typing import Union
 
-import utils
+from utils import print_waring, print_error_and_exit, warning_prob_fact_twice
+from generator import Generator
 
-# from matplotlib import lines
-# from typing import Dict, Union
-
-import generator
 
 class PastaParser:
     '''
@@ -203,8 +200,8 @@ class PastaParser:
                     l1 = l0.replace(' ','')
 
                 if l0[0].startswith('not_'):
-                    utils.print_waring("The head of a clause that starts with not_ is not suggested.")
-                    utils.print_waring("Hou should change its name. If not, you may get a wrong probability range")
+                    print_waring("The head of a clause that starts with not_ is not suggested.")
+                    print_waring("Hou should change its name. If not, you may get a wrong probability range")
 
                 # hack to handle something like: 0.5::a % comment, to remove
                 # the part after the %
@@ -233,14 +230,14 @@ class PastaParser:
         Second layer of program parsing
         '''
         n_probabilistic_facts = 0
-        gen = generator.Generator()
+        gen = Generator()
         for line in self.lines_original:
             self.check_reserved(line)
             if "::" in line and not line.startswith('%'):
                 if ':-' in line:
-                    utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
+                    print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
-                    utils.print_error_and_exit(
+                    print_error_and_exit(
                         "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
                 # line with probability value
                 probability, fact = self.check_consistent_prob_fact(line)
@@ -297,7 +294,7 @@ class PastaParser:
                 if not line.startswith("#show"):
                     self.lines_prob.append([line])
         if not self.query:
-            utils.print_error_and_exit("Missing query")
+            print_error_and_exit("Missing query")
             
         self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
 
@@ -331,13 +328,13 @@ class PastaParser:
         Dummy check for reserved names (q, nq, e, ne)
         '''
         if line.startswith('q:-'):
-            utils.print_error_and_exit("q is a reserved fact")
+            print_error_and_exit("q is a reserved fact")
         elif line.startswith('nq:-'):
-            utils.print_error_and_exit("nq is a reserved fact")
+            print_error_and_exit("nq is a reserved fact")
         elif line.startswith('e:-'):
-            utils.print_error_and_exit("e is a reserved fact")
+            print_error_and_exit("e is a reserved fact")
         elif line.startswith('ne:-'):
-            utils.print_error_and_exit("ne is a reserved fact")
+            print_error_and_exit("ne is a reserved fact")
 
 
     def get_content_to_compute_minimal_set_facts(self) -> 'list[str]':
@@ -391,7 +388,7 @@ class PastaParser:
         '''
         key = term.split('.')[0]
         if key in self.probabilistic_facts:
-            utils.warning_prob_fact_twice(
+            warning_prob_fact_twice(
                 key, prob, self.probabilistic_facts[key])
             sys.exit()
         self.probabilistic_facts[key] = float(prob)
