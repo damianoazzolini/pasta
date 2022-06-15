@@ -61,13 +61,19 @@ class Pasta:
         '''
         Inference through sampling
         '''
-        
         program_parser = PastaParser(self.filename, self.query, self.evidence)
         program_parser.parse_approx(from_string)
         asp_program = program_parser.get_asp_program()
 
-        self.interface = AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
-
+        self.interface = AspInterface(
+            program_parser.probabilistic_facts,
+            asp_program,
+            self.evidence,
+            [],
+            program_parser.abducibles,
+            self.verbose,
+            self.pedantic
+        )
 
         if self.evidence == "":
             lp, up = self.interface.sample_query()
@@ -101,10 +107,10 @@ class Pasta:
         asp_program = program_parser.get_asp_program()
 
         self.interface = AspInterface(
-            content_find_minimal_set, 
-            self.evidence, 
-            asp_program, 
             program_parser.probabilistic_facts,
+            asp_program, 
+            self.evidence, 
+            content_find_minimal_set, 
             program_parser.abducibles, 
             self.verbose, 
             self.pedantic

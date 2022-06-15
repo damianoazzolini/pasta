@@ -12,11 +12,11 @@ class AspInterface:
 	'''
 
 	def __init__(self, 
-		program_minimal_set : 'list[str]', 
-		evidence : str, 
-		asp_program : 'list[str]', 
 		probabilistic_facts : 'dict[str,float]', 
-		abducibles_list : 'list[str]', 
+		asp_program : 'list[str]', 
+		evidence : str = "", 
+		program_minimal_set : 'list[str]' = [], 
+		abducibles_list : 'list[str]' = [], 
 		verbose : bool = False, 
 		pedantic : bool = False, 
 		n_samples : int = 1000
