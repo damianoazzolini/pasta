@@ -164,6 +164,44 @@ class Pasta:
         return lp, up
 
 
+    def map_inference(self, from_string: str = "")  -> 'tuple[float,list[str]]':
+        '''
+        Maximum a posteriori (MAP) inference: find the state (world) 
+        with maximum probability where the evidence holds.
+        Most probable explanation (MPE) is MAP where no evidence is present
+        i.e., find the world with highest probability. 
+        '''
+        self.setup_interface(from_string)
+        # TODO: this is a quick test, all the facts
+        # are considered map. Add a list of index that
+        # indicates the indexes of the map facts in the list
+        # of all the probabilistic facts. Then, retrieve
+        # the state when only these are considered. In this way,
+        # i do not need another complex class
+        self.interface.compute_probabilities()
+
+        max_prob : float = 0.0
+        w_id : str = ""
+        for el in self.interface.model_handler.worlds_dict:
+            w = self.interface.model_handler.worlds_dict[el]
+            if w.prob > max_prob and w.model_query_count > 0 and w.model_not_query_count == 0:
+                max_prob = w.prob
+                w_id = el
+        
+        atoms_list = self.interface.model_handler.get_map_word_from_id(w_id)
+
+        return max_prob, atoms_list
+
+
+    @staticmethod
+    def print_map_state(prob : float, atoms_list : 'list[str]') -> None:
+        '''
+        Prints the MAP state
+        '''
+        print(f"MAP: {prob}")
+        print(atoms_list)
+
+
     @staticmethod
     def print_prob(lp : float, up : float) -> None:
         '''
@@ -232,6 +270,7 @@ if __name__ == "__main__":
     command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
     command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
+    command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
     
     args = command_parser.parse_args()
 
@@ -247,6 +286,9 @@ if __name__ == "__main__":
         Pasta.print_prob(lp, up)
     elif args.pl is True:
         pasta_solver.parameter_learning()
+    elif args.map is True:
+        max_p, atoms_list = pasta_solver.map_inference()
+        Pasta.print_map_state(max_p, atoms_list)
     else:
         lp, up = pasta_solver.inference()
         Pasta.print_prob(lp, up)

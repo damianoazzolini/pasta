@@ -364,6 +364,24 @@ class ModelsHandler():
         return obtained_abds
 
 
+    def get_map_word_from_id(self, id : str) -> 'list[str]':
+        '''
+        From a 01 string returns the atoms in the world with max probability
+        '''
+        obtained_atoms : 'list[str]' = []
+        id_list : 'list[int]' = [i for i in range(0,len(self.prob_facts_dict))]
+        
+        assert(len(id_list) == len(id))
+
+        for index, prob_fact in zip(id_list, self.prob_facts_dict.keys()):
+            if id[index] == '1':
+                obtained_atoms.append(prob_fact)
+            else:
+                obtained_atoms.append(f"not {prob_fact}")
+        
+        return obtained_atoms
+
+
     def compute_lower_upper_probability(self) -> 'tuple[float,float]':
         '''
         Computes lower and upper probability

@@ -1,29 +1,9 @@
 .vscode
 html/
 profilation.txt
-*.tmp
-a.py
-quick.py
-smoke_stress.lp
 
-bongard_stress.lp
-bg.lp
+src/pasta/tmp/
 
-examples_generator.py
-
-FIXME
-
-src/pasta/test.py 
-temp.pl
-
-atoms_extractor.pl
-prolog_test.pl
-
-src/pasta/prova.lp
-
-run.sh
-
-*.hidden
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
