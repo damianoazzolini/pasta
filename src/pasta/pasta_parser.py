@@ -348,7 +348,7 @@ class PastaParser:
             generate the file to pass to ASP to compute the minimal set
             of probabilistic facts to make the query true
         '''
-        if not self.evidence:
+        if self.evidence == "":
             prog = self.lines_prob + [":- not " + self.query + "."]
         else:
             prog = self.lines_prob + [":- not " + self.evidence + "."]

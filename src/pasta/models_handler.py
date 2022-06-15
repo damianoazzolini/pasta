@@ -229,7 +229,7 @@ class ModelsHandler():
                 id = id[:position] + str(true_or_false) + id[position + 1 :]
                 probability = probability * prob
 
-        if evidence == "" or evidence is None:
+        if evidence == "":
             # query without evidence
             return id, probability, model_query, False
         else:
@@ -287,7 +287,7 @@ class ModelsHandler():
         model_evidence = False -> ne in line
         '''
         if id in current_dict:
-            if self.evidence == "" or self.evidence is None:
+            if self.evidence == "":
                 if model_query is True:
                     current_dict[id].increment_model_query_count()
                 else:
@@ -302,7 +302,7 @@ class ModelsHandler():
         
         # element not found -> add a new world
         w = World(prob)
-        if self.evidence is None:
+        if self.evidence == "":
             if model_query == True:
                 w.increment_model_query_count()
             else:
@@ -371,7 +371,7 @@ class ModelsHandler():
         for w in self.worlds_dict:
             p = self.worlds_dict[w].prob
             
-            if self.evidence is None:
+            if self.evidence is "":
                 if self.worlds_dict[w].model_query_count != 0:
                     if self.worlds_dict[w].model_not_query_count == 0:
                         self.increment_lower_query_prob(p)
@@ -389,7 +389,7 @@ class ModelsHandler():
                         self.increment_lower_evidence_prob(p)
                     self.increment_upper_evidence_prob(p) 
 
-        if self.evidence is None:
+        if self.evidence is "":
             return self.lower_query_prob, self.upper_query_prob
         else:
             if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:

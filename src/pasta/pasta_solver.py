@@ -2,7 +2,6 @@ import sys
 
 import argparse
 
-# local
 # from pasta.pasta_parser import PastaParser
 from pasta_parser import PastaParser
 # import pasta_parser
@@ -19,6 +18,7 @@ examples_string_approximate_rej = "python3 pasta.py ../../examples/bird_4.lp --q
 examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
 
 pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
+
 
 class Pasta:
     def __init__(
@@ -39,25 +39,6 @@ class Pasta:
             self.verbose = True
         self.samples = samples
         self.interface : AspInterface
-
-
-    @staticmethod
-    def remove_trailing_zeros(n : float) -> str:
-        '''
-        Removes trailing zeroes from floating point numbers
-        Example: 0.25000 -> 0.25
-        '''
-        s = str('{:.8f}'.format(n))
-        s0 = s.split('.')[0]
-        s = s.split('.')[1]
-        i = len(s)
-        found = False
-        while (i > 0) and (found is False):
-            if int(s[i - 1]) != 0:
-                found = True
-            i = i - 1
-
-        return s0 + "." + s[:i+1]
 
 
     @staticmethod
@@ -88,7 +69,7 @@ class Pasta:
         self.interface = AspInterface([], self.evidence, asp_program, program_parser.probabilistic_facts, len(program_parser.abducibles), self.verbose, self.pedantic,self.samples,program_parser.probabilistic_facts)
 
 
-        if self.evidence is None:
+        if self.evidence == "":
             lp, up = self.interface.sample_query()
         else:
             if args.rejection is True:
@@ -234,7 +215,7 @@ if __name__ == "__main__":
         description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename",help="Program to analyse",type=str)
     command_parser.add_argument("-q","--query", help="Query", type=str)
-    command_parser.add_argument("-e","--evidence", help="Evidence", type=str)
+    command_parser.add_argument("-e","--evidence", help="Evidence", type=str, default="")
     command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
