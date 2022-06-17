@@ -156,9 +156,10 @@ class AspInterface:
 			# i = random.randint(0,len(id) - 1)
 			# while i == 1:
 			# 	i = random.randint(0,len(id) - 1)
-		return sorted(set([random.randint(0, len(id) - 1) for i in range(0, block)]))
+		return sorted(set([random.randint(0, len(id) - 1) for _ in range(0, block)]))
 
 	def resample(self, i : int) -> str:
+		key : str = ""
 		for k in self.prob_facts_dict:
 			key = k
 			i = i - 1
@@ -184,15 +185,16 @@ class AspInterface:
 
 		n_samples = self.n_samples
 
-		n_upper = 0
-		n_lower = 0
-
 		# step 0: build initial sample
 		id = self.sample_world()
 		t_count = id.count('T')
 		previous_sampled = t_count if t_count > 0 else 1
 
-		k = 0
+		k : int = 0
+		n_upper : int = 0
+		n_lower : int = 0
+		current_sampled : int = 0
+
 		while k < n_samples:
 			id = self.sample_world()
 
@@ -261,9 +263,12 @@ class AspInterface:
 
 		n_samples = self.n_samples
 
-		n_upper = 0
-		n_lower = 0
-		k = 0
+		n_upper : int = 0
+		n_lower : int = 0
+		k : int = 0
+		ev : bool = False
+		id : str = ""
+		idNew: str = ""
 
 		while k < n_samples:
 			# Step 0: sample evidence
@@ -307,9 +312,9 @@ class AspInterface:
 						if atm.is_external:
 							ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
 							i = i + 1
-					with ctl.solve(yield_=True) as handle:
-						for m in handle:
-							m1 = str(m).split(' ')
+					with ctl.solve(yield_=True) as handle:  # type: ignore
+						for m in handle:  # type: ignore
+							m1 = str(m).split(' ')  # type: ignore
 							if 'e' in m1:
 								ev = True
 								break
@@ -363,9 +368,9 @@ class AspInterface:
 
 		n_samples = self.n_samples
 
-		n_upper = 0
-		n_lower = 0
-		k = 0
+		n_upper : int = 0
+		n_lower : int = 0
+		k : int = 0
 
 		while k < n_samples:
 			ev_sampled = False
@@ -426,12 +431,12 @@ class AspInterface:
 		# n_bool_vars = self.n_prob_facts
 		n_samples = self.n_samples
 
-		n_upper = 0
-		n_lower = 0
-		k = 0
+		n_upper : int = 0
+		n_lower : int = 0
+		k : int = 0
 
-		if bound is True:
-			import math
+		# if bound is True:
+		# 	import math
 
 		while k < n_samples:
 			id = self.sample_world()
@@ -468,13 +473,13 @@ class AspInterface:
 						sampled[id] = [1, 1]
 			k = k + 1
 			
-			if bound is True:
-				p = n_lower / k
-				# condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) >= 0.02
-				condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
-				if condition and n_lower > 5 and k - n_lower > 5 and k % 101 == 0:
-					a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
-					break
+			# if bound is True:
+			# 	p = n_lower / k
+			# 	# condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) >= 0.02
+			# 	condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02  
+			# 	if condition and n_lower > 5 and k - n_lower > 5 and k % 101 == 0:
+			# 		a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
+			# 		break
 		
 		return n_lower/k, n_upper/k
 
@@ -549,9 +554,9 @@ class AspInterface:
 
 			if self.n_prob_facts == 0:
 				# currently computed: list of computed models
-				for i in range(0,len(currently_computed)):
-					currently_computed[i] = currently_computed[i].split(' ')
-					self.abductive_explanations.append(currently_computed[i])
+				for i in range(0, len(currently_computed)):
+					currently_computed[i] = currently_computed[i].split(' ')  # type: ignore
+					self.abductive_explanations.append(currently_computed[i])  # type: ignore
 				
 				self.computed_models = self.computed_models + len(currently_computed)
 

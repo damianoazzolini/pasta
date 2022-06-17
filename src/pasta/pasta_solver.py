@@ -86,7 +86,7 @@ class Pasta:
             else:
                 lp = 0
                 up = 0
-                print_error_and_exit("Sampling method found")
+                print_error_and_exit("Specify a sampling method: Gibbs, MH, or Rejection.")
                 
         return lp, up
 
@@ -274,8 +274,6 @@ if __name__ == "__main__":
     args = command_parser.parse_args()
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples)
-
-    args.approximate = False
 
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()
