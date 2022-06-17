@@ -28,6 +28,32 @@ docker container run -it pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
 
+You can also install the package via `pip`.
+Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
+```
+python3 -m pip install git+https://github.com/damianoazzolini/pasta
+```
+Then you can use it as:
+```
+from pasta import pasta_solver
+solver = pasta_solver.Pasta(filename, query)
+lp, up = pasp_solver.inference()
+
+print("Lower probability for the query " + query + ": " + str(lp))
+print("Upper probability for the query " + query + ": " + str(up))
+```
+where `filename` and `query` are the name of the file and the query to ask.
+
+You can also pass the file as a string, in this way:
+```
+from pasta import pasta_solver
+solver = pasta_solver.Pasta("", query) # leave the filename empty
+lp, up = pasp_solver.inference(file_as_string)
+```
+where `file_as_string` is a string containing your program.
+
+
+
 ## Usage
 
 ### Exact inference
