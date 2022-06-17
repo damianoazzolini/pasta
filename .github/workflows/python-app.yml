@@ -32,13 +32,13 @@ jobs:
         pip install clingo
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
-    - name: Lint with flake8
-      run: |
-        flake8 . --show-source --statistics --max-line-length=127
+    # - name: Lint with flake8
+    #   run: |
+    #     flake8 . --show-source --statistics --max-line-length=127
     
-    - name: Lint with pylint
-      run: |
-        pylint src/pasta --disable=W0311 # disable Bad indentation
+    # - name: Lint with pylint
+    #   run: |
+    #     pylint src/pasta --disable=W0311 # disable Bad indentation
     
     - name: Test with pytest
       run: |
