@@ -1,18 +1,16 @@
-from typing import Generator
 import unittest
 
 import importlib.util
 
 import sys
-from unittest import result
 sys.path.append("../src/pasta/")
 
 spec = importlib.util.spec_from_file_location("pasta", "../src/pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(past)
+past = importlib.util.module_from_spec(spec)  # type: ignore
+spec.loader.exec_module(past)  # type: ignore
 
 
-class TestBird(unittest.TestCase):
+class TestClass(unittest.TestCase):
     @staticmethod
     def almostEqual(a : float, b : float, digits : int) -> bool:
         epsilon = 10 ** -digits
@@ -21,21 +19,34 @@ class TestBird(unittest.TestCase):
         else:
             return abs(a/b - 1) < epsilon
 
-    def wrap_test_exact_inference(self, filename, query, evidence, test_name, expected_lp, expected_up, expected_abd = None):
+    def wrap_test_exact_inference(self, 
+        filename : str, 
+        query : str, 
+        evidence : str, 
+        test_name : str, 
+        expected_lp : float, 
+        expected_up : float, 
+        expected_abd : 'list[str]' = []):
         if evidence is None:
             evidence = ""
         pasta_solver = past.Pasta(filename, query, evidence, 3, False, False)
         lp, up = pasta_solver.inference()
 
-        if expected_lp is not None and expected_up is not None:
-            self.assertTrue(self.almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability")
-            self.assertTrue(self.almostEqual(up,expected_up,5), test_name + ": wrong upper probability")
+        self.assertTrue(self.almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability")
+        self.assertTrue(self.almostEqual(up,expected_up,5), test_name + ": wrong upper probability")
             # self.assertEqual(float(lp), expected_lp, test_name + ": wrong lower probability")
             # self.assertEqual(float(up), expected_up, test_name + ": wrong upper probability")
         # if expected_abd is not None:
         #     self.assertCountEqual(abd, expected_abd, test_name + ": wrong abductive explanation")
 
-    def wrap_test_abduction(self, filename, query, evidence, test_name, expected_lp, expected_up, expected_abd=None):
+    def wrap_test_abduction(self, 
+        filename : str, 
+        query : str, 
+        evidence  : str, 
+        test_name  : str, 
+        expected_lp : float, 
+        expected_up : float, 
+        expected_abd : 'list [str]'):
         pasta_solver = past.Pasta(filename, query, evidence, 3, False, False)
         lp, up, _ = pasta_solver.abduction()
 
@@ -52,24 +63,24 @@ class TestBird(unittest.TestCase):
 
 
     def test_queries(self):
-        self.wrap_test_exact_inference("../examples/inference/bird_2_2.lp","fly_1", None, "bird_2_2_fly_1",0.6, 0.7)
-        self.wrap_test_exact_inference("../examples/inference/bird_4.lp","fly(1)", None, "bird_4_fly_1", 0.25, 0.5)
-        self.wrap_test_exact_inference("../examples/inference/bird_4_different.lp", "fly(1)", None, "bird_4_different_fly_1", 0.102222, 0.11)
-        self.wrap_test_exact_inference("../examples/inference/bird_4.lp","nofly(1)", None, "bird_4_nofly_1", 0.0, 0.25)
-        self.wrap_test_exact_inference("../examples/inference/bird_10.lp","fly(1)", None, "bird_10_fly_1", 0.126953, 0.5)
-        self.wrap_test_exact_inference("../examples/inference/bird_10.lp","nofly(1)", None, "bird_10_nofly_1", 0.0, 0.373046)
-        self.wrap_test_exact_inference("../examples/inference/path.lp","path(1,4)", None, "path_path_1_4", 0.266816, 0.266816)
-        self.wrap_test_exact_inference("../examples/inference/viral_marketing_5.lp", "buy(5)", None, "viral_marketing_5_buy_5", 0.2734, 0.29)
+        self.wrap_test_exact_inference("../examples/inference/bird_2_2.lp","fly_1", "", "bird_2_2_fly_1",0.6, 0.7)
+        self.wrap_test_exact_inference("../examples/inference/bird_4.lp","fly(1)", "", "bird_4_fly_1", 0.25, 0.5)
+        self.wrap_test_exact_inference("../examples/inference/bird_4_different.lp", "fly(1)", "", "bird_4_different_fly_1", 0.102222, 0.11)
+        self.wrap_test_exact_inference("../examples/inference/bird_4.lp","nofly(1)", "", "bird_4_nofly_1", 0.0, 0.25)
+        self.wrap_test_exact_inference("../examples/inference/bird_10.lp","fly(1)", "", "bird_10_fly_1", 0.126953, 0.5)
+        self.wrap_test_exact_inference("../examples/inference/bird_10.lp","nofly(1)", "", "bird_10_nofly_1", 0.0, 0.373046)
+        self.wrap_test_exact_inference("../examples/inference/path.lp","path(1,4)", "", "path_path_1_4", 0.266816, 0.266816)
+        self.wrap_test_exact_inference("../examples/inference/viral_marketing_5.lp", "buy(5)", "", "viral_marketing_5_buy_5", 0.2734, 0.29)
         self.wrap_test_exact_inference("../examples/inference/bird_4_different.lp", "fly(1)","fly(2)", "bird_4_different_q_fly_1_e_fly_2", 0.073953, 0.113255)
         # self.wrap_test_exact_inference("../examples/inference/sick.lp", "sick", None, "sick_sick", 0.199, 0.2384)
-        self.wrap_test_exact_inference("../examples/inference/disjunction.lp", "f", None, "disjunction", 0.6, 0.8)
-        self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", None, "certain_fact", 1, 1)
+        self.wrap_test_exact_inference("../examples/inference/disjunction.lp", "f", "", "disjunction", 0.6, 0.8)
+        self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact", 1, 1)
         self.wrap_test_exact_inference("../examples/inference/evidence_certain.lp", "qr", "ev", "evidence_certain", 1, 1)
 
     def test_conditionals(self):
-        self.wrap_test_exact_inference("../examples/conditionals/bird_4_cond.lp", "fly", None, "bird_4_cond_q_fly_1", 0.7, 1.0)
+        self.wrap_test_exact_inference("../examples/conditionals/bird_4_cond.lp", "fly", "", "bird_4_cond_q_fly_1", 0.7, 1.0)
         self.wrap_test_exact_inference(
-            "../examples/conditionals/smokers.lp", "smk", None, "bird_4_cond_q_fly_1", 0.7, 0.70627)
+            "../examples/conditionals/smokers.lp", "smk", "", "bird_4_cond_q_fly_1", 0.7, 0.70627)
 
     # def test_deterministic_abduction(self):
     #     self.wrap_test_abduction("../examples/abduction/ex_1_det.lp", "query", None, "ex_1_det", 1, 1, [['abd_a', 'abd_b', 'q']])

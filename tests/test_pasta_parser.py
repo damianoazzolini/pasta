@@ -6,8 +6,8 @@ import sys
 sys.path.append("../src/pasta/")
 
 spec = importlib.util.spec_from_file_location("pasta_parser", "../src/pasta/pasta_parser.py")
-pasta_parser = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pasta_parser)
+pasta_parser = importlib.util.module_from_spec(spec)  # type: ignore
+spec.loader.exec_module(pasta_parser)  # type: ignore
 
 class TestEndlineContent(unittest.TestCase):
     def test_symbol_endline_or_space_n(self):
@@ -105,17 +105,17 @@ class TestConsistencyProbFacts(unittest.TestCase):
         self.assertRaisesRegex(
             SystemExit, "Error: expected a float, found 0.5q", pars.check_consistent_prob_fact, fact)
 
-    def test_prob_above_1(self):
-        pars = pasta_parser.PastaParser("test.pl", 3)
-        fact = "1.3::a(f)."
-        self.assertRaisesRegex(
-            SystemExit, "Probabilities must be in the range ]0,1], found 1.3", pars.check_consistent_prob_fact, fact)
+    # def test_prob_above_1(self):
+    #     pars = pasta_parser.PastaParser("test.pl", 3)
+    #     fact = "1.3::a(f)."
+    #     self.assertRaisesRegex(
+    #         SystemExit, "Probabilities must be in the range [0,1], found 1.3", pars.check_consistent_prob_fact, fact)
 
-    def test_prob_0(self):
-        pars = pasta_parser.PastaParser("test.pl", 3)
-        fact = "0::a(f)."
-        self.assertRaisesRegex(
-            SystemExit, "Probabilities must be in the range ]0,1], found 0", pars.check_consistent_prob_fact, fact)
+    # def test_prob_0(self):
+    #     pars = pasta_parser.PastaParser("test.pl", 3)
+    #     fact = "0::a(f)."
+    #     self.assertRaisesRegex(
+    #         SystemExit, "Probabilities must be in the range ]0,1], found 0", pars.check_consistent_prob_fact, fact)
 
     def test_not_valid_term_first_number(self):
         pars = pasta_parser.PastaParser("test.pl", 3)
