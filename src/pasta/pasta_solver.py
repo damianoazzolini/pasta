@@ -22,12 +22,12 @@ pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical
 
 class Pasta:
     def __init__(
-        self, 
-        filename : str, 
-        query : str, 
-        evidence : str = "", 
-        verbose : bool = False, 
-        pedantic : bool = False, 
+        self,
+        filename : str,
+        query : str,
+        evidence : str = "",
+        verbose : bool = False,
+        pedantic : bool = False,
         samples : int = 1000
         ) -> None:
         self.filename = filename
@@ -40,13 +40,12 @@ class Pasta:
         self.samples = samples
         self.interface : AspInterface
 
-
     @staticmethod
     def check_lp_up(lp : float, up : float) -> None:
         '''
         Checks whether lp =< up
         '''
-        if (lp > up) or (int(lp*10e8) > 10e8) or (int(up*10e8) > 10e8):
+        if (lp > up) or (int(lp * 10e8) > 10e8) or (int(up * 10e8) > 10e8):
             print("Error in computing probabilities")
             print("Lower: " + '{:.8f}'.format(lp))
             print("Upper: " + '{:.8f}'.format(up))
@@ -108,11 +107,11 @@ class Pasta:
 
         self.interface = AspInterface(
             program_parser.probabilistic_facts,
-            asp_program, 
-            self.evidence, 
-            content_find_minimal_set, 
-            program_parser.abducibles, 
-            self.verbose, 
+            asp_program,
+            self.evidence,
+            content_find_minimal_set,
+            program_parser.abducibles,
+            self.verbose,
             self.pedantic
         )
 
@@ -133,7 +132,7 @@ class Pasta:
             for e in content_find_minimal_set:
                 print(e)
             print("---")
-        
+
 
     def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
         '''
@@ -144,11 +143,11 @@ class Pasta:
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
 
-        self.check_lp_up(lp,up)
+        self.check_lp_up(lp, up)
 
         return lp, up, self.interface.abductive_explanations
-    
-    
+
+
     def inference(self, from_string : str = "") -> 'tuple[float,float]':
         '''
         Exact inference
@@ -159,7 +158,7 @@ class Pasta:
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
 
-        self.check_lp_up(lp,up)
+        self.check_lp_up(lp, up)
 
         return lp, up
 
@@ -169,7 +168,7 @@ class Pasta:
         Maximum a posteriori (MAP) inference: find the state (world) 
         with maximum probability where the evidence holds.
         Most probable explanation (MPE) is MAP where no evidence is present
-        i.e., find the world with highest probability. 
+        i.e., find the world with highest probability.
         '''
         self.setup_interface(from_string)
         # TODO: this is a quick test, all the facts
@@ -216,7 +215,7 @@ class Pasta:
 
     @staticmethod
     def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
-        ls : list[set[str]] = [] 
+        ls : list[set[str]] = []
         for exp in abd_exp:
             e : set[str] = set()
             for el in exp:
@@ -227,8 +226,8 @@ class Pasta:
                         e.add(el)
             ls.append(e)
 
-        for i in range(0,len(ls)):
-            for j in range(i+1,len(ls)):
+        for i in range(0, len(ls)):
+            for j in range(i + 1, len(ls)):
                 if len(ls[i]) > 0:
                     if ls[i].issubset(ls[j]):
                         ls[j] = set()  # type: ignore
@@ -241,7 +240,7 @@ class Pasta:
         abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
         # abd_exp_no_dup = abd_exp
         if len(abd_exp_no_dup) > 0 and up != 0:
-            Pasta.print_prob(lp,up)
+            Pasta.print_prob(lp, up)
         
         n_exp = sum(1 for ex in abd_exp_no_dup if len(ex) > 0)
         print(f"Abductive explanations: {n_exp}")
@@ -257,10 +256,10 @@ class Pasta:
 if __name__ == "__main__":
     command_parser = argparse.ArgumentParser(
         description=pasta_description, epilog=examples_strings)
-    command_parser.add_argument("filename",help="Program to analyse",type=str)
-    command_parser.add_argument("-q","--query", help="Query", type=str)
-    command_parser.add_argument("-e","--evidence", help="Evidence", type=str, default="")
-    command_parser.add_argument("-v","--verbose", help="Verbose mode, default: false", action="store_true")
+    command_parser.add_argument("filename", help="Program to analyse", type=str)
+    command_parser.add_argument("-q", "--query", help="Query", type=str)
+    command_parser.add_argument("-e", "--evidence", help="Evidence", type=str, default="")
+    command_parser.add_argument("-v", "--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
     command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
@@ -271,11 +270,11 @@ if __name__ == "__main__":
     command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
-    
+
     args = command_parser.parse_args()
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples)
-    
+
     args.approximate = False
 
     if args.abduction is True:
