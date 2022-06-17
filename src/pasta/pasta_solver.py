@@ -39,6 +39,7 @@ class Pasta:
             self.verbose = True
         self.samples = samples
         self.interface : AspInterface
+        self.parser : PastaParser
 
     @staticmethod
     def check_lp_up(lp : float, up : float) -> None:
@@ -60,16 +61,16 @@ class Pasta:
         '''
         Inference through sampling
         '''
-        program_parser = PastaParser(self.filename, self.query, self.evidence)
-        program_parser.parse_approx(from_string)
-        asp_program = program_parser.get_asp_program()
+        self.parser = PastaParser(self.filename, self.query, self.evidence)
+        self.parser.parse_approx(from_string)
+        asp_program = self.parser.get_asp_program()
 
         self.interface = AspInterface(
-            program_parser.probabilistic_facts,
+            self.parser.probabilistic_facts,
             asp_program,
             self.evidence,
             [],
-            program_parser.abducibles,
+            self.parser.abducibles,
             self.verbose,
             self.pedantic
         )
@@ -95,22 +96,22 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        program_parser = PastaParser(
+        self.parser = PastaParser(
             self.filename, self.query, self.evidence)
-        program_parser.parse(from_string)
+        self.parser.parse(from_string)
 
         if self.verbose:
             print("Parsed program")
 
-        content_find_minimal_set = program_parser.get_content_to_compute_minimal_set_facts()
-        asp_program = program_parser.get_asp_program()
+        content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
+        asp_program = self.parser.get_asp_program()
 
         self.interface = AspInterface(
-            program_parser.probabilistic_facts,
+            self.parser.probabilistic_facts,
             asp_program,
             self.evidence,
             content_find_minimal_set,
-            program_parser.abducibles,
+            self.parser.abducibles,
             self.verbose,
             self.pedantic
         )
@@ -179,7 +180,12 @@ class Pasta:
         # i do not need another complex class
         self.interface.compute_probabilities()
 
+        print(self.parser.map_id_list)
+        # TODO: devo calcolare MAP solamente per questi fatti
+        # tra tutti i mondi, devi raggruppare per sotto-mondi 
+        # con raggruppamento per gli elementi di questa lista
         max_prob : float = 0.0
+
         w_id : str = ""
         for el in self.interface.model_handler.worlds_dict:
             w = self.interface.model_handler.worlds_dict[el]

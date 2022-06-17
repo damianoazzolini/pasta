@@ -36,6 +36,7 @@ class PastaParser:
         self.abducibles : list[str] = []
         self.n_probabilistic_ics : int = 0
         self.body_probabilistic_ics : list[str] = []
+        self.map_id_list : list[int] = []
 
 
     @staticmethod
@@ -188,14 +189,21 @@ class PastaParser:
                         el = el.replace(' ', '')
                         l1 = l1 + el + " not "
                     l1 = l1[:-4]  # remove last not
-                elif l0.startswith('abducible'):
+                elif l0.startswith('abducible'):  # abducible facts
                     l0 = l0.split('abducible')
-                    for i in range(1,len(l0)):
+                    for i in range(1, len(l0)):
                         l0[i] = l0[i].replace(' ', '')
                     l1 = "abducible"
-                    for i in range(1,len(l0)):
-                        l1 = l1 + ' ' + l0[i] # TODO: check this, i is unbound
+                    for i in range(1, len(l0)):
+                        l1 = l1 + ' ' + l0[i]
                     # print(l1)
+                elif l0.startswith('map'):
+                    l0 = l0.split('map')
+                    for i in range(1, len(l0)):
+                        l0[i] = l0[i].replace(' ', '')
+                    l1 = "map"
+                    for i in range(1, len(l0)):
+                        l1 = l1 + ' ' + l0[i]
                 else:
                     l1 = l0.replace(' ','')
 
@@ -233,7 +241,7 @@ class PastaParser:
         gen = Generator()
         for line in self.lines_original:
             self.check_reserved(line)
-            if "::" in line and not line.startswith('%'):
+            if "::" in line and not line.startswith('%') and not line.startswith("map"):
                 if ':-' in line:
                     print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
@@ -272,6 +280,13 @@ class PastaParser:
                 # self.lines_prob.append(clauses)
                 # self.abducibles.append(abducible)
                 self.abducibles.append(abducible)
+            elif line.startswith("map"):
+                self.map_id_list.append(len(self.probabilistic_facts))
+                # add the MAP fact as probabilistic
+                fact = line.split('map')[1]
+                print(line)
+                probability, fact = self.check_consistent_prob_fact(fact)
+                self.add_probabilistic_fact(fact,probability)
             elif self.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")

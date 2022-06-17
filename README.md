@@ -21,7 +21,7 @@ python3 pasta_solver.py --help
 
 See below for some example programs.
 
-You can also use Docker to test the application:
+You can also use Docker ([image on Dockerhub](https://hub.docker.com/repository/docker/damianodamianodamiano/pasta)) to test the application:
 ```
 docker pull damianodamianodamiano/pasta
 docker container run -it pasta bash
