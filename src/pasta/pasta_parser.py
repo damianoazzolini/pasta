@@ -36,7 +36,7 @@ class PastaParser:
         self.abducibles : list[str] = []
         self.n_probabilistic_ics : int = 0
         self.body_probabilistic_ics : list[str] = []
-        self.map_id_list : list[tuple[str,int]] = []
+        self.map_id_list : list[int] = []
 
 
     @staticmethod
@@ -285,7 +285,7 @@ class PastaParser:
                 fact = line.split('map')[1]
                 print(line)
                 probability, fact = self.check_consistent_prob_fact(fact)
-                self.map_id_list.append((fact, len(self.probabilistic_facts)))
+                self.map_id_list.append(len(self.probabilistic_facts))
                 self.add_probabilistic_fact(fact,probability)
             elif self.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.

@@ -642,66 +642,66 @@ def learn_parameters(
     # test_results(test_set, prob_facts_dict, program)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # program = "background_example_bongard_dummy.lp"
-    # program = "../../examples/learning/background_bayesian_network.lp"
-    # program = "../../examples/learning/background_shop.lp"
-    # program = "../../examples/learning/background_smoke.lp"
-    # program = "bongard_stress.lp"
-    # program = "smoke_stress.lp"
-    program = "shop_4.lp"
-    # program = "../../examples/learning/background_smoke_2.lp"
+#     # program = "background_example_bongard_dummy.lp"
+#     # program = "../../examples/learning/background_bayesian_network.lp"
+#     # program = "../../examples/learning/background_shop.lp"
+#     # program = "../../examples/learning/background_smoke.lp"
+#     # program = "bongard_stress.lp"
+#     # program = "smoke_stress.lp"
+#     program = "shop_4.lp"
+#     # program = "../../examples/learning/background_smoke_2.lp"
 
-    training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
-    upper = False
-    verbose = False
-    start_time = time.time()
-    interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
-    end_time = time.time() - start_time
+#     training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
+#     upper = False
+#     verbose = False
+#     start_time = time.time()
+#     interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
+#     end_time = time.time() - start_time
 
-    print(f"Elapsed time: {end_time}")
+#     print(f"Elapsed time: {end_time}")
 
-    test_results(test_set,interpretations_to_worlds,prob_facts_dict,program)
+#     test_results(test_set,interpretations_to_worlds,prob_facts_dict,program)
 
-    # import sys
-    # sys.exit()
+#     # import sys
+#     # sys.exit()
 
-    # facts_prob : 'dict[str,float]' = {}
+#     # facts_prob : 'dict[str,float]' = {}
 
 
 
-    # FLY
-    # examples = examples_fly
-    # pos_neg = pos_neg_fly
-    # program = prg_fly
+#     # FLY
+#     # examples = examples_fly
+#     # pos_neg = pos_neg_fly
+#     # program = prg_fly
 
-    # facts_prob['bird(1)'] = 0.5
-    # facts_prob['bird(2)'] = 0.5
-    # facts_prob['bird(3)'] = 0.5
-    # facts_prob['bird(4)'] = 0.5
-    # target_predicate = "fly(1)"
+#     # facts_prob['bird(1)'] = 0.5
+#     # facts_prob['bird(2)'] = 0.5
+#     # facts_prob['bird(3)'] = 0.5
+#     # facts_prob['bird(4)'] = 0.5
+#     # target_predicate = "fly(1)"
 
-    # BONGARD
-    # examples = examples_bongard
-    # pos_neg = pos_neg_bongard
-    # program = prg_bongard
+#     # BONGARD
+#     # examples = examples_bongard
+#     # pos_neg = pos_neg_bongard
+#     # program = prg_bongard
 
-    # facts_prob['posa'] = 0.1
-    # facts_prob['posb'] = 0.1
-    # target_predicate = "pos"
+#     # facts_prob['posa'] = 0.1
+#     # facts_prob['posb'] = 0.1
+#     # target_predicate = "pos"
 
-    # SMOKES
-    # examples = examples_smokes
-    # pos_neg = pos_neg_smokes
-    # program = prg_smokes
-    # target_predicate = target_predicate_smokes
+#     # SMOKES
+#     # examples = examples_smokes
+#     # pos_neg = pos_neg_smokes
+#     # program = prg_smokes
+#     # target_predicate = target_predicate_smokes
 
-    # facts_prob["friend(a,b)"] = 0.5
-    # facts_prob["friend(b,c)"] = 0.5
-    # facts_prob["friend(c,e)"] = 0.5
-    # facts_prob["friend(b,d)"] = 0.5
-    # facts_prob["friend(d,e)"] = 0.5
+#     # facts_prob["friend(a,b)"] = 0.5
+#     # facts_prob["friend(b,c)"] = 0.5
+#     # facts_prob["friend(c,e)"] = 0.5
+#     # facts_prob["friend(b,d)"] = 0.5
+#     # facts_prob["friend(d,e)"] = 0.5
 
-    # DUMMY
+#     # DUMMY
 
