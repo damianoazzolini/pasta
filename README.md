@@ -55,6 +55,12 @@ where `file_as_string` is a string containing your program.
 You can find more information about the API documentation in the `html/pasta` folder.
 
 ## Usage
+Use
+```
+cd src/pasta
+python3 pasta_solver.py --help
+```
+to see the various available options.
 
 ### Exact inference
 ```
@@ -67,11 +73,25 @@ Expected result:
 Lower probability for the query: 0.7
 Upper probability for the query: 1.0
 ```
+You can specify evidence with `--evidence`.
 
 ### Abduction
 ```
 cd src/pasta
-python3 pasta_solver.py ./../examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
+python3 pasta_solver.py ../../examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
+```
+
+### MAP/MPE inference
+```
+cd src/pasta
+python3 pasta_solver.py ./../examples/map/color_map.lp --query="win" --map
+```
+
+### Approximate inference
+Available: sampling, gibbs sampling, metropolis hastings sampling, rejection sampling.
+```
+cd src/pasta
+python3 pasta_solver.py ../../examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 
 ## Syntax
@@ -80,6 +100,14 @@ Probabilistic facts can be added with the syntax: `prob::atom.` where `prob` is 
 For example, `0.5::a.` states that `a` has probability `0.5`.
 
 For more examples, see the `examples` folder.
+
+For exact inference, you can also express statistical statements (x% of the y elements share the same behavior) with the syntax: `(A | B)[LP,UP].`
+For example, "60% of the birds fly" can be expressed with
+```
+(fly(X) | bird(X))[0.6,1].
+```
+See `examples/conditionals/bird_4_cond.lp` for an example.
+
 
 ## Description and How to Cite
 The papers describing this system will be soon available.
