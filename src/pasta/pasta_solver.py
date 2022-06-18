@@ -172,38 +172,17 @@ class Pasta:
         i.e., find the world with highest probability.
         '''
         self.setup_interface(from_string)
-        # TODO: this is a quick test, all the facts
-        # are considered map. Add a list of index that
-        # indicates the indexes of the map facts in the list
-        # of all the probabilistic facts. Then, retrieve
-        # the state when only these are considered. In this way,
-        # i do not need another complex class
         self.interface.compute_probabilities()
-
-        print(self.parser.map_id_list)
-        # TODO: devo calcolare MAP solamente per questi fatti
-        # tra tutti i mondi, devi raggruppare per sotto-mondi 
-        # con raggruppamento per gli elementi di questa lista
-        max_prob : float = 0.0
-
-        w_id : str = ""
-        for el in self.interface.model_handler.worlds_dict:
-            w = self.interface.model_handler.worlds_dict[el]
-            if w.prob > max_prob and w.model_query_count > 0 and w.model_not_query_count == 0:
-                max_prob = w.prob
-                w_id = el
-        
-        atoms_list = self.interface.model_handler.get_map_word_from_id(w_id)
-
-        return max_prob, atoms_list
+        return self.interface.model_handler.get_map_solution(self.parser.map_id_list)
 
 
     @staticmethod
-    def print_map_state(prob : float, atoms_list : 'list[str]') -> None:
+    def print_map_state(prob : float, atoms_list : 'list[str]', n_map_vars : int) -> None:
         '''
-        Prints the MAP state
+        Prints the MAP/MPE state
         '''
-        print(f"MAP: {prob}")
+        map_or_mpe = "MAP" if len(atoms_list) == n_map_vars else "MPE"
+        print(f"{map_or_mpe}: {prob}")
         print(atoms_list)
 
 
@@ -291,7 +270,7 @@ if __name__ == "__main__":
         pasta_solver.parameter_learning()
     elif args.map is True:
         max_p, atoms_list = pasta_solver.map_inference()
-        Pasta.print_map_state(max_p, atoms_list)
+        Pasta.print_map_state(max_p, atoms_list, len(pasta_solver.interface.prob_facts_dict))
     else:
         lp, up = pasta_solver.inference()
         Pasta.print_prob(lp, up)

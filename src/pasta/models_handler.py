@@ -364,21 +364,32 @@ class ModelsHandler():
         return obtained_abds
 
 
-    def get_map_word_from_id(self, id : str) -> 'list[str]':
+    def get_map_word_from_id(
+        self,
+        id : str,
+        map : bool,
+        map_id_list: 'list[int]'
+        ) -> 'list[str]':
         '''
-        From a 01 string returns the atoms in the world with max probability
+        From a 01 string returns the atoms in the world
         '''
         obtained_atoms : 'list[str]' = []
-        id_list : 'list[int]' = [i for i in range(0,len(self.prob_facts_dict))]
-        
-        assert(len(id_list) == len(id))
-
-        for index, prob_fact in zip(id_list, self.prob_facts_dict.keys()):
-            if id[index] == '1':
-                obtained_atoms.append(prob_fact)
-            else:
-                obtained_atoms.append(f"not {prob_fact}")
-        
+        ids_list : 'list[int]' = []
+        keys = list(self.prob_facts_dict.keys())
+        if map:
+            ids_list = [i for i in range(0,len(self.prob_facts_dict))]
+            for index, prob_fact in zip(ids_list, keys):
+                if id[index] == '1':
+                    obtained_atoms.append(prob_fact)
+                else:
+                    obtained_atoms.append(f"not {prob_fact}")
+        else:
+            for i in range(0, len(map_id_list)):
+                if id[i] == '1':
+                    obtained_atoms.append(keys[map_id_list[i]])
+                else:
+                    obtained_atoms.append(f"not {keys[map_id_list[i]]}")
+                
         return obtained_atoms
 
 
@@ -424,6 +435,80 @@ class ModelsHandler():
                 else:
                     uqp = 0
                 return lqp, uqp 
+
+    
+    def get_sub_world(self, super_w : str, map_id_list : 'list[int]') -> str:
+        '''
+        Extracts a string from super_w representing a sub world.
+        Example:
+        super_w = 0101
+        map_id_list = [0,2]
+        result = 00 (extracts the values in position 0 and 2 of super_w)
+        '''
+        sub_w : str = ""
+        for el in map_id_list:
+            sub_w = sub_w + super_w[el]
+
+        return sub_w
+
+
+    def get_highest_prob_and_w_id_map(
+        self,
+        current_worlds_dict : 'dict[str,World]',
+        map_id_list: 'list[int]',
+        lower : bool = True,
+        ) -> 'tuple[float,list[str]]':
+        '''
+        Get the world with the highest associated probability
+        '''
+        max_prob: float = 0.0
+        w_id: str = ""
+        for el in current_worlds_dict:
+            w = current_worlds_dict[el]
+            if w.prob > max_prob and w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
+                max_prob = w.prob
+                w_id = el
+
+        map = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
+
+        return max_prob, self.get_map_word_from_id(w_id, map, map_id_list)
+
+
+    def get_map_solution(
+        self,
+        map_id_list : 'list[int]',
+        lower : bool = True
+        ) -> 'tuple[float,list[str]]':
+        '''
+        Analyzes the worlds obtained by the inference procedure and group
+        them by map queries
+        '''
+        if len(self.prob_facts_dict) == len(map_id_list):  # MPE: only map variables
+            max_prob, atoms_list = self.get_highest_prob_and_w_id_map(self.worlds_dict, map_id_list, lower)
+        else:
+            # group by map variables
+            map_worlds : dict[str,World] = {}
+            for el in self.worlds_dict:
+                w = self.worlds_dict[el]
+                if w.model_query_count > 0:
+                    # keep both lower and upper
+                    sub_w = self.get_sub_world(el, map_id_list)
+                    if sub_w in map_worlds:
+                        map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
+                        map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
+                        map_worlds[sub_w].prob = map_worlds[sub_w].prob + w.prob  # add the probability 
+                    else:
+                        map_worlds[sub_w] = World(w.prob)
+                        map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
+                        map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
+
+            # get the sub-world with maximum probability
+            print(map_id_list)
+            print(map_worlds)
+
+            max_prob, atoms_list = self.get_highest_prob_and_w_id_map(map_worlds, map_id_list, lower)
+
+        return max_prob, atoms_list
 
 
     def __repr__(self) -> str:
