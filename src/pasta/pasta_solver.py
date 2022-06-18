@@ -181,19 +181,23 @@ class Pasta:
         self.interface.compute_probabilities()
 
         print(self.parser.map_id_list)
-        # TODO: devo calcolare MAP solamente per questi fatti
-        # tra tutti i mondi, devi raggruppare per sotto-mondi 
-        # con raggruppamento per gli elementi di questa lista
-        max_prob : float = 0.0
 
-        w_id : str = ""
-        for el in self.interface.model_handler.worlds_dict:
-            w = self.interface.model_handler.worlds_dict[el]
-            if w.prob > max_prob and w.model_query_count > 0 and w.model_not_query_count == 0:
-                max_prob = w.prob
-                w_id = el
-        
-        atoms_list = self.interface.model_handler.get_map_word_from_id(w_id)
+        if len(self.interface.prob_facts_dict) == len(self.parser.map_id_list):  # MPE, all map variables
+            max_prob : float = 0.0
+
+            w_id : str = ""
+            for el in self.interface.model_handler.worlds_dict:
+                w = self.interface.model_handler.worlds_dict[el]
+                if w.prob > max_prob and w.model_query_count > 0 and w.model_not_query_count == 0:
+                    max_prob = w.prob
+                    w_id = el
+            
+            atoms_list = self.interface.model_handler.get_map_word_from_id(w_id)
+        else:
+            # TODO: devo calcolare MAP solamente per questi fatti
+            # tra tutti i mondi, devi raggruppare per sotto-mondi 
+            # con raggruppamento per gli elementi di questa lista
+            pass
 
         return max_prob, atoms_list
 
