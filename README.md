@@ -52,7 +52,7 @@ lp, up = pasp_solver.inference(file_as_string)
 ```
 where `file_as_string` is a string containing your program.
 
-
+You can find more information about the API documentation in the `html/pasta` folder.
 
 ## Usage
 
