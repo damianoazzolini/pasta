@@ -42,7 +42,7 @@ jobs:
         cd tests && pytest
   
   publish:
-    if: github.event_name != 'pull_request' && (contains(github.ref, 'tag')
+    if: github.event_name != 'pull_request' && (contains(github.ref, 'tag'))
     
     runs-on: ubuntu-latest
     
