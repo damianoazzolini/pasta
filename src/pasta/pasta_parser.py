@@ -283,7 +283,6 @@ class PastaParser:
             elif line.startswith("map"):
                 # add the MAP fact as probabilistic
                 fact = line.split('map')[1]
-                print(line)
                 probability, fact = self.check_consistent_prob_fact(fact)
                 self.map_id_list.append(len(self.probabilistic_facts))
                 self.add_probabilistic_fact(fact,probability)

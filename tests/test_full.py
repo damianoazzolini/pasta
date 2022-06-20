@@ -10,6 +10,8 @@ past = importlib.util.module_from_spec(spec)  # type: ignore
 spec.loader.exec_module(past)  # type: ignore
 
 
+# TODO: refactor, one test class for inference type and a method
+# for every program tested
 class TestClass(unittest.TestCase):
     @staticmethod
     def almostEqual(a : float, b : float, digits : int) -> bool:
@@ -18,6 +20,9 @@ class TestClass(unittest.TestCase):
             return a == b
         else:
             return abs(a/b - 1) < epsilon
+
+    def setup_solver(self, filename : str, query : str, evidence : str = ""):
+        return past.Pasta(filename, query, evidence)
 
     def wrap_test_exact_inference(self, 
         filename : str, 
@@ -77,10 +82,25 @@ class TestClass(unittest.TestCase):
         self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact", 1, 1)
         self.wrap_test_exact_inference("../examples/inference/evidence_certain.lp", "qr", "ev", "evidence_certain", 1, 1)
 
+
     def test_conditionals(self):
         self.wrap_test_exact_inference("../examples/conditionals/bird_4_cond.lp", "fly", "", "bird_4_cond_q_fly_1", 0.7, 1.0)
         self.wrap_test_exact_inference(
             "../examples/conditionals/smokers.lp", "smk", "", "bird_4_cond_q_fly_1", 0.7, 0.70627)
+    
+
+    # MAP/MPE. TODO: test with lower and upper options 
+    def test_mpe_win(self):
+        solver = self.setup_solver("../examples/map/win_mpe.lp", "win")
+        max_p, atoms_list = solver.map_inference()
+        self.assertAlmostEqual(max_p, 0.162)
+        self.assertListEqual(atoms_list, ['not red', 'green', 'blue', 'yellow'])
+    
+    def test_map_win(self):
+        solver = self.setup_solver("../examples/map/win_map.lp", "win")
+        max_p, atoms_list = solver.map_inference()
+        self.assertAlmostEqual(max_p, 0.192)
+        self.assertListEqual(atoms_list, ['red','blue'])
 
     # def test_deterministic_abduction(self):
     #     self.wrap_test_abduction("../examples/abduction/ex_1_det.lp", "query", None, "ex_1_det", 1, 1, [['abd_a', 'abd_b', 'q']])

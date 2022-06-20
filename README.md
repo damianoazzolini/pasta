@@ -88,7 +88,7 @@ python3 pasta_solver.py ./../examples/map/color_map.lp --query="win" --map
 ```
 
 ### Approximate inference
-Available: sampling, gibbs sampling, metropolis hastings sampling, rejection sampling.
+Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis hastings sampling (`--mh`), rejection sampling (`--rejection`).
 ```
 cd src/pasta
 python3 pasta_solver.py ../../examples/inference/bird_4.lp --query="fly(1)" --approximate
@@ -101,8 +101,8 @@ For example, `0.5::a.` states that `a` has probability `0.5`.
 
 For more examples, see the `examples` folder.
 
-For exact inference, you can also express statistical statements (x% of the y elements share the same behavior) with the syntax: `(A | B)[LP,UP].`
-For example, "60% of the birds fly" can be expressed with
+Using exact inference, you can also express statistical statements (x% of the y elements share the same behavior) with the syntax: `(A | B)[LP,UP].`
+For example, "at least 60% of the birds fly" can be expressed with
 ```
 (fly(X) | bird(X))[0.6,1].
 ```

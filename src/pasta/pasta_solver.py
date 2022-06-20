@@ -28,7 +28,8 @@ class Pasta:
         evidence : str = "",
         verbose : bool = False,
         pedantic : bool = False,
-        samples : int = 1000
+        samples : int = 1000,
+        lower : bool = True
         ) -> None:
         self.filename = filename
         self.query = query
@@ -38,6 +39,7 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
+        self.lower = lower # lower or upper probability bound for MAP/Abduction, default lower
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -164,7 +166,7 @@ class Pasta:
         return lp, up
 
 
-    def map_inference(self, from_string: str = "")  -> 'tuple[float,list[str]]':
+    def map_inference(self, from_string : str = "")  -> 'tuple[float,list[str]]':
         '''
         Maximum a posteriori (MAP) inference: find the state (world) 
         with maximum probability where the evidence holds.
@@ -173,7 +175,8 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         self.interface.compute_probabilities()
-        return self.interface.model_handler.get_map_solution(self.parser.map_id_list)
+        print(self.lower)
+        return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.lower)
 
 
     @staticmethod
@@ -255,10 +258,11 @@ if __name__ == "__main__":
     command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
+    command_parser.add_argument("--upper", help="Select lower probability for MAP and abduction", action="store_true", default=False)
 
     args = command_parser.parse_args()
-
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples)
+    
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.upper)
 
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()

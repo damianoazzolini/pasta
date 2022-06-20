@@ -469,9 +469,11 @@ class ModelsHandler():
                 max_prob = w.prob
                 w_id = el
 
-        map = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
-
-        return max_prob, self.get_map_word_from_id(w_id, map, map_id_list)
+        if max_prob == 0.0:
+            return 0.0, []
+        else:
+            map = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
+            return max_prob, self.get_map_word_from_id(w_id, map, map_id_list)
 
 
     def get_map_solution(
@@ -503,9 +505,6 @@ class ModelsHandler():
                         map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
 
             # get the sub-world with maximum probability
-            print(map_id_list)
-            print(map_worlds)
-
             max_prob, atoms_list = self.get_highest_prob_and_w_id_map(map_worlds, map_id_list, lower)
 
         return max_prob, atoms_list
