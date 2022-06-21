@@ -457,30 +457,38 @@ class ModelsHandler():
         current_worlds_dict : 'dict[str,World]',
         map_id_list: 'list[int]',
         lower : bool = True,
-        ) -> 'tuple[float,list[str]]':
+        ) -> 'tuple[float,list[list[str]]]':
         '''
         Get the world with the highest associated probability
         '''
         max_prob: float = 0.0
-        w_id: str = ""
+        w_id_list : list[str] = []
+        print(current_worlds_dict)
         for el in current_worlds_dict:
             w = current_worlds_dict[el]
-            if w.prob > max_prob and w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
-                max_prob = w.prob
-                w_id = el
+            if w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
+                if w.prob == max_prob:
+                    max_prob = w.prob
+                    w_id_list.append(el)
+                elif w.prob > max_prob:
+                    max_prob = w.prob
+                    w_id_list = []
+                    w_id_list.append(el)
+
 
         if max_prob == 0.0:
             return 0.0, []
         else:
-            map = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
-            return max_prob, self.get_map_word_from_id(w_id, map, map_id_list)
+            map_len = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
+            l_map_worlds = map(lambda w_id : self.get_map_word_from_id(w_id, map_len, map_id_list), w_id_list)
+            return max_prob, list(l_map_worlds)
 
 
     def get_map_solution(
         self,
         map_id_list : 'list[int]',
         lower : bool = True
-        ) -> 'tuple[float,list[str]]':
+        ) -> 'tuple[float,list[list[str]]]':
         '''
         Analyzes the worlds obtained by the inference procedure and group
         them by map queries
