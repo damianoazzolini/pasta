@@ -166,7 +166,7 @@ class Pasta:
         return lp, up
 
 
-    def map_inference(self, from_string : str = "")  -> 'tuple[float,list[str]]':
+    def map_inference(self, from_string : str = "")  -> 'tuple[float,list[list[str]]]':
         '''
         Maximum a posteriori (MAP) inference: find the state (world) 
         with maximum probability where the evidence holds.
@@ -175,18 +175,19 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         self.interface.compute_probabilities()
-        print(self.lower)
         return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.lower)
 
 
     @staticmethod
-    def print_map_state(prob : float, atoms_list : 'list[str]', n_map_vars : int) -> None:
+    def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int) -> None:
         '''
         Prints the MAP/MPE state
         '''
-        map_or_mpe = "MAP" if len(atoms_list) == n_map_vars else "MPE"
-        print(f"{map_or_mpe}: {prob}")
-        print(atoms_list)
+        map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
+        map_or_mpe = "MAP" if map_op else "MPE"
+        print(f"{map_or_mpe}: {prob}\nMap states: {len(atoms_list)}")
+        for i in range(0, len(atoms_list)):
+            print(f"State {i}: {atoms_list[i]}")
 
 
     @staticmethod
