@@ -12,6 +12,7 @@ spec.loader.exec_module(past)  # type: ignore
 
 # TODO: refactor, one test class for inference type and a method
 # for every program tested
+# TODO: check equality list without considering the ordering
 class TestClass(unittest.TestCase):
     @staticmethod
     def almostEqual(a : float, b : float, digits : int) -> bool:
@@ -94,13 +95,13 @@ class TestClass(unittest.TestCase):
         solver = self.setup_solver("../examples/map/win_mpe.lp", "win")
         max_p, atoms_list = solver.map_inference()
         self.assertAlmostEqual(max_p, 0.162)
-        self.assertListEqual(atoms_list, ['not red', 'green', 'blue', 'yellow'])
+        self.assertListEqual(atoms_list, [['not red', 'green', 'blue', 'yellow']])
     
     def test_map_win(self):
         solver = self.setup_solver("../examples/map/win_map.lp", "win")
         max_p, atoms_list = solver.map_inference()
         self.assertAlmostEqual(max_p, 0.192)
-        self.assertListEqual(atoms_list, ['red','blue'])
+        self.assertListEqual(atoms_list, [['red','blue']])
 
     # def test_deterministic_abduction(self):
     #     self.wrap_test_abduction("../examples/abduction/ex_1_det.lp", "query", None, "ex_1_det", 1, 1, [['abd_a', 'abd_b', 'q']])
