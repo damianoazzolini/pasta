@@ -29,7 +29,7 @@ class Pasta:
         verbose : bool = False,
         pedantic : bool = False,
         samples : int = 1000,
-        lower : bool = True
+        cautious : bool = True
         ) -> None:
         self.filename = filename
         self.query = query
@@ -39,7 +39,8 @@ class Pasta:
         if pedantic is True:
             self.verbose = True
         self.samples = samples
-        self.lower = lower # lower or upper probability bound for MAP/Abduction, default lower
+        # lower or upper probability bound for MAP/Abduction, default lower
+        self.cautious = cautious
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -175,7 +176,7 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         self.interface.compute_probabilities()
-        return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.lower)
+        return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.cautious)
 
 
     @staticmethod
@@ -259,11 +260,11 @@ if __name__ == "__main__":
     command_parser.add_argument("-pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
-    command_parser.add_argument("--upper", help="Select lower probability for MAP and abduction", action="store_true", default=False)
+    command_parser.add_argument("--brave", help="Select upper probability (brave) for MAP and abduction", action="store_true", default=False)
 
     args = command_parser.parse_args()
     
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.upper)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.brave)
 
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()
