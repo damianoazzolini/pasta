@@ -139,7 +139,7 @@ class ModelsHandler():
                     acc_up = acc_up + p
                     if worlds_comb[w_id].model_not_query_count == 0:
                         acc_lp = acc_lp + p
-            
+
             if acc_lp == self.best_lp and acc_lp > 0:
                 self.best_abd_combinations.append(el)
             elif acc_lp > self.best_lp and acc_lp > 0:
@@ -175,7 +175,7 @@ class ModelsHandler():
                 break
             else:
                 index = index + 1
-        
+
         return index, 1 if positive else 0, probability
 
 
@@ -198,7 +198,7 @@ class ModelsHandler():
                 break
             else:
                 index = index + 1
-        
+
         return index, 1 if positive else 0
 
 
@@ -299,7 +299,7 @@ class ModelsHandler():
                 elif (model_query == False) and (model_evidence == True):
                     current_dict[id].increment_model_not_query_count()  # nq e
             return
-        
+
         # element not found -> add a new world
         w = World(prob)
         if self.evidence == "":
@@ -313,7 +313,7 @@ class ModelsHandler():
                 w.increment_model_query_count()  # q e
             elif (model_query == False) and (model_evidence == True):
                 w.increment_model_not_query_count()  # nq e
-        
+
         current_dict[id] = w
 
 
@@ -389,7 +389,7 @@ class ModelsHandler():
                     obtained_atoms.append(keys[map_id_list[i]])
                 else:
                     obtained_atoms.append(f"not {keys[map_id_list[i]]}")
-                
+
         return obtained_atoms
 
 
@@ -399,7 +399,7 @@ class ModelsHandler():
         '''
         for w in self.worlds_dict:
             p = self.worlds_dict[w].prob
-            
+
             if self.evidence is "":
                 if self.worlds_dict[w].model_query_count != 0:
                     if self.worlds_dict[w].model_not_query_count == 0:
@@ -436,7 +436,7 @@ class ModelsHandler():
                     uqp = 0
                 return lqp, uqp 
 
-    
+
     def get_sub_world(self, super_w : str, map_id_list : 'list[int]') -> str:
         '''
         Extracts a string from super_w representing a sub world.
@@ -520,11 +520,11 @@ class ModelsHandler():
     def __repr__(self) -> str:
         s = ""
         if len(self.abd_worlds_dict) == 0:
-            print("N worlds dict: " + str(len(self.worlds_dict)))
+            print(f"N worlds dict: {len(self.worlds_dict)}")
             for el in self.worlds_dict:
                 s = s + str(el) + "\n"
         else:
-            print("N abd worlds dict: " + str(len(self.abd_worlds_dict)))
+            print(f"N abd worlds dict: {len(self.abd_worlds_dict)}")
             for el in self.abd_worlds_dict:
                 s = s + str(el) + "\n"
         return s
