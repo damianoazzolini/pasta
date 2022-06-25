@@ -10,12 +10,23 @@ from asp_interface import AspInterface
 from utils import print_error_and_exit
 
 
-examples_string_exact = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\""
-examples_string_exact_evidence = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --evidence=\"bird(1)\""
-examples_string_approximate = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --approximate"
-examples_string_approximate_rej = "python3 pasta.py ../../examples/bird_4.lp --query=\"fly(1)\" --evidence=\"bird(1)\" --rejection"
-
-examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
+examples_string_exact = "python3 pasta_solver.py \
+    ../../examples/bird_4.lp \
+    --query=\"fly(1)\""
+examples_string_exact_evidence = "python3 pasta_solver.py \
+    ../../examples/bird_4.lp \
+    --query=\"fly(1)\" \
+    --evidence=\"bird(1)\""
+examples_string_approximate = "python3 pasta_solver.py \
+    ../../examples/bird_4.lp \
+    --query=\"fly(1)\" \
+    --approximate"
+examples_string_approximate_rej = "python3 pasta_solver.py \
+    ../../examples/bird_4.lp \
+    --query=\"fly(1)\" \
+    --evidence=\"bird(1)\" --rejection"
+examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + \
+    "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
 
 pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
 
@@ -91,7 +102,7 @@ class Pasta:
                 lp = 0
                 up = 0
                 print_error_and_exit("Specify a sampling method: Gibbs, MH, or Rejection.")
-                
+
         return lp, up
 
 
@@ -122,7 +133,7 @@ class Pasta:
         exec_time = self.interface.get_minimal_set_facts()
 
         if self.verbose:
-            print("Computed cautious consequences in %s seconds" % (exec_time))
+            print(f"Computed cautious consequences in {exec_time} seconds")
             if self.pedantic:
                 print("--- Minimal set of probabilistic facts ---")
                 print(self.interface.cautious_consequences)
@@ -167,7 +178,7 @@ class Pasta:
         return lp, up
 
 
-    def map_inference(self, from_string : str = "")  -> 'tuple[float,list[list[str]]]':
+    def map_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
         '''
         Maximum a posteriori (MAP) inference: find the state (world) 
         with maximum probability where the evidence holds.
@@ -182,7 +193,7 @@ class Pasta:
     @staticmethod
     def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int) -> None:
         '''
-        Prints the MAP/MPE state
+        Prints the MAP/MPE state.
         '''
         map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
         map_or_mpe = "MAP" if map_op else "MPE"
@@ -194,7 +205,7 @@ class Pasta:
     @staticmethod
     def print_prob(lp : float, up : float) -> None:
         '''
-        Print the probability values
+        Prints the probability values.
         '''
         if lp == up:
             print(f"Lower probability == upper probability for the query: {lp}")
@@ -205,6 +216,9 @@ class Pasta:
 
     @staticmethod
     def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
+        '''
+        Removes the dominated explanations, used in abduction.
+        '''
         ls : list[set[str]] = []
         for exp in abd_exp:
             e : set[str] = set()
@@ -227,11 +241,14 @@ class Pasta:
 
     @staticmethod
     def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]') -> None:
+        '''
+        Prints the result for abduction.
+        '''
         abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
         # abd_exp_no_dup = abd_exp
         if len(abd_exp_no_dup) > 0 and up != 0:
             Pasta.print_prob(lp, up)
-        
+
         n_exp = sum(1 for ex in abd_exp_no_dup if len(ex) > 0)
         print(f"Abductive explanations: {n_exp}")
 
@@ -263,7 +280,7 @@ if __name__ == "__main__":
     command_parser.add_argument("--brave", help="Select upper probability (brave) for MAP and abduction", action="store_true", default=False)
 
     args = command_parser.parse_args()
-    
+
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.brave)
 
     if args.abduction is True:
