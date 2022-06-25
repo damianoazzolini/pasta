@@ -86,7 +86,8 @@ class Pasta:
             [],
             self.parser.abducibles,
             self.verbose,
-            self.pedantic
+            self.pedantic,
+            self.samples
         )
 
         if self.evidence == "":
