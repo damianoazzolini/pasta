@@ -197,8 +197,8 @@ class Pasta:
         Prints the MAP/MPE state.
         '''
         map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
-        map_or_mpe = "MAP" if map_op else "MPE"
-        print(f"{map_or_mpe}: {prob}\nMap states: {len(atoms_list)}")
+        map_or_mpe = "MPE" if map_op else "MAP"
+        print(f"{map_or_mpe}: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
         for i in range(0, len(atoms_list)):
             print(f"State {i}: {atoms_list[i]}")
 
