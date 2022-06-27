@@ -1,5 +1,5 @@
 import sys
-import networkx
+import networkx  # type: ignore
 import random
 
 # see examples/conditionals/smokers.lp for the structure
@@ -27,27 +27,27 @@ if __name__ == "__main__":
         for j in range(0,10):
             filename = "smk_" + str(i) + "/smk_" + str(j) + ".lp"
             f = open(filename, "w")
-            ba = networkx.barabasi_albert_graph(i, 3)
-            le = []
-            for a in ba.edges:
-                f.write("0.5::friend(" + str(a[0]) + "," + str(a[1]) + ").\n")
-                le.append(a[0])
-                le.append(a[1])
+            ba = networkx.barabasi_albert_graph(i, 3)  # type: ignore
+            le = []  # type: ignore
+            for a in ba.edges:  # type: ignore
+                f.write("0.5::friend(" + str(a[0]) + "," + str(a[1]) + ").\n")  # type: ignore
+                le.append(a[0])  # type: ignore
+                le.append(a[1])  # type: ignore
 
             f.write("\n:- #count{Y,X:smokes(X),friend(X,Y)} = F, #count{Y,X:smokes(X),friend(X,Y),smokes(Y)} = SF, 10*SF < 4*F.\n")
 
             f.write("\nsmokes(Y) ; not_smokes(Y):- smokes(X), friend(X,Y).\n\n")
             # selects 50% of the smokers
-            smokers = random.sample(list(set(le)),int(i/2))
+            smokers = random.sample(list(set(le)),int(i/2))  # type: ignore
 
             ls = []
-            for el in smokers:
-                ls.append(el)
-                f.write("smokes(" + str(el) + ").\n")
+            for el in smokers:  # type: ignore
+                ls.append(el)  # type: ignore
+                f.write("smokes(" + str(el) + ").\n")  # type: ignore
 
-            lns = list(filter(lambda x: x not in ls,list(set(le))))
+            lns = list(filter(lambda x: x not in ls,list(set(le))))  # type: ignore
 
-            f.write("\nqry:- smokes(" + str(random.sample(lns,1)[0]) + ").")
+            f.write("\nqry:- smokes(" + str(random.sample(lns, 1)[0]) + ").")  # type: ignore
             
             # f.write("\nfly:- fly(_).")
             f.close()

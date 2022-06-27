@@ -1,1 +1,5 @@
-Repository containing the generators for the three datasets.
+Repository containing the generators for the datasets:
+- abduction
+- conditional
+- map
+- parameter learning

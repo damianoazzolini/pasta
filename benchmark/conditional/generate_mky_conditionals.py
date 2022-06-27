@@ -1,7 +1,6 @@
 import sys
-import networkx
+import networkx  # type: ignore
 import random
-import time
 
 # see examples/conditionals/mky.lp for the structure
 
@@ -28,12 +27,12 @@ if __name__ == "__main__":
         for j in range(0, 3):
             filename = "mky_" + str(i) + "/mky_" + str(j) + ".lp"
             f = open(filename, "w")
-            ba = networkx.barabasi_albert_graph(i, 3)
+            ba = networkx.barabasi_albert_graph(i, 3)  # type: ignore
             le = []
-            for a in ba.edges:
-                f.write("0.5::r(" + str(a[0]) + "," + str(a[1]) + ").\n")
-                le.append(a[0])
-                le.append(a[1])
+            for a in ba.edges:  # type: ignore
+                f.write("0.5::r(" + str(a[0]) + "," + str(a[1]) + ").\n")  # type: ignore
+                le.append(a[0])  # type: ignore
+                le.append(a[1])  # type: ignore
 
             f.write("\nf1(Y) ; not_f1(Y):- h(Y).\n")
 
@@ -46,16 +45,14 @@ if __name__ == "__main__":
             f.write("qry:- f(0),f(0,1).\n\n")
 
             # selects 50% of the elements
-            elements = random.sample(list(set(le)), int(i/2))
+            elements = random.sample(list(set(le)), int(i/2))  # type: ignore
 
             ls = []
-            for el in elements:
-                ls.append(el)
-                f.write("0.5::h(" + str(el) + ").\n")
+            for el in elements:  # type: ignore
+                ls.append(el)  # type: ignore
+                f.write("0.5::h(" + str(el) + ").\n")  # type: ignore
 
-            lns = list(filter(lambda x: x not in ls, list(set(le))))
+            lns = list(filter(lambda x: x not in ls, list(set(le))))  # type: ignore
 
             f.write("\nquery(qry).")
-
-            # f.write("\nfly:- fly(_).")
             f.close()
