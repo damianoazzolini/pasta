@@ -107,7 +107,7 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = "") -> None:
+    def setup_interface(self, from_string : str = "", cautious : bool = True) -> None:
         '''
         Setup clingo interface
         '''
@@ -120,6 +120,9 @@ class Pasta:
 
         content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
         asp_program = self.parser.get_asp_program()
+
+        if not cautious:
+            asp_program.append(f":- not {self.query}.")
 
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
@@ -154,7 +157,7 @@ class Pasta:
         '''
         Probabilistic and deterministic abduction
         '''
-        self.setup_interface(from_string)
+        self.setup_interface(from_string, self.cautious)
         self.interface.abduction()
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
@@ -186,7 +189,7 @@ class Pasta:
         Most probable explanation (MPE) is MAP where no evidence is present
         i.e., find the world with highest probability.
         '''
-        self.setup_interface(from_string)
+        self.setup_interface(from_string, self.cautious)
         self.interface.compute_probabilities()
         return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.cautious)
 

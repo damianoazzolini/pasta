@@ -1,4 +1,4 @@
-import pasta
+import pasta_solver
 import math
 import time
 
@@ -233,12 +233,12 @@ def compute_probability_interpretation(
     if key not in interpretations_to_worlds:
         s = generate_program_string(facts_prob, offset, example, program)
 
-        pasta_solver = pasta.Pasta("", interpretation_string, None)  # type: ignore
+        pasta_solver_ins = pasta_solver.Pasta("", interpretation_string)  # type: ignore
         up : float = 0
         lp : float = 0
-        lp, up = pasta_solver.inference(from_string = s)  # type: ignore
+        lp, up = pasta_solver_ins.inference(from_string = s)  # type: ignore
 
-        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, interpretations_to_worlds, key)
+        add_element_to_dict(pasta_solver_ins.interface.model_handler.worlds_dict, interpretations_to_worlds, key)
     else:
         lp, up = get_prob_from_dict(interpretations_to_worlds, facts_prob, key)
 
@@ -263,19 +263,19 @@ def compute_expected_values(
         s = generate_program_string(facts_prob, offset, atoms, program)
 
         # Expectation: compute E[f_i = True | I]
-        pasta_solver = pasta.Pasta("", prob_fact, interpretation_string)  # type: ignore
-        lp1, up1 = pasta_solver.inference(from_string = s)  # type: ignore
+        pasta_solver_ins = pasta_solver.Pasta("", prob_fact, interpretation_string)  # type: ignore
+        lp1, up1 = pasta_solver_ins.inference(from_string = s)  # type: ignore
 
         # store the computed worlds
-        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idT)
+        add_element_to_dict(pasta_solver_ins.interface.model_handler.worlds_dict, computed_expectation_dict, idT)
 
         # Expectation: compute E[f_i = False | I]
-        pasta_solver = pasta.Pasta("", "nfp", interpretation_string)  # type: ignore
+        pasta_solver_ins = pasta_solver.Pasta("", "nfp", interpretation_string)  # type: ignore
         s = s + f"nfp:- not {prob_fact}.\n"
-        lp0, up0 = pasta_solver.inference(from_string = s)  # type: ignore
+        lp0, up0 = pasta_solver_ins.inference(from_string = s)  # type: ignore
 
         # store the computed worlds
-        add_element_to_dict(pasta_solver.interface.model_handler.worlds_dict, computed_expectation_dict, idF)
+        add_element_to_dict(pasta_solver_ins.interface.model_handler.worlds_dict, computed_expectation_dict, idF)
     else:
         # get prob from dict
         lp1 : float = 0
@@ -562,7 +562,7 @@ def learn_parameters(
         lp, up = compute_probability_interpretation(
             prob_facts_dict, training_set[i], program, i, interpretations_to_worlds)
         p = p + to_logprob(lp, up, upper)
-        print(f"interpretation: {i}")
+        # print(f"interpretation: {i}")
 
     ll1 = p
 
@@ -642,66 +642,66 @@ def learn_parameters(
     # test_results(test_set, prob_facts_dict, program)
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     # program = "background_example_bongard_dummy.lp"
-#     # program = "../../examples/learning/background_bayesian_network.lp"
-#     # program = "../../examples/learning/background_shop.lp"
-#     # program = "../../examples/learning/background_smoke.lp"
-#     # program = "bongard_stress.lp"
-#     # program = "smoke_stress.lp"
-#     program = "shop_4.lp"
-#     # program = "../../examples/learning/background_smoke_2.lp"
+    # program = "background_example_bongard_dummy.lp"
+    # program = "../../examples/learning/background_bayesian_network.lp"
+    # program = "../../examples/learning/background_shop.lp"
+    # program = "../../examples/learning/background_smoke.lp"
+    # program = "bongard_stress.lp"
+    # program = "smoke_stress.lp"
+    program = "../../examples/learning/background_shop.lp"
+    # program = "../../examples/learning/background_smoke_2.lp"
 
-#     training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
-#     upper = False
-#     verbose = False
-#     start_time = time.time()
-#     interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
-#     end_time = time.time() - start_time
+    training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
+    upper = False
+    verbose = False
+    start_time = time.time()
+    interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
+    end_time = time.time() - start_time
 
-#     print(f"Elapsed time: {end_time}")
+    print(f"Elapsed time: {end_time}")
 
-#     test_results(test_set,interpretations_to_worlds,prob_facts_dict,program)
+    test_results(test_set,interpretations_to_worlds,prob_facts_dict,program)
 
-#     # import sys
-#     # sys.exit()
+    # import sys
+    # sys.exit()
 
-#     # facts_prob : 'dict[str,float]' = {}
+    # facts_prob : 'dict[str,float]' = {}
 
 
 
-#     # FLY
-#     # examples = examples_fly
-#     # pos_neg = pos_neg_fly
-#     # program = prg_fly
+    # FLY
+    # examples = examples_fly
+    # pos_neg = pos_neg_fly
+    # program = prg_fly
 
-#     # facts_prob['bird(1)'] = 0.5
-#     # facts_prob['bird(2)'] = 0.5
-#     # facts_prob['bird(3)'] = 0.5
-#     # facts_prob['bird(4)'] = 0.5
-#     # target_predicate = "fly(1)"
+    # facts_prob['bird(1)'] = 0.5
+    # facts_prob['bird(2)'] = 0.5
+    # facts_prob['bird(3)'] = 0.5
+    # facts_prob['bird(4)'] = 0.5
+    # target_predicate = "fly(1)"
 
-#     # BONGARD
-#     # examples = examples_bongard
-#     # pos_neg = pos_neg_bongard
-#     # program = prg_bongard
+    # BONGARD
+    # examples = examples_bongard
+    # pos_neg = pos_neg_bongard
+    # program = prg_bongard
 
-#     # facts_prob['posa'] = 0.1
-#     # facts_prob['posb'] = 0.1
-#     # target_predicate = "pos"
+    # facts_prob['posa'] = 0.1
+    # facts_prob['posb'] = 0.1
+    # target_predicate = "pos"
 
-#     # SMOKES
-#     # examples = examples_smokes
-#     # pos_neg = pos_neg_smokes
-#     # program = prg_smokes
-#     # target_predicate = target_predicate_smokes
+    # SMOKES
+    # examples = examples_smokes
+    # pos_neg = pos_neg_smokes
+    # program = prg_smokes
+    # target_predicate = target_predicate_smokes
 
-#     # facts_prob["friend(a,b)"] = 0.5
-#     # facts_prob["friend(b,c)"] = 0.5
-#     # facts_prob["friend(c,e)"] = 0.5
-#     # facts_prob["friend(b,d)"] = 0.5
-#     # facts_prob["friend(d,e)"] = 0.5
+    # facts_prob["friend(a,b)"] = 0.5
+    # facts_prob["friend(b,c)"] = 0.5
+    # facts_prob["friend(c,e)"] = 0.5
+    # facts_prob["friend(b,d)"] = 0.5
+    # facts_prob["friend(d,e)"] = 0.5
 
-#     # DUMMY
+    # DUMMY
 

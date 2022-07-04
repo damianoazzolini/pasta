@@ -16,7 +16,7 @@ smokes(X) ; no_smokes(X):-
 '''
 
 lower = 4
-upper = 5
+upper = 30
 step = 1
 attach_edges = 2
 

@@ -5,6 +5,7 @@ some cases only model_not_query is true, so the world does not contribute
 to the list
 '''
 
+
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
@@ -400,7 +401,7 @@ class ModelsHandler():
         for w in self.worlds_dict:
             p = self.worlds_dict[w].prob
 
-            if self.evidence is "":
+            if self.evidence == "":
                 if self.worlds_dict[w].model_query_count != 0:
                     if self.worlds_dict[w].model_not_query_count == 0:
                         self.increment_lower_query_prob(p)
@@ -418,7 +419,7 @@ class ModelsHandler():
                         self.increment_lower_evidence_prob(p)
                     self.increment_upper_evidence_prob(p) 
 
-        if self.evidence is "":
+        if self.evidence == "":
             return self.lower_query_prob, self.upper_query_prob
         else:
             if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
