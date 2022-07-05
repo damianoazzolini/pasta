@@ -1,3 +1,5 @@
+import random
+
 base = '''
 fly(X);nofly(X):- bird(X).
   
@@ -13,16 +15,18 @@ for s in range(init_size, end_size + 1):
     fp = open(f"bird_{s}_map.lp", "w")
     fp.write(base)
     for j in range(1, s + 1):
+        prob = str(random.random())[:5]
         if j % 2 == 0:
-            fp.write(f"0.5::bird({j}).\n")
+            fp.write(f"{prob}::bird({j}).\n")
         else:
-            fp.write(f"map 0.5::bird({j}).\n")
+            fp.write(f"map {prob}::bird({j}).\n")
     fp.close()
 
     fp = open(f"bird_{s}_mpe.lp", "w")
     fp.write(base)
     for j in range(1, s + 1):
-        fp.write(f"map 0.5::bird({j}).\n")
+        prob = str(random.random())[:5]
+        fp.write(f"map {prob}::bird({j}).\n")
     fp.close()
 
 

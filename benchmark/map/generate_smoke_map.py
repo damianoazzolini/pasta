@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import networkx as nx  # type: ignore
+import random
 
 base = '''
 friend(X,Y):- e(X,Y).
@@ -38,12 +39,13 @@ for n_nodes in range(lower, upper, step):
     fp_mpe.write('\n')
     fp_map.write('\n')
     for a in graph.edges:  # type: ignore
+        prob = str(random.random())[:5]
         if i % 2 == 0:
-            fp_map.write(f"0.5::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
+            fp_map.write(f"{prob}::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
         else:
-            fp_map.write(f"map 0.5::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
+            fp_map.write(f"map {prob}::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
         
-        fp_mpe.write(f"map 0.5::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
+        fp_mpe.write(f"map {prob}::e({str(a[0])},{str(a[1])}).\n")  # type: ignore
 
         i = i + 1
 
