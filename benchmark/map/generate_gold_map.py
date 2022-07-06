@@ -2,7 +2,7 @@ import random
 
 base = '''
 valuable(X) ; not_valuable(X):- gold(X).
-:- #count{X:valuable(X), gold(X)} = FB, #count{X:gold(X)} = B, 10*FB < 8*B.
+:- #count{X:valuable(X), gold(X)} = FB, #count{X:gold(X)} = B, 10*FB < 6*B.
 
 '''
 
