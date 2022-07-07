@@ -12,12 +12,14 @@
 %         \   /
 %           d
 
-% Conditional
-smokes(Y) ; not_smokes(Y):- smokes(X), friend(X,Y).
+(smokes(Y) | smokes(X), friend(X,Y))[0.4,1].
 
-:- #count{Y,X:smokes(X),friend(X,Y)} = F,
-   #count{Y,X:smokes(X),friend(X,Y),smokes(Y)} = SF,
-   10*SF < 4*F.
+% % The conditional is exploded into
+% smokes(Y) ; not_smokes(Y):- smokes(X), friend(X,Y).
+
+% :- #count{Y,X:smokes(X),friend(X,Y)} = F,
+%    #count{Y,X:smokes(X),friend(X,Y),smokes(Y)} = SF,
+%    10*SF < 4*F.
 
 % However, we know that d smokes with probability 0.7
 0.7::smokes_w(d).
