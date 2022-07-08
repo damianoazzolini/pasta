@@ -90,9 +90,9 @@ class Pasta:
             self.samples
         )
 
-        if self.evidence == "":
+        if self.evidence == "" and (args.rejection is False and args.mh is False and args.gibbs is False):
             lp, up = self.interface.sample_query()
-        else:
+        elif self.evidence != "":
             if args.rejection is True:
                 lp, up = self.interface.rejection_sampling()
             elif args.mh is True:
@@ -103,6 +103,8 @@ class Pasta:
                 lp = 0
                 up = 0
                 print_error_and_exit("Specify a sampling method: Gibbs, MH, or Rejection.")
+        else:
+            print_error_and_exit("Missing evidence")
 
         return lp, up
 
@@ -290,7 +292,7 @@ if __name__ == "__main__":
     if args.abduction is True:
         lp, up, abd_explanations = pasta_solver.abduction()
         Pasta.print_result_abduction(lp, up, abd_explanations)
-    elif args.approximate is True:
+    elif args.approximate or args.rejection or args.mh or args.gibbs is True:
         lp, up = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lp, up)
     elif args.pl is True:
