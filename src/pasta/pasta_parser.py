@@ -395,6 +395,31 @@ class PastaParser:
         return self.lines_prob
 
 
+    def get_asp_program_approx(self) -> 'list[str]':
+        '''
+        Parameters:
+            - None
+        Returns:
+            - str: string representing the program that can be used to 
+            compute lower and upper probability
+        Behavior:
+            returns a string that represent the ASP program where models 
+            need to be computed
+        '''
+        if self.evidence == "":
+            self.lines_prob.append(f"q:- {self.query}.")
+            self.lines_prob.append("#show q/0.")
+            self.lines_prob.append(f"nq:- not {self.query}.")
+            self.lines_prob.append("#show nq/0.")
+        else:
+            self.lines_prob.append(f"qe:- {self.query}, {self.evidence}.")
+            self.lines_prob.append("#show qe/0.")
+            self.lines_prob.append(f"nqe:- not {self.query}, {self.evidence}.")
+            self.lines_prob.append("#show nqe/0.")
+
+        return self.lines_prob
+
+
     def add_probabilistic_fact(self, term : str, prob : float) -> None:
         '''
         Adds the current probabilistic fact and its probability in the 

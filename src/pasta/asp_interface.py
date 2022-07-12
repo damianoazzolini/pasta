@@ -171,79 +171,174 @@ class AspInterface:
             return 'F'
 
 
-    def mh_sampling(self) -> 'tuple[float, float]':
-        '''
-        MH sampling
-        '''
-        sampled = {}
+    @staticmethod
+    def compute_conditional_lp_up(
+        n_lower_qe : int, 
+        n_upper_qe : int, 
+        n_lower_nqe : int, 
+        n_upper_nqe : int, 
+        n_samples : int
+        ) -> 'tuple[float,float]':
 
+        # lower P(q | e) = lower P(q,e) / (lower P(q,e) + upper P(not q,e))
+        # upper P(q | e) = upper P(q,e) / (upper P(q,e) + lower P(not q,e))
+
+        lower_q_e = n_lower_qe / n_samples
+        upper_q_e = n_upper_qe / n_samples
+        lower_not_q_e = n_lower_nqe / n_samples
+        upper_not_q_e = n_upper_nqe / n_samples
+
+        lp = lower_q_e / (lower_q_e + upper_not_q_e) if (lower_q_e + upper_not_q_e) > 0 else 0
+        up = upper_q_e / (upper_q_e + lower_not_q_e) if (upper_q_e + lower_not_q_e) > 0 else 0
+
+        return lp, up
+
+
+    @staticmethod
+    def assign_T_F_and_get_count(ctl : clingo.Control, id : str) -> 'tuple[int,int,int,int]':
+        i = 0
+        for atm in ctl.symbolic_atoms:
+            if atm.is_external:
+                ctl.assign_external(atm.literal, id[i] == 'T')
+                i = i + 1
+
+        qe_count = 0
+        qe_false_count = 0
+        nqe_count = 0
+        nqe_false_count = 0
+
+        # I can have: qe or qe_false, nqe or nqe_false
+        with ctl.solve(yield_=True) as handle:  # type: ignore
+            for m in handle:  # type: ignore
+                m1 = str(m).split(' ')  # type: ignore
+                if 'qe' in m1:
+                    qe_count = qe_count + 1
+                else:
+                    qe_false_count = qe_false_count + 1
+                if 'nqe' in m1:
+                    nqe_count = nqe_count + 1
+                else:
+                    nqe_false_count = nqe_false_count + 1
+
+        return qe_count, qe_false_count, nqe_count, nqe_false_count
+
+
+    @staticmethod
+    def assign_T_F_and_check_if_evidence(ctl : clingo.Control, id : str) -> bool:
+        # used in Gibbs sampling
+        i : int = 0
+
+        for atm in ctl.symbolic_atoms:
+            if atm.is_external:
+                ctl.assign_external(atm.literal, id[i] == 'T')
+                i = i + 1
+        with ctl.solve(yield_=True) as handle:  # type: ignore
+            for m in handle:  # type: ignore
+                m1 = str(m).split(' ')  # type: ignore
+                if 'qe' in m1 or 'nqe' in m1:
+                    return True
+        return False
+
+
+    @staticmethod
+    def get_val_or_compute_and_update_dict(sampled, ctl : clingo.Control, id : str) -> 'tuple[int,int,int,int]':
+        if id in sampled:
+            return sampled[id][0], sampled[id][1], sampled[id][2], sampled[id][3]
+        else:
+            qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, id)
+            
+            lower_qe = (1 if qe_false_count == 0 else 0)
+            upper_qe = (1 if qe_count > 0 else 0)
+            lower_nqe = (1 if nqe_false_count == 0 else 0)
+            upper_nqe = (1 if nqe_count > 0 else 0)
+
+            # update sampled table
+            # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
+            sampled[id] = [
+                lower_qe, 
+                upper_qe,
+                lower_nqe,
+                upper_nqe
+            ]
+
+            return lower_qe, upper_qe, lower_nqe, upper_nqe
+
+
+    def init_clingo_ctl(self) -> 'clingo.Control':
         ctl = clingo.Control(["0", "--project"])
         for clause in self.asp_program:
             ctl.add('base', [], clause)
         ctl.ground([("base", [])])
 
+        return ctl
+
+
+    def mh_sampling(self) -> 'tuple[float, float]':
+        '''
+        MH sampling
+        '''
+        # each element has the structure
+        # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, T_count]
+        sampled = {}
+
+        ctl = self.init_clingo_ctl()
+
         n_samples = self.n_samples
 
-        # step 0: build initial sample
         id = self.sample_world()
         t_count = id.count('T')
-        previous_sampled = t_count if t_count > 0 else 1
+        previous_t_count = t_count if t_count > 0 else 1
+
+        n_lower_qe : int = 0
+        n_upper_qe : int = 0
+        n_lower_nqe : int = 0
+        n_upper_nqe : int = 0
 
         k : int = 0
-        n_upper : int = 0
-        n_lower : int = 0
-        current_sampled : int = 0
+        
+        current_t_count : int = 0
+
+        previous_t_count = 1
 
         while k < n_samples:
             id = self.sample_world()
 
             if id in sampled:
-                current_sampled = sampled[id][2]
+                current_t_count = sampled[id][4]
 
-                if random.random() < min(1, current_sampled/previous_sampled):
+                if random.random() < min(1, current_t_count / previous_t_count):
                     k = k + 1
-                    n_upper = n_upper + sampled[id][0]
-                    n_lower = n_lower + sampled[id][1]
+                    n_lower_qe = n_lower_qe + sampled[id][0]
+                    n_upper_qe = n_upper_qe + sampled[id][1]
+                    n_lower_nqe = n_lower_nqe + sampled[id][2]
+                    n_upper_nqe = n_upper_nqe + sampled[id][3]
 
-                previous_sampled = current_sampled
+                previous_t_count = current_t_count
             else:
-                i = 0
-                for atm in ctl.symbolic_atoms:
-                    if atm.is_external:
-                        ctl.assign_external(atm.literal, id[i] == 'T')
-                        i = i + 1
+                qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, id)
 
-                upper = False
-                lower = True
-                sampled_evidence = False
-                with ctl.solve(yield_=True) as handle:  # type: ignore
-                    for m in handle:  # type: ignore
-                        m1 = str(m).split(' ')  # type: ignore
-                        if 'e' in m1:
-                            sampled_evidence = True
-                            t_count = id.count('T')
-                            current_sampled = t_count if t_count > 0 else 1
+                if qe_count > 0 or nqe_count > 0: 
+                    t_count = id.count('T')
+                    current_t_count = t_count if t_count > 0 else 1
 
-                            if random.random() < min(1, current_sampled/previous_sampled):
-                                k = k + 1
-                                if 'q' in m1:
-                                    upper = True
-                                if "nq" in m1:
-                                    lower = False
+                    if random.random() < min(1, current_t_count / previous_t_count):
+                        k = k + 1
+                        n_lower_qe = n_lower_qe + (1 if qe_false_count == 0 else 0)
+                        n_upper_qe = n_upper_qe + (1 if qe_count > 0 else 0)
+                        n_lower_nqe = n_lower_nqe + (1 if nqe_false_count == 0 else 0)
+                        n_upper_nqe = n_upper_nqe + (1 if nqe_count > 0 else 0)
 
-                if sampled_evidence is True:
-                    previous_sampled = current_sampled
-                
-                if upper:
-                    n_upper = n_upper + 1
-                    if sampled_evidence is True:
-                        sampled[id] = [1,0,current_sampled]
-                    if lower:
-                        n_lower = n_lower + 1
-                        if sampled_evidence is True:
-                            sampled[id] = [1,1,current_sampled]
+                        # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
+                        sampled[id] = [
+                            1 if qe_false_count == 0 else 0, 
+                            1 if qe_count > 0 else 0,
+                            1 if nqe_false_count == 0 else 0,
+                            1 if nqe_count > 0 else 0,
+                            current_t_count
+                        ]
+                previous_t_count = current_t_count
 
-        return n_lower/n_samples, n_upper/n_samples
+        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
     def gibbs_sampling(self, block: int) -> 'tuple[float, float]':
@@ -251,25 +346,32 @@ class AspInterface:
         Gibbs sampling
         '''
         # list of samples for the evidence
+        # correspondence str -> bool
         sampled_evidence = {}
         # list of samples for the query
+        # each element has the structure
+        # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
         sampled_query = {}
 
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl()
 
         n_samples = self.n_samples
 
-        n_upper : int = 0
-        n_lower : int = 0
+        n_lower_qe : int = 0
+        n_upper_qe : int = 0
+        n_lower_nqe : int = 0
+        n_upper_nqe : int = 0
+        
         k : int = 0
+
         ev : bool = False
+        
         id : str = ""
-        idNew: str = ""
+        idNew : str = ""
 
         while k < n_samples:
+            k = k + 1
+
             # Step 0: sample evidence
             ev = False
             while ev is False:
@@ -277,21 +379,8 @@ class AspInterface:
                 if id in sampled_evidence:
                     ev = sampled_evidence[id]
                 else:
-                    i = 0
-                    for atm in ctl.symbolic_atoms:
-                        if atm.is_external:
-                            ctl.assign_external(atm.literal, id[i] == 'T')
-                            i = i + 1
-                    with ctl.solve(yield_=True) as handle:  # type: ignore
-                        for m in handle:  # type: ignore
-                            m1 = str(m).split(' ')  # type: ignore
-                            if 'e' in m1:
-                                ev = True
-                                break
-
+                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, id)
                     sampled_evidence[id] = ev
-
-            k = k + 1
 
             # Step 1: switch samples but keep the evidence true
             ev = False
@@ -306,110 +395,48 @@ class AspInterface:
                 if idNew in sampled_evidence:
                     ev = sampled_evidence[idNew]
                 else:
-                    i = 0
-                    for atm in ctl.symbolic_atoms:
-                        if atm.is_external:
-                            ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
-                            i = i + 1
-                    with ctl.solve(yield_=True) as handle:  # type: ignore
-                        for m in handle:  # type: ignore
-                            m1 = str(m).split(' ')  # type: ignore
-                            if 'e' in m1:
-                                ev = True
-                                break
-                            
-                    sampled_evidence[idNew] = [ev]
+                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, idNew)
+                    sampled_evidence[idNew] = ev
 
             # step 2: ask query
-            if idNew in sampled_query:
-                n_upper = n_upper + sampled_query[idNew][0]
-                n_lower = n_lower + sampled_query[idNew][1]
-            else:
-                i = 0
-                for atm in ctl.symbolic_atoms:
-                    if atm.is_external:
-                        ctl.assign_external(atm.literal, True if idNew[i] == 'T' else False)
-                        i = i + 1
+            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled_query, ctl, idNew)
 
-                upper = False
-                lower = True
-                with ctl.solve(yield_=True) as handle:  # type: ignore
-                    for m in handle:  # type: ignore
-                        m1 = str(m).split(' ')  # type: ignore
-                        if 'e' in m1:
-                            if 'q' in m1:
-                                upper = True
-                            if "nq" in m1:
-                                lower = False
+            n_lower_qe = n_lower_qe + lower_qe
+            n_upper_qe = n_upper_qe + upper_qe
+            n_lower_nqe = n_lower_nqe + lower_nqe
+            n_upper_nqe = n_upper_nqe + upper_nqe
 
-                if upper:
-                    n_upper = n_upper + 1
-                    sampled_query[idNew] = [1,0]
-
-                    if lower:
-                        n_lower = n_lower + 1
-                        sampled_query[idNew] = [1,1]
-
-
-        return n_lower/n_samples, n_upper/n_samples
+        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
     def rejection_sampling(self) -> 'tuple[float, float]':
         '''
         Rejection Sampling
         '''
+        # each element has the structure
+        # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
         sampled = {}
         
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl()
 
-        n_samples = self.n_samples
-
-        n_upper : int = 0
-        n_lower : int = 0
+        n_lower_qe : int = 0
+        n_upper_qe : int = 0
+        n_lower_nqe : int = 0
+        n_upper_nqe : int = 0
+        
         k : int = 0
 
-        while k < n_samples:
-            ev_sampled = False
+        while k < self.n_samples:
             id = self.sample_world()
+            k = k + 1
+            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled, ctl, id)
 
-            if id in sampled:
-                k = k + 1
-                n_upper = n_upper + sampled[id][0]
-                n_lower = n_lower + sampled[id][1]
-            else:
-                i = 0
-                for atm in ctl.symbolic_atoms:
-                    if atm.is_external:
-                        ctl.assign_external(atm.literal, id[i] == 'T')
-                        i = i + 1
+            n_lower_qe = n_lower_qe + lower_qe
+            n_upper_qe = n_upper_qe + upper_qe
+            n_lower_nqe = n_lower_nqe + lower_nqe
+            n_upper_nqe = n_upper_nqe + upper_nqe
 
-                upper = False
-                lower = True
-                with ctl.solve(yield_=True) as handle:  # type: ignore
-                    for m in handle:  # type: ignore
-                        m1 = str(m).split(' ')  # type: ignore
-                        if 'e' in m1:
-                            ev_sampled = True
-                            if 'q' in m1:
-                                upper = True
-                            if "nq" in m1:
-                                lower = False
-
-                if ev_sampled is True:
-                    k = k + 1
-                    sampled[id] = [0, 0]
-
-                if upper is True:
-                    n_upper = n_upper + 1
-                    sampled[id] = [1, 0]
-                    if lower is True:
-                        n_lower = n_lower + 1
-                        sampled[id] = [1, 1]
-
-        return n_lower/n_samples, n_upper/n_samples
+        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
 
 
     def sample_query(self, bound : bool = False) -> 'tuple[float, float]':

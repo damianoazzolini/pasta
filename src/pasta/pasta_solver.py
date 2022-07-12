@@ -77,7 +77,7 @@ class Pasta:
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence)
         self.parser.parse_approx(from_string)
-        asp_program = self.parser.get_asp_program()
+        asp_program = self.parser.get_asp_program_approx()
 
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
