@@ -296,9 +296,9 @@ class AspInterface:
 
         k : int = 0
         
-        current_t_count : int = 0
+        current_t_count : int = 1
 
-        previous_t_count = 1
+        previous_t_count : int = 1
 
         while k < n_samples:
             id = self.sample_world()
@@ -336,6 +336,7 @@ class AspInterface:
                             1 if nqe_count > 0 else 0,
                             current_t_count
                         ]
+
                 previous_t_count = current_t_count
 
         return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
