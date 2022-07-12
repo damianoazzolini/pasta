@@ -297,15 +297,15 @@ class AspInterface:
             ev = False
 
             while ev is False:
+                # blocked gibbs
                 to_resample = self.pick_random_index(block, id)
                 idNew = id
-                # blocked gibbs
+                for i in to_resample:
+                    idNew = idNew[:i] + self.resample(i) + idNew[i+1:]
+
                 if idNew in sampled_evidence:
                     ev = sampled_evidence[idNew]
                 else:
-                    for i in to_resample:
-                        idNew = idNew[:i] + self.resample(i) + idNew[i+1:]
-
                     i = 0
                     for atm in ctl.symbolic_atoms:
                         if atm.is_external:
