@@ -448,29 +448,25 @@ class AspInterface:
         2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
         '''
         # sampled worlds
+        # each element is a list [lower, upper]
         sampled = {}
         
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl()
 
-        # n_bool_vars = self.n_prob_facts
-        n_samples = self.n_samples
-
-        n_upper : int = 0
         n_lower : int = 0
+        n_upper : int = 0
         k : int = 0
 
         # if bound is True:
         # 	import math
 
-        while k < n_samples:
+        while k < self.n_samples:
             id = self.sample_world()
+            k = k + 1
 
             if id in sampled:
-                n_upper = n_upper + sampled[id][0]
-                n_lower = n_lower + sampled[id][1]
+                n_lower = n_lower + sampled[id][0]
+                n_upper = n_upper + sampled[id][1]
             else:
                 i = 0
                 for atm in ctl.symbolic_atoms:
@@ -481,24 +477,23 @@ class AspInterface:
                         ctl.assign_external(atm.literal, id[i] == 'T')
                         i = i + 1
 
-                upper = False
-                lower = True
+                upper_count = 0
+                lower_count = 0
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
-                        if "q" == str(m):  # type: ignore
-                            upper = True
-                        elif "nq" == str(m):  # type: ignore
-                            lower = False
+                        m1 = str(m)  # type: ignore
+
+                        if m1 == "q":
+                            upper_count = upper_count + 1
+                        else:
+                            lower_count = lower_count + 1
 
                         handle.get()  # type: ignore
 
-                if upper:
-                    n_upper = n_upper + 1
-                    sampled[id] = [1, 0]
-                    if lower:
-                        n_lower = n_lower + 1
-                        sampled[id] = [1, 1]
-            k = k + 1
+                up = 1 if upper_count > 0 else 0
+                lp = 1 if up and lower_count == 0 else 0
+
+                sampled[id] = [lp, up]
             
             # if bound is True:
             # 	p = n_lower / k
@@ -507,8 +502,8 @@ class AspInterface:
             # 	if condition and n_lower > 5 and k - n_lower > 5 and k % 101 == 0:
             # 		a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
             # 		break
-        
-        return n_lower/k, n_upper/k
+
+        return n_lower / k, n_upper / k
 
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':
