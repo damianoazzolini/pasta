@@ -302,12 +302,12 @@ class AspInterface:
 
         while k < n_samples:
             id = self.sample_world()
+            k = k + 1
 
             if id in sampled:
                 current_t_count = sampled[id][4]
 
                 if random.random() < min(1, current_t_count / previous_t_count):
-                    k = k + 1
                     n_lower_qe = n_lower_qe + sampled[id][0]
                     n_upper_qe = n_upper_qe + sampled[id][1]
                     n_lower_nqe = n_lower_nqe + sampled[id][2]
@@ -322,7 +322,7 @@ class AspInterface:
                     current_t_count = t_count if t_count > 0 else 1
 
                     if random.random() < min(1, current_t_count / previous_t_count):
-                        k = k + 1
+                        # k = k + 1
                         n_lower_qe = n_lower_qe + (1 if qe_false_count == 0 else 0)
                         n_upper_qe = n_upper_qe + (1 if qe_count > 0 else 0)
                         n_lower_nqe = n_lower_nqe + (1 if nqe_false_count == 0 else 0)
