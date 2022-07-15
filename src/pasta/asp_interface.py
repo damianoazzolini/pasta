@@ -482,7 +482,6 @@ class AspInterface:
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
                         m1 = str(m)  # type: ignore
-
                         if m1 == "q":
                             upper_count = upper_count + 1
                         else:
@@ -494,6 +493,10 @@ class AspInterface:
                 lp = 1 if up and lower_count == 0 else 0
 
                 sampled[id] = [lp, up]
+
+                n_lower = n_lower + lp
+                n_upper = n_upper + up
+
             
             # if bound is True:
             # 	p = n_lower / k
