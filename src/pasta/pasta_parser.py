@@ -274,7 +274,7 @@ class PastaParser:
             elif line.startswith("("):
                 expanded_conditional = gen.generate_clauses_for_conditionals(line)
                 for el in expanded_conditional:
-                    self.lines_prob.append([el])
+                    self.lines_prob.append(el)
             elif line.startswith("abducible"):
                 _, abducible = gen.generate_clauses_for_abducibles(line, 0)
                 # self.lines_prob.append(clauses)
@@ -294,23 +294,21 @@ class PastaParser:
                 probability, fact = self.check_consistent_prob_fact(new_line)
                 self.add_probabilistic_fact(fact, probability)
                 new_clause = "ic" + str(self.n_probabilistic_ics) + ":- " + line.split(':-')[1]
-                self.lines_prob.append([new_clause])
+                self.lines_prob.append(new_clause)
 
                 new_ic_0 = ":- icf" + str(self.n_probabilistic_ics) + ", ic" + str(self.n_probabilistic_ics) + "."
-                self.lines_prob.append([new_ic_0])
+                self.lines_prob.append(new_ic_0)
 
                 new_ic_1 = ":- not icf" + str(self.n_probabilistic_ics) + ", not ic" + str(self.n_probabilistic_ics) + "."
-                self.lines_prob.append([new_ic_1])
+                self.lines_prob.append(new_ic_1)
 
                 self.n_probabilistic_ics = self.n_probabilistic_ics + 1
                 
             else:
                 if not line.startswith("#show"):
-                    self.lines_prob.append([line])
+                    self.lines_prob.append(line)
         if not self.query:
             print_error_and_exit("Missing query")
-            
-        self.lines_prob = [item for sublist in self.lines_prob for item in sublist]
 
         for fact in self.probabilistic_facts:
             # To handle 0.1::a. a. q:- a.
