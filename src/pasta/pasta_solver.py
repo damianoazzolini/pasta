@@ -32,6 +32,9 @@ pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical
 
 
 class Pasta:
+    '''
+    Main class of the PASTA solver
+    '''
     def __init__(
         self,
         filename : str,
@@ -55,6 +58,7 @@ class Pasta:
         self.interface : AspInterface
         self.parser : PastaParser
 
+
     @staticmethod
     def check_lp_up(lp : float, up : float) -> None:
         '''
@@ -62,16 +66,18 @@ class Pasta:
         '''
         if (lp > up) or (int(lp * 10e8) > 10e8) or (int(up * 10e8) > 10e8):
             print("Error in computing probabilities")
-            print("Lower: " + '{:.8f}'.format(lp))
-            print("Upper: " + '{:.8f}'.format(up))
+            print(f"Lower: {lp:.8f}")
+            print(f"Upper: {up:.8f}")
             sys.exit()
 
 
     def parameter_learning(self) -> None:
-        pass
+        '''
+        TODO, insert the code of test_learning.py
+        '''
 
 
-    def approximate_solve(self, args : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
+    def approximate_solve(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
         '''
         Inference through sampling
         '''
@@ -90,15 +96,15 @@ class Pasta:
             self.samples
         )
 
-        if self.evidence == "" and (args.rejection is False and args.mh is False and args.gibbs is False):
+        if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
             lp, up = self.interface.sample_query()
         elif self.evidence != "":
-            if args.rejection is True:
+            if arguments.rejection is True:
                 lp, up = self.interface.rejection_sampling()
-            elif args.mh is True:
+            elif arguments.mh is True:
                 lp, up = self.interface.mh_sampling()
-            elif args.gibbs is True:
-                lp, up = self.interface.gibbs_sampling(args.block)
+            elif arguments.gibbs is True:
+                lp, up = self.interface.gibbs_sampling(arguments.block)
             else:
                 lp = 0
                 up = 0
@@ -186,7 +192,7 @@ class Pasta:
 
     def map_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
         '''
-        Maximum a posteriori (MAP) inference: find the state (world) 
+        Maximum a posteriori (MAP) inference: find the state (world)
         with maximum probability where the evidence holds.
         Most probable explanation (MPE) is MAP where no evidence is present
         i.e., find the world with highest probability.
@@ -204,8 +210,8 @@ class Pasta:
         map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
         map_or_mpe = "MPE" if map_op else "MAP"
         print(f"{map_or_mpe}: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
-        for i in range(0, len(atoms_list)):
-            print(f"State {i}: {atoms_list[i]}")
+        for i, el in enumerate(atoms_list):
+            print(f"State {i}: {el}")
 
 
     @staticmethod
@@ -225,9 +231,9 @@ class Pasta:
         '''
         Removes the dominated explanations, used in abduction.
         '''
-        ls : list[set[str]] = []
+        ls : 'list[set[str]]' = []
         for exp in abd_exp:
-            e : set[str] = set()
+            e : 'set[str]' = set()
             for el in exp:
                 if not el.startswith('not') and el != 'q':
                     if el.startswith('abd_'):
@@ -236,10 +242,10 @@ class Pasta:
                         e.add(el)
             ls.append(e)
 
-        for i in range(0, len(ls)):
+        for i, el in enumerate(ls):
             for j in range(i + 1, len(ls)):
-                if len(ls[i]) > 0:
-                    if ls[i].issubset(ls[j]):
+                if len(el) > 0:
+                    if el.issubset(ls[j]):
                         ls[j] = set()  # type: ignore
 
         return ls
@@ -290,16 +296,16 @@ if __name__ == "__main__":
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.brave)
 
     if args.abduction is True:
-        lp, up, abd_explanations = pasta_solver.abduction()
-        Pasta.print_result_abduction(lp, up, abd_explanations)
+        lower_p, upper_p, abd_explanations = pasta_solver.abduction()
+        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations)
     elif args.approximate or args.rejection or args.mh or args.gibbs is True:
-        lp, up = pasta_solver.approximate_solve(args)
-        Pasta.print_prob(lp, up)
+        lower_p, upper_p = pasta_solver.approximate_solve(args)
+        Pasta.print_prob(lower_p, upper_p)
     elif args.pl is True:
         pasta_solver.parameter_learning()
     elif args.map is True:
-        max_p, atoms_list = pasta_solver.map_inference()
-        Pasta.print_map_state(max_p, atoms_list, len(pasta_solver.interface.prob_facts_dict))
+        max_p, atoms_list_res = pasta_solver.map_inference()
+        Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
     else:
-        lp, up = pasta_solver.inference()
-        Pasta.print_prob(lp, up)
+        lower_p, upper_p = pasta_solver.inference()
+        Pasta.print_prob(lower_p, upper_p)
