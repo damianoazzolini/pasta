@@ -1,53 +1,37 @@
 '''
 Class to identify a world.
-In the constructor, both lower and upper int (counters) are needed, since in 
-some cases only model_not_query is true, so the world does not contribute
-to the list
 '''
-
 
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
     '''
-    def __init__(self, 
-        id_abd : str, 
-        id_prob : str, 
-        prob : float, 
+    def __init__(self,
+        id_abd : str,
+        id_prob : str,
+        prob : float,
         model_query : bool
         ) -> None:
         self.id : str = id_abd
         self.model_query_count : int = 0  # needed?
         self.model_not_query_count : int = 0  # needed?
-        self.probabilistic_worlds : dict[str,World] = dict()
-
-        # if model_query is True:
-        #     self.model_query_count = 1  # needed?
-        # else: 
-        #     self.model_not_query_count = 1 # needed?
-            
+        self.probabilistic_worlds : 'dict[str,World]' = dict()
         self.probabilistic_worlds[id_prob] = World(prob)
         if model_query is True:
             self.probabilistic_worlds[id_prob].increment_model_query_count()
         else:
             self.probabilistic_worlds[id_prob].increment_model_not_query_count()
-    
-    # def manage_worlds_dict(self, id: str, prob: int, model_query: bool) -> None: 
-    #     if model_query is True:
-    #         self.model_query_count += 1  # needed?
-    #     else: 
-    #         self.model_not_query_count += 1 # needed?
 
-    #     ModelsHandler.manage_worlds_dict(self.probabilistic_worlds, None, id, prob, model_query, None)
 
     def __str__(self) -> str:
         s = "id: " + self.id + " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + "\n"
-        
+
         for el in self.probabilistic_worlds:
             s = s + "\t" + self.probabilistic_worlds[el].__str__() + "\n"
 
         return s
+
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -60,8 +44,8 @@ class World:
     def __init__(self, prob : float) -> None:
         # self.id : str = id
         self.prob: float = prob
-        # meaning of these two: 
-        # if not evidence: model_not_query_count -> q 
+        # meaning of these two:
+        # if not evidence: model_not_query_count -> q
         #                  model_query_count -> q
         # if evidence: model_not_query_count -> q and e
         #              model_query_count -> nq and e
@@ -84,7 +68,7 @@ class World:
             " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + \
             " mc: " + str(self.model_count)
-    
+
     def __repr__(self) -> str:
         return self.__str__()
 
@@ -93,8 +77,8 @@ class ModelsHandler():
     '''
     Class to handle the models computed by clingo
     '''
-    def __init__(self, 
-        prob_facts_dict : 'dict[str,float]', 
+    def __init__(self,
+        prob_facts_dict : 'dict[str,float]',
         evidence : str,
         abducibles_list : 'list[str]' = []
         ) -> None:
@@ -116,14 +100,18 @@ class ModelsHandler():
     def increment_lower_query_prob(self, p : float) -> None:
         self.lower_query_prob = self.lower_query_prob + p
 
+
     def increment_upper_query_prob(self, p : float) -> None:
         self.upper_query_prob = self.upper_query_prob + p
+
 
     def increment_lower_evidence_prob(self, p : float) -> None:
         self.lower_evidence_prob = self.lower_evidence_prob + p
 
+
     def increment_upper_evidence_prob(self, p: float) -> None:
         self.upper_evidence_prob = self.upper_evidence_prob + p
+
 
     def get_number_worlds(self) -> int:
         return len(self.worlds_dict.keys())
@@ -156,7 +144,7 @@ class ModelsHandler():
 
         return self.best_lp, self.best_up
 
-                    
+
     def extract_pos_and_prob(self, term : str) -> 'tuple[int,int,float]':
         '''
         Computes the position in the dict to generate the string and the probability
@@ -168,14 +156,13 @@ class ModelsHandler():
         if term.startswith('not_'):
             term = term.split('not_')[1]
             positive = False
-        
+
         for el in self.prob_facts_dict:
             if term == el:
-                probability = self.prob_facts_dict[el] if positive else 1 - \
-                    self.prob_facts_dict[el]
+                probability = self.prob_facts_dict[el] if positive else 1 - self.prob_facts_dict[el]
                 break
-            else:
-                index = index + 1
+
+            index = index + 1
 
         return index, 1 if positive else 0, probability
 
@@ -187,7 +174,7 @@ class ModelsHandler():
         '''
         index = 0
         positive = True
-        
+
         if term.startswith('not_'):
             term = term.split('not_')[1]
             positive = False
@@ -197,8 +184,8 @@ class ModelsHandler():
         for el in self.abducibles_list:
             if term == el:
                 break
-            else:
-                index = index + 1
+
+            index = index + 1
 
         return index, 1 if positive else 0
 
@@ -233,16 +220,16 @@ class ModelsHandler():
         if evidence == "":
             # query without evidence
             return id, probability, model_query, False
-        else:
-            # can I return directly model_query and model_evidence?
-            # also in the case of evidence == None
-            if (model_query == True) and (model_evidence == True):
-                return id, probability, True, True
-            elif (model_query == False) and (model_evidence == True):
-                return id, probability, False, True
-            else:
-                # all the other cases, don't care
-                return id, probability, False, False
+
+        # can I return directly model_query and model_evidence?
+        # also in the case of evidence == ""?
+        if (model_query is True) and (model_evidence is True):
+            return id, probability, True, True
+        if (model_query is False) and (model_evidence is True):
+            return id, probability, False, True
+        
+        # all the other cases, don't care
+        return id, probability, False, False
 
 
     def get_ids_abduction(self, line : str) -> 'tuple[str,str,float,bool]':
@@ -295,24 +282,24 @@ class ModelsHandler():
                     current_dict[id].increment_model_not_query_count()
             else:
                 current_dict[id].increment_model_count()
-                if (model_query == True) and (model_evidence == True):
+                if (model_query is True) and (model_evidence is True):
                     current_dict[id].increment_model_query_count()  # q e
-                elif (model_query == False) and (model_evidence == True):
+                elif (model_query is False) and (model_evidence is True):
                     current_dict[id].increment_model_not_query_count()  # nq e
             return
 
         # element not found -> add a new world
         w = World(prob)
         if self.evidence == "":
-            if model_query == True:
+            if model_query is True:
                 w.increment_model_query_count()
             else:
                 w.increment_model_not_query_count()
         else:
             w.increment_model_count()
-            if (model_query == True) and (model_evidence == True):
+            if (model_query is True) and (model_evidence is True):
                 w.increment_model_query_count()  # q e
-            elif (model_query == False) and (model_evidence == True):
+            elif (model_query is False) and (model_evidence is True):
                 w.increment_model_not_query_count()  # nq e
 
         current_dict[id] = w
@@ -322,8 +309,8 @@ class ModelsHandler():
         '''
         Analyzes the stable models and construct the world
         '''
-        id, probability, model_query, model_evidence = self.get_id_prob_world(line, self.evidence)
-        self.manage_worlds_dict(self.worlds_dict, id, probability, model_query, model_evidence)
+        w_id, probability, model_query, model_evidence = self.get_id_prob_world(line, self.evidence)
+        self.manage_worlds_dict(self.worlds_dict, w_id, probability, model_query, model_evidence)
 
 
     def manage_worlds_dict_abduction(self, 
@@ -352,13 +339,14 @@ class ModelsHandler():
         self.manage_worlds_dict_abduction(id_abd, id_prob, prob, model_query)
 
 
-    def get_abducibles_from_id(self, id : str) -> 'list[str]':
+    def get_abducibles_from_id(self, w_id : str) -> 'list[str]':
         '''
         From a 01 string returns the list of selected abducibles
         '''
         obtained_abds : 'list[str]' = []
-        for i in range(0,len(id)):
-            if id[i] == '1':
+
+        for i in range(0,len(w_id)):
+            if w_id[i] == '1':
                 obtained_abds.append(self.abducibles_list[i])
             else:
                 obtained_abds.append(f"not {self.abducibles_list[i]}")
@@ -367,8 +355,8 @@ class ModelsHandler():
 
     def get_map_word_from_id(
         self,
-        id : str,
-        map : bool,
+        w_id : str,
+        map_task : bool,
         map_id_list: 'list[int]'
         ) -> 'list[str]':
         '''
@@ -377,19 +365,20 @@ class ModelsHandler():
         obtained_atoms : 'list[str]' = []
         ids_list : 'list[int]' = []
         keys = list(self.prob_facts_dict.keys())
-        if map:
+
+        if map_task:
             ids_list = [i for i in range(0,len(self.prob_facts_dict))]
             for index, prob_fact in zip(ids_list, keys):
-                if id[index] == '1':
+                if w_id[index] == '1':
                     obtained_atoms.append(prob_fact)
                 else:
                     obtained_atoms.append(f"not {prob_fact}")
         else:
-            for i in range(0, len(map_id_list)):
-                if id[i] == '1':
-                    obtained_atoms.append(keys[map_id_list[i]])
+            for i, el in enumerate(map_id_list):
+                if w_id[i] == '1':
+                    obtained_atoms.append(keys[el])
                 else:
-                    obtained_atoms.append(f"not {keys[map_id_list[i]]}")
+                    obtained_atoms.append(f"not {keys[el]}")
 
         return obtained_atoms
 
@@ -421,24 +410,28 @@ class ModelsHandler():
 
         if self.evidence == "":
             return self.lower_query_prob, self.upper_query_prob
+        
+        if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
+            return 0,0
+
+        if (self.lower_query_prob + self.upper_evidence_prob == 0) and self.upper_query_prob > 0:
+            return 1,1
+
+        if self.lower_query_prob + self.upper_evidence_prob > 0:
+            lqp = self.lower_query_prob / (self.lower_query_prob + self.upper_evidence_prob)
         else:
-            if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
-                return 0,0
-            elif (self.lower_query_prob + self.upper_evidence_prob == 0) and self.upper_query_prob > 0:
-                return 1,1
-            else:
-                if self.lower_query_prob + self.upper_evidence_prob > 0:
-                    lqp = self.lower_query_prob / (self.lower_query_prob + self.upper_evidence_prob)
-                else:
-                    lqp = 0
-                if self.upper_query_prob + self.lower_evidence_prob > 0:
-                    uqp = self.upper_query_prob / (self.upper_query_prob + self.lower_evidence_prob)
-                else:
-                    uqp = 0
-                return lqp, uqp 
+            lqp = 0
+
+        if self.upper_query_prob + self.lower_evidence_prob > 0:
+            uqp = self.upper_query_prob / (self.upper_query_prob + self.lower_evidence_prob)
+        else:
+            uqp = 0
+
+        return lqp, uqp 
 
 
-    def get_sub_world(self, super_w : str, map_id_list : 'list[int]') -> str:
+    @staticmethod
+    def get_sub_world(super_w : str, map_id_list : 'list[int]') -> str:
         '''
         Extracts a string from super_w representing a sub world.
         Example:
@@ -462,8 +455,9 @@ class ModelsHandler():
         '''
         Get the world with the highest associated probability
         '''
-        max_prob: float = 0.0
-        w_id_list : list[str] = []
+        max_prob : float = 0.0
+        w_id_list : 'list[str]' = []
+
         for el in current_worlds_dict:
             w = current_worlds_dict[el]
             if w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
@@ -475,13 +469,12 @@ class ModelsHandler():
                     w_id_list = []
                     w_id_list.append(el)
 
-
         if max_prob == 0.0:
             return 0.0, []
-        else:
-            map_len = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
-            l_map_worlds = map(lambda w_id : self.get_map_word_from_id(w_id, map_len, map_id_list), w_id_list)
-            return max_prob, list(l_map_worlds)
+
+        map_len = len(list(current_worlds_dict)[0]) == len(list(self.worlds_dict)[0])
+        l_map_worlds = map(lambda w_id : self.get_map_word_from_id(w_id, map_len, map_id_list), w_id_list)
+        return max_prob, list(l_map_worlds)
 
 
     def get_map_solution(
@@ -497,12 +490,12 @@ class ModelsHandler():
             max_prob, atoms_list = self.get_highest_prob_and_w_id_map(self.worlds_dict, map_id_list, lower)
         else:
             # group by map variables
-            map_worlds : dict[str,World] = {}
+            map_worlds : 'dict[str,World]' = {}
             for el in self.worlds_dict:
                 w = self.worlds_dict[el]
                 if w.model_query_count > 0:
                     # keep both lower and upper
-                    sub_w = self.get_sub_world(el, map_id_list)
+                    sub_w = ModelsHandler.get_sub_world(el, map_id_list)
                     if sub_w in map_worlds:
                         map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
                         map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
