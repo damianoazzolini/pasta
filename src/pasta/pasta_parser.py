@@ -335,6 +335,99 @@ class PastaParser:
         return True
 
 
+    def parse_input_learning(self, from_string: str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float],int]':
+        '''
+        #example(pos,Id,'atom') where Id is the Id of the (partial) answer set and atom is the correspondent atom
+        #test(IdList)
+        #train(IdList)
+        #program('program') where program is a set of clauses
+        #learnable(atom) where atom is a probabilistic fact with init probability 0.5
+        '''
+        lines: list[str] = []
+
+        if self.filename == "":
+            lines = from_string.split('\n')
+        else:
+            fp = open(self.filename, "r")
+            lines = fp.readlines()
+            fp.close()
+
+        i = 0
+        program = ""
+        # target = ""
+        prob_facts_dict: dict[str, float] = dict()
+        interpretations_dict: dict[int, list[str]] = dict()
+
+        training_set: list[list[str]] = []
+        test_set: list[list[str]] = []
+
+        train_ids: list[int] = []
+        test_ids: list[int] = []
+
+        offset = 0
+
+        while i < len(lines):
+            lines[i] = lines[i].replace('\n', '')
+            if lines[i].startswith("#program('"):
+                i = i + 1
+                while(not (lines[i].startswith("')."))):
+                    program = program + lines[i]
+                    # look for prob facts in the program that need to be considered
+                    # in the dict but whose probabilities cannot be set
+                    if '::' in lines[i]:
+                        prob_fact = lines[i].split('::')[1].replace(
+                            '\n', '').replace('.', '').replace(' ', '')
+                        prob_facts_dict[prob_fact] = float(lines[i].split('::')[0])
+                        offset = offset + 1
+                    i = i + 1
+            # elif lines[i].startswith("#target("):
+            #     ll = lines[i].split("#target(")
+            #     target = ll[1].replace('\n','')[:-2]
+            #     i = i + 1
+            elif lines[i].startswith("#learnable("):
+                ll = lines[i].split("#learnable(")
+                name = ll[1].replace('\n', '')[:-2]
+                prob_facts_dict[name] = 0.5
+                i = i + 1
+            elif lines[i].startswith("#positive("):
+                ll = lines[i].split("#positive(")
+                id_interpretation = int(ll[1].split(',')[0])
+                atom = ll[1].replace('\n', '')[len(str(id_interpretation)) + 1: -2]
+                if id_interpretation in interpretations_dict.keys():
+                    interpretations_dict[id_interpretation].append(atom)
+                else:
+                    interpretations_dict[id_interpretation] = [atom]
+                i = i + 1
+            elif lines[i].startswith("#negative("):
+                ll = lines[i].split("#negative(")
+                id_interpretation = int(ll[1].split(',')[0])
+                atom = ll[1].replace('\n', '')[len(str(id_interpretation)) + 1: -2]
+                if id_interpretation in interpretations_dict.keys():
+                    interpretations_dict[id_interpretation].append(f"not {atom}")
+                else:
+                    interpretations_dict[id_interpretation] = [f"not {atom}"]
+
+                i = i + 1
+            elif lines[i].startswith("#train("):
+                ll = lines[i].split("#train(")
+                train_ids = list(map(int, ll[1].replace('\n', '')[:-2].split(',')))
+                i = i + 1
+            elif lines[i].startswith("#test("):
+                ll = lines[i].split("#test(")
+                test_ids = list(map(int, ll[1].replace('\n', '')[:-2].split(',')))
+                i = i + 1
+            else:
+                i = i + 1
+
+        for id in train_ids:
+            training_set.append(interpretations_dict[int(id)])
+
+        for id in test_ids:
+            test_set.append(interpretations_dict[int(id)])
+
+        return training_set, test_set, program, prob_facts_dict, offset
+
+
     def check_reserved(self, line : str) -> None:
         '''
         Dummy check for reserved names (q, nq, e, ne)

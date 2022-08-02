@@ -232,12 +232,13 @@ def compute_probability_interpretation(
 
     if key not in interpretations_to_worlds:
         s = generate_program_string(facts_prob, offset, example, program)
+        print(s)
 
         pasta_solver_ins = pasta_solver.Pasta("", interpretation_string)  # type: ignore
         up : float = 0
         lp : float = 0
         lp, up = pasta_solver_ins.inference(from_string = s)  # type: ignore
-
+        print(lp, up)
         add_element_to_dict(pasta_solver_ins.interface.model_handler.worlds_dict, interpretations_to_worlds, key)
     else:
         lp, up = get_prob_from_dict(interpretations_to_worlds, facts_prob, key)
@@ -536,7 +537,7 @@ def learn_parameters(
     prob_facts_dict : 'dict[str,float]',
     offset : int,
     upper : bool = False, 
-    verbose : bool = False
+    verbose : bool = True
 ) -> 'dict[int,list[tuple[str,int,int,int]]]':
 
     # start_time = time.time()
@@ -573,6 +574,8 @@ def learn_parameters(
     n_iterations = 0
     offset_value = offset
 
+    print('---')
+
     while (ll1 - ll0) > epsilon:
         n_iterations = n_iterations + 1
         print(f"ll0: {ll0} ll1: {ll1}")
@@ -590,7 +593,7 @@ def learn_parameters(
                 for i in range(0, len(training_set)):
                     lp1, up1, lp0, up0 = compute_expected_values(
                         prob_facts_dict, offset_value, training_set[i], program, prob_fact, i, computed_expectation_dict)
-
+                    print(lp1, up1, lp0, up0)
                     upper1 = upper1 + up1
                     lower1 = lower1 + lp1
                     upper0 = upper0 + up0
@@ -602,7 +605,8 @@ def learn_parameters(
 
         offset = offset_value
 
-        if verbose:
+        if True:
+            print('--- stamps ---')
             print(expected_dict)
             print(prob_facts_dict)
 
@@ -655,7 +659,7 @@ if __name__ == "__main__":
 
     training_set, test_set, program, prob_facts_dict, offset = parse_input_learning(program)
     upper = False
-    verbose = False
+    verbose = True
     start_time = time.time()
     interpretations_to_worlds = learn_parameters(training_set, test_set, program, prob_facts_dict, offset, upper, verbose)
     end_time = time.time() - start_time
