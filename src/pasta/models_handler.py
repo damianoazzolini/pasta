@@ -15,7 +15,7 @@ class AbdWorld:
         self.id : str = id_abd
         self.model_query_count : int = 0  # needed?
         self.model_not_query_count : int = 0  # needed?
-        self.probabilistic_worlds : 'dict[str,World]' = dict()
+        self.probabilistic_worlds : 'dict[str,World]' = {}
         self.probabilistic_worlds[id_prob] = World(prob)
         if model_query is True:
             self.probabilistic_worlds[id_prob].increment_model_query_count()
@@ -82,8 +82,8 @@ class ModelsHandler():
         evidence : str,
         abducibles_list : 'list[str]' = []
         ) -> None:
-        self.worlds_dict : 'dict[str,World]' = dict()
-        self.abd_worlds_dict : 'dict[str,AbdWorld]' = dict()
+        self.worlds_dict : 'dict[str,World]' = {}
+        self.abd_worlds_dict : 'dict[str,AbdWorld]' = {}
         self.prob_facts_dict = prob_facts_dict
         self.best_lp : float = 0 # best prob found so far with abduction
         self.best_up : float = 0 # best prob found so far with abduction
@@ -178,9 +178,9 @@ class ModelsHandler():
         if term.startswith('not_'):
             term = term.split('not_')[1]
             positive = False
-        
+
         term = term.split('abd_')[1]
-        
+
         for el in self.abducibles_list:
             if term == el:
                 break
@@ -190,8 +190,8 @@ class ModelsHandler():
         return index, 1 if positive else 0
 
 
-    def get_id_prob_world(self, 
-        line: str, 
+    def get_id_prob_world(self,
+        line: str,
         evidence: str
         ) -> 'tuple[str, float, bool, bool]':
         '''
@@ -227,14 +227,14 @@ class ModelsHandler():
             return id, probability, True, True
         if (model_query is False) and (model_evidence is True):
             return id, probability, False, True
-        
+
         # all the other cases, don't care
         return id, probability, False, False
 
 
     def get_ids_abduction(self, line : str) -> 'tuple[str,str,float,bool]':
         '''
-        From a line representing an answer set returns the id for both 
+        From a line representing an answer set returns the id for both
         abducibles and worlds as a 01 string. Similar to get_id_prob_world
         '''
         line_list = line.split(' ')
@@ -260,10 +260,10 @@ class ModelsHandler():
 
 
     def manage_worlds_dict(self,
-        current_dict : 'dict[str,World]', 
-        id : str, 
-        prob : float, 
-        model_query : bool, 
+        current_dict : 'dict[str,World]',
+        id : str,
+        prob : float,
+        model_query : bool,
         model_evidence : bool
         ) -> None:
         '''
@@ -313,10 +313,10 @@ class ModelsHandler():
         self.manage_worlds_dict(self.worlds_dict, w_id, probability, model_query, model_evidence)
 
 
-    def manage_worlds_dict_abduction(self, 
-        id_abd : str, 
-        id_prob : str, 
-        prob : float, 
+    def manage_worlds_dict_abduction(self,
+        id_abd : str,
+        id_prob : str,
+        prob : float,
         model_query : bool
         ) -> None:
         '''
@@ -406,11 +406,11 @@ class ModelsHandler():
                 if mnqe > 0:
                     if mnqe == nm:
                         self.increment_lower_evidence_prob(p)
-                    self.increment_upper_evidence_prob(p) 
+                    self.increment_upper_evidence_prob(p)
 
         if self.evidence == "":
             return self.lower_query_prob, self.upper_query_prob
-        
+
         if (self.upper_query_prob + self.lower_evidence_prob == 0) and self.upper_evidence_prob > 0:
             return 0,0
 
@@ -427,7 +427,7 @@ class ModelsHandler():
         else:
             uqp = 0
 
-        return lqp, uqp 
+        return lqp, uqp
 
 
     @staticmethod
@@ -499,7 +499,7 @@ class ModelsHandler():
                     if sub_w in map_worlds:
                         map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
                         map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
-                        map_worlds[sub_w].prob = map_worlds[sub_w].prob + w.prob  # add the probability 
+                        map_worlds[sub_w].prob = map_worlds[sub_w].prob + w.prob  # add the probability
                     else:
                         map_worlds[sub_w] = World(w.prob)
                         map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
