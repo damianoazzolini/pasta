@@ -2,8 +2,6 @@ import sys
 
 import argparse
 
-from click import argument
-
 # from pasta.pasta_parser import PastaParser
 from pasta_parser import PastaParser
 # import pasta_parser
