@@ -45,7 +45,10 @@ class Pasta:
         verbose : bool = False,
         pedantic : bool = False,
         samples : int = 1000,
-        cautious : bool = True
+        cautious : bool = True,
+        no_minimal : bool = False,
+        normalize_prob : bool = False,
+        stop_if_inconsistent : bool = False,
         ) -> None:
         self.filename = filename
         self.query = query
@@ -57,6 +60,9 @@ class Pasta:
         self.samples = samples
         # lower or upper probability bound for MAP/Abduction, default lower
         self.cautious = cautious
+        self.no_minimal = no_minimal
+        self.normalize_prob = normalize_prob
+        self.stop_if_inconsistent = stop_if_inconsistent
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -73,13 +79,13 @@ class Pasta:
             sys.exit()
 
 
-    def parameter_learning(self, arguments: argparse.Namespace, from_string : str = "") -> None:
+    def parameter_learning(self, from_string : str = "") -> None:
         '''
         Parameter learning
         '''
         self.parser = PastaParser(self.filename)
-        training_set, test_set, program, prob_facts_dict, offset = self.parser.parse_input_learning()
-        interpretations_to_worlds = learning_utilities.learn_parameters(training_set, test_set, program, prob_facts_dict, offset, arguments.brave, arguments.verbose)
+        training_set, test_set, program, prob_facts_dict, offset = self.parser.parse_input_learning(from_string)
+        interpretations_to_worlds = learning_utilities.learn_parameters(training_set, test_set, program, prob_facts_dict, offset, not self.cautious, self.verbose)
         learning_utilities.test_results(test_set, interpretations_to_worlds, prob_facts_dict, program, offset)
 
 
@@ -121,7 +127,7 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = "", cautious : bool = True) -> None:
+    def setup_interface(self, from_string : str = "", cautious : bool = True, no_minimal : bool = False) -> None:
         '''
         Setup clingo interface
         '''
@@ -132,9 +138,11 @@ class Pasta:
         if self.verbose:
             print("Parsed program")
         
-        # __ errore __, non bisogna trovare il minimal
-        # content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
-        content_find_minimal_set = []
+        if no_minimal:
+            content_find_minimal_set = []
+        else:
+            content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
+        
         asp_program = self.parser.get_asp_program()
 
         if not cautious:
@@ -187,9 +195,9 @@ class Pasta:
         '''
         Exact inference
         '''
-        self.setup_interface(from_string)
+        self.setup_interface(from_string, no_minimal=self.no_minimal)
         # self.interface.identify_useless_variables()
-        self.interface.compute_probabilities()
+        self.interface.compute_probabilities(self.normalize_prob, self.stop_if_inconsistent)
         lp = self.interface.lower_probability_query / (1 - self.interface.normalizing_factor)
         up = self.interface.upper_probability_query / (1 - self.interface.normalizing_factor)
 
@@ -206,7 +214,7 @@ class Pasta:
         i.e., find the world with highest probability.
         '''
         self.setup_interface(from_string, self.cautious)
-        self.interface.compute_probabilities()
+        self.interface.compute_probabilities(self.normalize_prob, self.stop_if_inconsistent)
         return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.cautious)
 
 
@@ -298,10 +306,14 @@ if __name__ == "__main__":
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
     command_parser.add_argument("--brave", help="Select upper probability (brave) for MAP and abduction", action="store_true", default=False)
+    command_parser.add_argument("--no-minimal", help="Do not compute the minimal set of probabilistic facts", action="store_true", default=False)
+    command_parser.add_argument("--normalize", help="Normalize the probability if some worlds do not have answer set", action="store_true", default=False)
+    command_parser.add_argument("--stop-if-inconsistent", help="Raise an error if a world without answer sets is found", action="store_true", default=False)
 
     args = command_parser.parse_args()
 
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic, args.samples, not args.brave)
+    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
+                         args.samples, not args.brave, args.no_minimal, args.normalize, args.stop_if_inconsistent)
 
     if args.abduction is True:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
@@ -310,7 +322,7 @@ if __name__ == "__main__":
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)
     elif args.pl is True:
-        pasta_solver.parameter_learning(args)
+        pasta_solver.parameter_learning()
     elif args.map is True:
         max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))

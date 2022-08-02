@@ -380,10 +380,6 @@ class PastaParser:
                         prob_facts_dict[prob_fact] = float(lines[i].split('::')[0])
                         offset = offset + 1
                     i = i + 1
-            # elif lines[i].startswith("#target("):
-            #     ll = lines[i].split("#target(")
-            #     target = ll[1].replace('\n','')[:-2]
-            #     i = i + 1
             elif lines[i].startswith("#learnable("):
                 ll = lines[i].split("#learnable(")
                 name = ll[1].replace('\n', '')[:-2]

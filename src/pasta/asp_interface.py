@@ -1,7 +1,11 @@
 import random
 import time
+import sys
 
-import clingo
+try:
+    import clingo
+except:
+    sys.exit('Install clingo')
 
 from models_handler import ModelsHandler
 
@@ -44,7 +48,7 @@ class AspInterface:
         self.verbose : bool = verbose
         self.pedantic : bool = pedantic
         self.n_samples : int = n_samples
-        self.normalizing_factor : int = 0
+        self.normalizing_factor : float = 0
         self.inconsistent_worlds : 'dict[str,float]' = dict()
         self.prob_facts_dict : 'dict[str,float]' = probabilistic_facts
         self.model_handler : ModelsHandler = \
@@ -91,8 +95,7 @@ class AspInterface:
 
         return clingo_time
 
-
-    def compute_probabilities(self) -> None:
+    def compute_probabilities(self, normalize_prob : bool = False, stop_if_inconsistent : bool = False) -> None:
         '''
         Parameters:
             - None
@@ -126,38 +129,37 @@ class AspInterface:
         self.computation_time = time.time() - start_time
 
         start_time = time.time()
-        # print(self.model_handler.worlds_dict.keys())
-        # ks = sorted(self.model_handler.worlds_dict.keys())
-        # print(ks)
-        # l = []
-        # for el in ks:
-        #     l.append(int(el,2))
-        # print(l)
-        # print(set(range(0, 2**self.n_prob_facts)))
-        # missing = sorted(set(range(0, 2**self.n_prob_facts)).difference(l))
-        # print(missing)
-        # for el in missing:
-        #     n = str(bin(el))[2:]
-        #     print(n)
-        #     print(str(n).zfill(len(ks[0])))
-        #     n = str(n).zfill(len(ks[0]))
-        #     i = 0
-        #     np = 1
-        #     for pf in self.prob_facts_dict:
-        #         if n[i] == '0':
-        #             np = np * (1 - self.prob_facts_dict[pf])
-        #         else:
-        #             np = np * self.prob_facts_dict[pf]
-        #         i = i + 1
-        #     self.normalizing_factor = self.normalizing_factor + np
-        #     print(np)
-        #     self.inconsistent_worlds[n] = np
 
-        # print(f"n missing {len(missing)}")
-        # print(f"--> {self.normalizing_factor}")
-        # # self.normalizing_factor = 0
-        # print(self.inconsistent_worlds)
-        # print(len(self.model_handler.worlds_dict))
+        if normalize_prob or stop_if_inconsistent:
+            ks = sorted(self.model_handler.worlds_dict.keys())
+            l : 'list[int]' = []
+            for el in ks:
+                l.append(int(el,2))
+
+            missing = sorted(set(range(0, 2**self.n_prob_facts)).difference(l))
+
+            if stop_if_inconsistent and len(missing) > 0:
+                sys.exit(f"Found worlds without answer sets: {missing}")
+
+            for el in missing:
+                n = str(bin(el))[2:]
+                n = str(n).zfill(len(ks[0]))
+                i = 0
+                np = 1
+                for pf in self.prob_facts_dict:
+                    if n[i] == '0':
+                        np = np * (1 - self.prob_facts_dict[pf])
+                    else:
+                        np = np * self.prob_facts_dict[pf]
+                    i = i + 1
+                self.normalizing_factor = self.normalizing_factor + np
+                print(np)
+                self.inconsistent_worlds[n] = np
+            if self.verbose:
+                print(f"n missing {len(missing)}")
+            if self.pedantic:
+                print(self.inconsistent_worlds)
+            
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
         self.n_worlds = self.model_handler.get_number_worlds()
