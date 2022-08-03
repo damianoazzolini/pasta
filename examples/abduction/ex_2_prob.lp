@@ -8,5 +8,5 @@ query:- a,fa.
 query:- b,fb.
 
 % query(query).
-% Expected result: {{a},{b}}
+% Expected result: {{a,b}}
 % Prob = 0.75

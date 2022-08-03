@@ -5,7 +5,7 @@
 
 bought(spaghetti,a) ; bought(steak,a) :- shops(a).
 bought(spaghetti,b) ; bought(beans,b) :- shops(b).
-bought(tomato,c) ; bought(tuna,c) :- shops(c).
+bought(tomato,c) ; bought(onions,c) :- shops(c).
 bought(steak,d) ; bought(onions,d) :- shops(d).
 
 cs(C):- #count{X:bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.

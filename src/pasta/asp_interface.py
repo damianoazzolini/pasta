@@ -1,3 +1,5 @@
+""" Module implementing the connection to clingo """
+
 import random
 import time
 import sys
@@ -24,7 +26,9 @@ class AspInterface:
         abducibles_list : 'list[str]' = [],
         verbose : bool = False,
         pedantic : bool = False,
-        n_samples : int = 1000
+        n_samples : int = 1000,
+        stop_if_inconsistent : bool = False,
+        normalize_prob : bool = False
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -48,9 +52,11 @@ class AspInterface:
         self.verbose : bool = verbose
         self.pedantic : bool = pedantic
         self.n_samples : int = n_samples
-        self.normalizing_factor : float = 0
-        self.inconsistent_worlds : 'dict[str,float]' = dict()
+        self.inconsistent_worlds : 'dict[str,float]' = {}
         self.prob_facts_dict : 'dict[str,float]' = probabilistic_facts
+        self.stop_if_inconsistent : bool = stop_if_inconsistent
+        self.normalize_prob : bool = normalize_prob
+        self.normalizing_factor : float = 0
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -95,7 +101,7 @@ class AspInterface:
 
         return clingo_time
 
-    def compute_probabilities(self, normalize_prob : bool = False, stop_if_inconsistent : bool = False) -> None:
+    def compute_probabilities(self) -> None:
         '''
         Parameters:
             - None
@@ -130,7 +136,7 @@ class AspInterface:
 
         start_time = time.time()
 
-        if normalize_prob or stop_if_inconsistent:
+        if self.normalize_prob or self.stop_if_inconsistent:
             ks = sorted(self.model_handler.worlds_dict.keys())
             l : 'list[int]' = []
             for el in ks:
@@ -138,7 +144,7 @@ class AspInterface:
 
             missing = sorted(set(range(0, 2**self.n_prob_facts)).difference(l))
 
-            if stop_if_inconsistent and len(missing) > 0:
+            if self.stop_if_inconsistent and len(missing) > 0:
                 sys.exit(f"Found worlds without answer sets: {missing}")
 
             for el in missing:
@@ -159,7 +165,7 @@ class AspInterface:
                 print(f"n missing {len(missing)}")
             if self.pedantic:
                 print(self.inconsistent_worlds)
-            
+
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
         self.n_worlds = self.model_handler.get_number_worlds()
@@ -205,8 +211,7 @@ class AspInterface:
 
         if random.random() < self.prob_facts_dict[key]:
             return 'T'
-        else:
-            return 'F'
+        return 'F'
 
 
     @staticmethod
@@ -650,7 +655,8 @@ class AspInterface:
                 for el in currently_computed:
                     self.model_handler.add_model_abduction(str(el))
 
-                self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
+                # This is not needed
+                # self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
             # keep the best model
             self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model()

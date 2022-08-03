@@ -1,3 +1,4 @@
+""" Main module for the PASTA solver """
 import sys
 
 import argparse
@@ -127,7 +128,7 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = "", cautious : bool = True, no_minimal : bool = False) -> None:
+    def setup_interface(self, from_string : str = "") -> None:
         '''
         Setup clingo interface
         '''
@@ -137,15 +138,15 @@ class Pasta:
 
         if self.verbose:
             print("Parsed program")
-        
-        if no_minimal:
+
+        if self.no_minimal:
             content_find_minimal_set = []
         else:
             content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
-        
+
         asp_program = self.parser.get_asp_program()
 
-        if not cautious:
+        if not self.cautious:
             asp_program.append(f":- not {self.query}.")
 
         self.interface = AspInterface(
@@ -153,9 +154,11 @@ class Pasta:
             asp_program,
             self.evidence,
             content_find_minimal_set,
-            self.parser.abducibles,
-            self.verbose,
-            self.pedantic
+            abducibles_list=self.parser.abducibles,
+            verbose=self.verbose,
+            pedantic=self.pedantic,
+            stop_if_inconsistent=self.stop_if_inconsistent,
+            normalize_prob=self.normalize_prob
         )
 
         exec_time = self.interface.get_minimal_set_facts()
@@ -181,7 +184,7 @@ class Pasta:
         '''
         Probabilistic and deterministic abduction
         '''
-        self.setup_interface(from_string, self.cautious)
+        self.setup_interface(from_string)
         self.interface.abduction()
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
@@ -195,9 +198,9 @@ class Pasta:
         '''
         Exact inference
         '''
-        self.setup_interface(from_string, no_minimal=self.no_minimal)
+        self.setup_interface(from_string)
         # self.interface.identify_useless_variables()
-        self.interface.compute_probabilities(self.normalize_prob, self.stop_if_inconsistent)
+        self.interface.compute_probabilities()
         lp = self.interface.lower_probability_query / (1 - self.interface.normalizing_factor)
         up = self.interface.upper_probability_query / (1 - self.interface.normalizing_factor)
 
@@ -213,8 +216,8 @@ class Pasta:
         Most probable explanation (MPE) is MAP where no evidence is present
         i.e., find the world with highest probability.
         '''
-        self.setup_interface(from_string, self.cautious)
-        self.interface.compute_probabilities(self.normalize_prob, self.stop_if_inconsistent)
+        self.setup_interface(from_string)
+        self.interface.compute_probabilities()
         return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.cautious)
 
 
@@ -268,14 +271,17 @@ class Pasta:
 
 
     @staticmethod
-    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]') -> None:
+    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]', brave : bool = False) -> None:
         '''
         Prints the result for abduction.
         '''
         abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
         # abd_exp_no_dup = abd_exp
         if len(abd_exp_no_dup) > 0 and up != 0:
-            Pasta.print_prob(lp, up)
+            if brave:
+                print(f"Upper probability for the query: {up}")
+            else:
+                Pasta.print_prob(lp, up)
 
         n_exp = sum(1 for ex in abd_exp_no_dup if len(ex) > 0)
         print(f"Abductive explanations: {n_exp}")
@@ -317,7 +323,7 @@ if __name__ == "__main__":
 
     if args.abduction is True:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
-        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations)
+        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.brave)
     elif args.approximate or args.rejection or args.mh or args.gibbs is True:
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)

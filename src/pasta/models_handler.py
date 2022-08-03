@@ -122,6 +122,9 @@ class ModelsHandler():
             acc_lp = 0
             acc_up = 0
             worlds_comb = self.abd_worlds_dict[el].probabilistic_worlds
+            print(worlds_comb)
+            print(len(worlds_comb))
+            print(2**self.n_prob_facts)
             for w_id in worlds_comb:
                 p = worlds_comb[w_id].prob
                 if worlds_comb[w_id].model_query_count != 0:
