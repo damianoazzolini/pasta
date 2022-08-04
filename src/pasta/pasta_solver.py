@@ -8,7 +8,7 @@ from pasta_parser import PastaParser
 # import pasta_parser
 from asp_interface import AspInterface
 # import asp_interface
-from utils import print_error_and_exit
+from utils import print_error_and_exit, print_waring
 
 import learning_utilities
 
@@ -201,8 +201,16 @@ class Pasta:
         self.setup_interface(from_string)
         # self.interface.identify_useless_variables()
         self.interface.compute_probabilities()
-        lp = self.interface.lower_probability_query / (1 - self.interface.normalizing_factor)
-        up = self.interface.upper_probability_query / (1 - self.interface.normalizing_factor)
+        lp = self.interface.lower_probability_query
+        up = self.interface.upper_probability_query
+        if self.interface.normalizing_factor >= 1:
+            lp = 1
+            up = 1
+            print_waring("No worlds have > 1 answer sets")
+
+        if self.normalize_prob and self.interface.normalizing_factor != 0:
+            lp = lp / (1 - self.interface.normalizing_factor)
+            up = lp / (1 - self.interface.normalizing_factor)
 
         self.check_lp_up(lp, up)
 

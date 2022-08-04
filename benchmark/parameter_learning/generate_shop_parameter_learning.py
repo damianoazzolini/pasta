@@ -4,22 +4,20 @@ import clingo
 p4 = '''
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
-bought(steak,louis) ; bought(onions,louis) :- shops(louis).
+
 bought(spaghetti):-  bought(spaghetti,_).
 bought(steak):- bought(steak,_).
-bought(tomato):- bought(tomato,_).
-bought(tuna):- bought(tuna,_).
-bought(onions):-  bought(onions,_).
+bought(beans):- bought(beans,_).
+
 not_bought(spaghetti):- not bought(spaghetti,_).
 not_bought(steak):- not bought(steak,_).
-not_bought(tomato):- not bought(tomato,_).
-not_bought(tuna):- not bought(tuna,_).
-not_bought(onions):- not  bought(onions,_).
+not_bought(beans):- not bought(beans,_).
+
 0{shops(john)}1.
 0{shops(mary)}1.
 0{shops(carl)}1.
 0{shops(louis)}1.
+
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 :- cs(S), ce(C), 10* S < 4*C.
@@ -31,8 +29,14 @@ lp4 = '''
 #program('
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
+
+bought(spaghetti):-  bought(spaghetti,_).
+bought(steak):- bought(steak,_).
+bought(tomato):- bought(tomato,_).
+bought(onions):-  bought(onions,_).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
@@ -49,37 +53,31 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 p8 = '''
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,f) :- shops(f).
+bought(spaghetti,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
+bought(tomato,g) ; bought(onions,g) ; bought(socks,g) :- shops(g).
+bought(tuna,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
 
 bought(spaghetti):-  bought(spaghetti,_).
 bought(steak):- bought(steak,_).
 bought(tomato):- bought(tomato,_).
-bought(tuna):- bought(tuna,_).
 bought(onions):-  bought(onions,_).
-bought(socks):-  bought(socks,_).
-bought(pizza):-  bought(pizza,_).
-bought(zucchini):-  bought(zucchini,_).
+bought(beans):-  bought(beans,_).
+bought(nails):-  bought(nails,_).
 
 not_bought(spaghetti):- not bought(spaghetti,_).
 not_bought(steak):- not bought(steak,_).
 not_bought(tomato):- not bought(tomato,_).
-not_bought(tuna):- not bought(tuna,_).
 not_bought(onions):- not  bought(onions,_).
-not_bought(pizza):- not  bought(pizza,_).
-not_bought(socks):- not  bought(socks,_).
-not_bought(zucchini):- not  bought(zucchini,_).
+not_bought(beans):- not  bought(beans,_).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 :- cs(S), ce(C), 10* S < 4*C.
-
 
 0{shops(john)}1.
 0{shops(mary)}1.
@@ -99,18 +97,24 @@ lp8 = '''
 #program('
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,f) :- shops(f).
+bought(spaghetti,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
+bought(tomato,g) ; bought(onions,g) ; bought(socks,g) :- shops(g).
+bought(tuna,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 :- cs(S), ce(C), 10* S < 4*C.
+
+bought(spaghetti):-  bought(spaghetti,_).
+bought(steak):- bought(steak,_).
+bought(tomato):- bought(tomato,_).
+bought(onions):-  bought(onions,_).
+bought(beans):-  bought(beans,_).
 ').
 
 #learnable(shops(john)).
@@ -127,46 +131,31 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 p10 = '''
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
-
-bought(salami,i) ; bought(onions,i) ; bought(zucchini,i) ; bought(tape,i)  :- shops(i).
-bought(nails,l) ; bought(tuna,l) ; bought(steak,l) ; bought(spaghetti,l)  :- shops(l).
 
 bought(spaghetti):-  bought(spaghetti,_).
 bought(steak):- bought(steak,_).
+bought(beans):-  bought(beans,_).
 bought(tomato):- bought(tomato,_).
-bought(tuna):- bought(tuna,_).
 bought(onions):-  bought(onions,_).
-bought(socks):-  bought(socks,_).
 bought(pizza):-  bought(pizza,_).
-bought(zucchini):-  bought(zucchini,_).
-bought(salami):-  bought(salami,_).
-bought(crayon):-  bought(crayon,_).
-bought(tape):-  bought(tape,_).
+bought(nails):-  bought(nails,_).
 
 not_bought(spaghetti):- not bought(spaghetti,_).
 not_bought(steak):- not bought(steak,_).
+not_bought(beans):- not bought(beans,_).
 not_bought(tomato):- not bought(tomato,_).
-not_bought(tuna):- not bought(tuna,_).
 not_bought(onions):- not  bought(onions,_).
 not_bought(pizza):- not  bought(pizza,_).
-not_bought(socks):- not  bought(socks,_).
-not_bought(zucchini):- not  bought(zucchini,_).
-not_bought(salami):- not  bought(salami,_).
-not_bought(crayon):- not  bought(crayon,_).
-not_bought(tape):- not  bought(tape,_).
+not_bought(nails):- not  bought(nails,_).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 :- cs(S), ce(C), 10* S < 4*C.
-
 
 0{shops(john)}1.
 0{shops(mary)}1.
@@ -190,14 +179,13 @@ lp10 = '''
 #program('
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,f) :- shops(f).
-
+bought(spaghetti,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
+bought(tomato,g) ; bought(onions,g) ; bought(socks,g) :- shops(g).
+bought(tuna,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
 
 bought(salami,i) ; bought(onions,i) ; bought(zucchini,i) ; bought(tape,i)  :- shops(i).
 bought(nails,l) ; bought(tuna,l) ; bought(steak,l) ; bought(spaghetti,l)  :- shops(l).
@@ -207,7 +195,13 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 :- cs(S), ce(C), 10* S < 4*C.
 
-
+bought(spaghetti):-  bought(spaghetti,_).
+bought(steak):- bought(steak,_).
+bought(beans):-  bought(beans,_).
+bought(tomato):- bought(tomato,_).
+bought(onions):-  bought(onions,_).
+bought(pizza):-  bought(pizza,_).
+bought(nails):-  bought(nails,_).
 ').
 
 #learnable(shops(john)).
@@ -226,43 +220,27 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 p12 = '''
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
-
-bought(salami,i) ; bought(onions,i) ; bought(zucchini,i) ; bought(tape,i)  :- shops(i).
-bought(nails,l) ; bought(tuna,l) ; bought(steak,l) ; bought(spaghetti,l)  :- shops(l).
-
-bought(beans,m) ; bought(onions,m) ; bought(steak,m) ; bought(spaghetti,m)  :- shops(m).
-bought(nails,n) ; bought(tomato,n) ; bought(steak,n) ; bought(tuna,n)  :- shops(n).
+bought(spaghetti,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
 
 bought(spaghetti):-  bought(spaghetti,_).
 bought(steak):- bought(steak,_).
+bought(beans):-  bought(beans,_).
 bought(tomato):- bought(tomato,_).
-bought(tuna):- bought(tuna,_).
 bought(onions):-  bought(onions,_).
-bought(socks):-  bought(socks,_).
 bought(pizza):-  bought(pizza,_).
-bought(zucchini):-  bought(zucchini,_).
-bought(salami):-  bought(salami,_).
-bought(crayon):-  bought(crayon,_).
-bought(tape):-  bought(tape,_).
+bought(nails):-  bought(nails,_).
 
 not_bought(spaghetti):- not bought(spaghetti,_).
 not_bought(steak):- not bought(steak,_).
+not_bought(beans):- not bought(beans,_).
 not_bought(tomato):- not bought(tomato,_).
-not_bought(tuna):- not bought(tuna,_).
 not_bought(onions):- not  bought(onions,_).
 not_bought(pizza):- not  bought(pizza,_).
-not_bought(socks):- not  bought(socks,_).
-not_bought(zucchini):- not  bought(zucchini,_).
-not_bought(salami):- not  bought(salami,_).
-not_bought(crayon):- not  bought(crayon,_).
-not_bought(tape):- not  bought(tape,_).
+not_bought(nails):- not  bought(nails,_).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
@@ -290,30 +268,36 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 '''
 
-
 lp12 = '''
 #program('
 bought(spaghetti,john) ; bought(steak,john) :- shops(john).
 bought(spaghetti,mary) ; bought(beans,mary) :- shops(mary).
-bought(tomato,carl) ; bought(tuna,carl) :- shops(carl).
+bought(tomato,carl) ; bought(onions,carl) :- shops(carl).
 bought(steak,louis) ; bought(onions,louis) :- shops(louis).
 
 bought(pizza,e) ; bought(nails,e) ; bought(onions,e) :- shops(e).
-bought(socks,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
-bought(tomato,g) ; bought(tuna,g) ; bought(socks,g) :- shops(g).
-bought(steak,h) ; bought(onions,h) ; bought(zucchini,f) :- shops(f).
-
+bought(spaghetti,f) ; bought(beans,f) ; bought(nails,f)  :- shops(f).
+bought(tomato,g) ; bought(onions,g) ; bought(socks,g) :- shops(g).
+bought(tuna,h) ; bought(onions,h) ; bought(zucchini,h) :- shops(h).
 
 bought(salami,i) ; bought(onions,i) ; bought(zucchini,i) ; bought(tape,i)  :- shops(i).
 bought(nails,l) ; bought(tuna,l) ; bought(steak,l) ; bought(spaghetti,l)  :- shops(l).
 
-bought(beans,m) ; bought(onions,m) ; bought(steak,m) ; bought(spaghetti,m)  :- shops(m).
-bought(nails,n) ; bought(tomato,n) ; bought(steak,n) ; bought(tuna,n)  :- shops(n).
+bought(beans,m) ; bought(onions,m) ; bought(steak,m) ; bought(spaghetti,m) ; bought(nails,m) :- shops(m).
+bought(nails,n) ; bought(tomato,n) ; bought(steak,n) ; bought(tuna,n) ; bought(spaghetti,n) :- shops(n).
 
 cs(C):- #count{X : bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 :- cs(S), ce(C), 10* S < 4*C.
+
+bought(spaghetti):-  bought(spaghetti,_).
+bought(steak):- bought(steak,_).
+bought(beans):-  bought(beans,_).
+bought(tomato):- bought(tomato,_).
+bought(onions):-  bought(onions,_).
+bought(pizza):-  bought(pizza,_).
+bought(nails):-  bought(nails,_).
 
 ').
 
@@ -329,7 +313,6 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 #learnable(shops(l)).
 #learnable(shops(m)).
 #learnable(shops(n)).
-
 '''
 
 # # 20
@@ -342,10 +325,11 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 
 
 def gen_shop_par_learning():
+    print(f"Generating programs of size {size}")
 
     size = 4
-    program = p4
-    lp = lp4
+    program = p8
+    lp = lp8
 
     ctl = clingo.Control(["0", "-Wnone", "--project"])
     ctl.add('base', [], program)
@@ -360,11 +344,12 @@ def gen_shop_par_learning():
 
     # seleziono AS random
     init_examples = 100
-    end_examples = 10000
+    end_examples = 101
     step_examples = 25
     for n_examples in range(init_examples, end_examples, step_examples):
-        filename = f"bought_{size}_{n_examples}.lp"
-        fp = open(f"{size}_increasing_int/" + filename, 'w')
+        # filename = f"bought_{size}_{n_examples}.lp"
+        # fp = open(f"{size}_increasing_int/" + filename, 'w')
+        fp = open('test.lp',"w")
 
         fp.write(lp)
         fp.write('\n')

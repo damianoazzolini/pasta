@@ -164,7 +164,6 @@ class ModelsHandler():
             if term == el:
                 probability = self.prob_facts_dict[el] if positive else 1 - self.prob_facts_dict[el]
                 break
-
             index = index + 1
 
         return index, 1 if positive else 0, probability

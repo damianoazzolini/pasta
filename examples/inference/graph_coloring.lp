@@ -1,17 +1,29 @@
-color(X, red);color(X, blue);color(X, green) :- node(X).
+red(X) ; green(X) ; blue(X) :- node(X).
 
-node(0..3).
+e(X,Y) :- edge(X,Y).
+e(Y,X) :- edge(Y,X).
 
-:- edge(X, Y ), col(C), color(X, C), color(Y, C).
+node(1..6).
 
-col(red).
-col(blue).
-col(green).
+:- e(X,Y), red(X), red(Y).
+:- e(X,Y), green(X), green(Y).
+:- e(X,Y), blue(X), blue(Y).
 
-color(0,blue).
+red(1).
+green(4).
+green(6).
 
-0.5::edge(0, 1).
-0.5::edge(1, 2).
-0.5::edge(2, 0).
-0.5::edge(1, 3).
-0.5::edge(2, 3).
+0.6::edge(1, 2).
+0.1::edge(1, 3).
+0.4::edge(2, 5).
+0.3::edge(2, 6).
+0.3::edge(3, 4).
+0.8::edge(4, 5).
+0.2::edge(5, 6).
+
+qr:- blue(3).
+
+% query: qr
+% Expected result:
+% Lower probability for the query: 0.03
+% Upper probability for the query: 1.0

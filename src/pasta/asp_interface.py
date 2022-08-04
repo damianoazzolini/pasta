@@ -159,7 +159,6 @@ class AspInterface:
                         np = np * self.prob_facts_dict[pf]
                     i = i + 1
                 self.normalizing_factor = self.normalizing_factor + np
-                print(np)
                 self.inconsistent_worlds[n] = np
             if self.verbose:
                 print(f"n missing {len(missing)}")

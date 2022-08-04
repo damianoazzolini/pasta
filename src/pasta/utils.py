@@ -18,7 +18,7 @@ def print_error_and_exit(message : str):
 
 def print_waring(message : str):
     '''
-    Prints the warning message 'message' and exits.
+    Prints the warning message 'message'.
     '''
     print(YELLOW + "Warning: " + message + END)
 
