@@ -210,7 +210,7 @@ class Pasta:
 
         if self.normalize_prob and self.interface.normalizing_factor != 0:
             lp = lp / (1 - self.interface.normalizing_factor)
-            up = lp / (1 - self.interface.normalizing_factor)
+            up = up / (1 - self.interface.normalizing_factor)
 
         self.check_lp_up(lp, up)
 
