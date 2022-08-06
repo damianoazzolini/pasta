@@ -33,26 +33,6 @@ Note that there already exists a package called [`pasta`](https://github.com/goo
 ```
 python3 -m pip install git+https://github.com/damianoazzolini/pasta
 ```
-Then you can use it as:
-```
-from pasta import pasta_solver
-solver = pasta_solver.Pasta(filename, query)
-lp, up = pasp_solver.inference()
-
-print("Lower probability for the query " + query + ": " + str(lp))
-print("Upper probability for the query " + query + ": " + str(up))
-```
-where `filename` and `query` are the name of the file and the query to ask.
-
-You can also pass the file as a string, in this way:
-```
-from pasta import pasta_solver
-solver = pasta_solver.Pasta("", query) # leave the filename empty
-lp, up = pasp_solver.inference(file_as_string)
-```
-where `file_as_string` is a string containing your program.
-
-You can find more information about the API documentation in the `html/pasta` folder.
 
 ## Usage
 Use
@@ -61,6 +41,33 @@ cd src/pasta
 python3 pasta_solver.py --help
 ```
 to see the various available options.
+
+You can also use it as a library
+```
+import pasta_solver
+
+filename = "../../examples/inference/bird_4.lp"
+query = "fly(1)"
+solver = pasta_solver.Pasta(filename, query)
+lp, up = solver.inference()
+
+print("Lower probability for the query " + query + ": " + str(lp))
+print("Upper probability for the query " + query + ": " + str(up))
+```
+where `filename` and `query` are the name of the file and the query to ask.
+
+You can also pass the file as a string, in this way:
+```
+query = "fly(1)"
+solver = pasta_solver.Pasta("", query)  # leave the filename as ""
+lp, up = solver.inference(program)
+
+print("Lower probability for the query " + query + ": " + str(lp))
+print("Upper probability for the query " + query + ": " + str(up))
+```
+where `program` is a string containing your program.
+
+You can find more information about the API documentation in the `html/pasta` folder.
 
 ### Exact inference
 ```
