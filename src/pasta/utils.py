@@ -34,3 +34,11 @@ def warning_prob_fact_twice(
     print(f"Probabilistic fact {key} already defined")
     print(f"with probability {old_prob}.")
     print(f"Trying to replace it with probability {new_prob}.")
+
+
+def is_number(n: 'int|float|str') -> bool:
+    try:
+        float(n)
+    except ValueError:
+        return False
+    return True

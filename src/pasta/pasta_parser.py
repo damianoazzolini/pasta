@@ -3,10 +3,85 @@ Class defining a parser for a PASTA program.
 '''
 import os
 import sys
-from typing import Union
+import re
 
-from utils import print_waring, print_error_and_exit, warning_prob_fact_twice
+from utils import print_waring, print_error_and_exit, warning_prob_fact_twice, is_number
 from generator import Generator
+
+
+def distr_to_list(s: str) -> 'list[str | list[str]]':
+    '''
+    Converts a string such as "gaussian(0,1)." into ["gaussian",["0","1"]].
+    Supposes that the string is well-formed.
+    '''
+    l : 'list[str | list[str]]' = []
+    distr = s.split('(')
+    l.append(distr[0])
+    l.append(distr[1].split(')')[0].split(','))
+
+    return l
+
+
+def valid_distributions() -> 'list[str]':
+    return ["gaussian","uniform","exponential"]
+
+
+def continuous_distribution_in_str(line : str) -> bool:
+    l = line.replace(' ','')
+    for d in valid_distributions():
+        if ':' + d in l:
+            return True
+    return False
+
+
+def symbol_endline_or_space(char1: str) -> bool:
+    return char1 == '\n' or char1 == '\r\n' or char1 == ' '
+
+
+def endline_symbol(char1: str) -> bool:
+    return char1 == '\n' or char1 == '\r\n'
+
+
+def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
+    if not line_in.endswith('.'):
+        sys.exit("Missing final . in " + line_in)
+
+    line = line_in.split("::")
+    # for example: line = ['0.5', 'f(1..3).']
+    if len(line) != 2:
+        sys.exit("Error in parsing: " + str(line))
+
+    if not is_number(line[0]):
+        print("---- ")
+        sys.exit("Error: expected a float, found " + str(line[0]))
+
+    prob = float(line[0])
+
+    if prob > 1 or prob < 0:
+        sys.exit(
+            "Probabilities must be in the range [0,1], found " + str(prob))
+
+    # [:-1] to remove final .
+    term = line[1][:-1]
+
+    if len(term) == 0 or not term[0].islower():
+        sys.exit("Invalid probabilistic fact " + str(term))
+
+    return prob, term
+
+
+
+def get_functor(term: str) -> str:
+    '''
+    Extracts the functor from a compound term. If the term is an atom
+    returns the atom itself.
+    '''
+    r = ""
+    i = 0
+    while i < len(term) and term[i] != '(':
+        r = r + term[i]
+        i = i + 1
+    return r
 
 
 class PastaParser:
@@ -30,89 +105,22 @@ class PastaParser:
         self.filename : str = filename
         self.query : str = query
         self.evidence : str = evidence
-        self.lines_original : list[str] = []
-        self.lines_prob : list[str] = []
-        self.probabilistic_facts : dict[str,float] = dict() # pairs [fact,prob]
-        self.abducibles : list[str] = []
+        self.lines_original : 'list[str]' = []
+        self.lines_prob : 'list[str]' = []
+        self.probabilistic_facts : 'dict[str,float]' = {} # pairs [fact,prob]
+        self.continuous_vars : 'dict[str,list[str|list[str]]]' = {}
+        self.abducibles : 'list[str]' = []
         self.n_probabilistic_ics : int = 0
-        self.body_probabilistic_ics : list[str] = []
-        self.map_id_list : list[int] = []
-
-
-    @staticmethod
-    def symbol_endline_or_space(char1: str) -> bool:
-        return char1 == '\n' or char1 == '\r\n' or char1 == ' '
-
-
-    @staticmethod
-    def endline_symbol(char1: str) -> bool:
-        return char1 == '\n' or char1 == '\r\n'
-
-
-    @staticmethod
-    def is_number(n: Union[int, float, str]) -> bool:
-        try:
-            float(n)
-        except ValueError:
-            return False
-        return True
-
-
-    @staticmethod
-    def is_int(n: int) -> bool:
-        try:
-            int(n)
-        except ValueError:
-            return False
-        return True
-
-
-    # extracts the functor from a compound term. If the term is an atom
-    # returns the atom itself
-    @staticmethod
-    def get_functor(term: str) -> str:
-        r = ""
-        i = 0
-        while i < len(term) and term[i] != '(':
-            r = r + term[i]
-            i = i + 1
-        return r
-
-
-    @staticmethod
-    def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-        if not line_in.endswith('.'):
-            sys.exit("Missing final . in " + line_in)
-
-        line = line_in.split("::")
-        # for example: line = ['0.5', 'f(1..3).']
-        if len(line) != 2:
-            sys.exit("Error in parsing: " + str(line))
-
-        if not PastaParser.is_number(line[0]):
-            print("---- ")
-            sys.exit("Error: expected a float, found " + str(line[0]))
-
-        prob = float(line[0])
-
-        if prob > 1 or prob < 0:
-            sys.exit("Probabilities must be in the range [0,1], found " + str(prob))
-
-        # [:-1] to remove final .
-        term = line[1][:-1]
-
-        if len(term) == 0 or not term[0].islower():
-            sys.exit("Invalid probabilistic fact " + str(term))
-
-        return prob, term
-
+        self.body_probabilistic_ics : 'list[str]' = []
+        self.map_id_list : 'list[int]' = []
+        self.constraints_list : 'list[str]' = []
 
     def parse_approx(self, from_string : str = "") -> None:
         '''
         Parses a program into an alternative form: probabilistic 
         facts are converted into external facts
         '''
-        if not from_string and os.path.isfile(self.filename) == False:
+        if not from_string and os.path.isfile(self.filename) is False:
             print("File " + self.filename + " not found")
             sys.exit()
 
@@ -133,6 +141,54 @@ class PastaParser:
                     term = l[1].replace('\n','').replace('\r','').replace('.','')
                     self.probabilistic_facts[term] = float(prob)
                     self.lines_prob.append(f'#external {term}.')
+                elif ':' in l and continuous_distribution_in_str(l):
+                    # continuous variable
+                    l1 = l.split(':')
+                    atom = l1[0]
+                    distr = l1[1]
+                    self.continuous_vars[atom] = distr_to_list(distr)
+                elif '#constraint(' in l:
+                    # clause with constraint in the body
+                    new_clause : 'list[str]' = []
+                    l = l.replace(' ','')
+                    # find all the starting positions of #constraint
+                    constr = [m.start() for m in re.finditer('#constraint', l)]
+                    end_pos : 'list[int]' = []
+                    # loop to find the ending positions
+                    for c in constr:
+                        sc = ""
+                        # 12 is len('#constraint') + 1
+                        i = c + 12
+                        count = 1
+                        while count != 0:
+                            if l[i] == ')':
+                                count = count - 1
+                            elif l[i] == '(':
+                                count = count + 1
+                            sc = sc + l[i]
+                            i = i + 1
+                        
+                        end_pos.append(i)
+                        self.lines_prob.append(f"#external constraint_{len(self.constraints_list)}.")
+                        new_clause.append(f"constraint_{len(self.constraints_list)}")
+                        self.constraints_list.append(sc[:-1])
+
+                    i = 0
+                    new_clause.append(l[0:constr[0]])
+                    for i in range(1, len(constr)):
+                        el = l[end_pos[i - 1]:constr[i]]
+                        if el.startswith(','):
+                            el = el[1:]
+                        if el.endswith(','):
+                            el = el[:-1]
+
+                        new_clause.insert(0, el)
+                    
+                    cl: str = new_clause[-1]
+                    for v in new_clause[:-1]:
+                        cl = cl + v + ','
+                    cl = cl[:-1] + '.'
+                    self.lines_prob.append(cl)
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
 
@@ -146,7 +202,7 @@ class PastaParser:
         Behavior:
             - parses the file and extract the lines
         '''
-        if not from_string and os.path.isfile(self.filename) == False:
+        if not from_string and os.path.isfile(self.filename) is False:
             print("File " + self.filename + " not found")
             sys.exit()
         
@@ -162,7 +218,7 @@ class PastaParser:
             sys.exit()
 
         # eat possible white spaces or empty lines
-        while self.symbol_endline_or_space(char):
+        while symbol_endline_or_space(char):
             char = f.read(1)
 
         comment = False
@@ -173,7 +229,7 @@ class PastaParser:
         
         while char1:
             l0 = ""
-            while char1 and not(((char == '.' and not comment) and self.symbol_endline_or_space(char1)) or (comment and self.endline_symbol(char1))):
+            while char1 and not(((char == '.' and not comment) and symbol_endline_or_space(char1)) or (comment and endline_symbol(char1))):
                 # look for a . followed by \n
                 l0 = l0 + char
                 char = char1
@@ -221,7 +277,7 @@ class PastaParser:
             char = char1
             # eat white spaces or empty lines
             char1 = f.read(1)
-            while self.symbol_endline_or_space(char1):
+            while symbol_endline_or_space(char1):
                 char1 = f.read(1)
             if char1 == '%':
                 comment = True
@@ -248,7 +304,7 @@ class PastaParser:
                     print_error_and_exit(
                         "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
                 # line with probability value
-                probability, fact = self.check_consistent_prob_fact(line)
+                probability, fact = check_consistent_prob_fact(line)
 
                 self.add_probabilistic_fact(fact,probability)
 
@@ -283,15 +339,15 @@ class PastaParser:
             elif line.startswith("map"):
                 # add the MAP fact as probabilistic
                 fact = line.split('map')[1]
-                probability, fact = self.check_consistent_prob_fact(fact)
+                probability, fact = check_consistent_prob_fact(fact)
                 self.map_id_list.append(len(self.probabilistic_facts))
                 self.add_probabilistic_fact(fact,probability)
-            elif self.is_number(line.split(':-')[0]):
+            elif is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")
                 # generate the probabilistic fact
                 new_line = line.split(':-')[0] + "::icf" + str(self.n_probabilistic_ics) + "."
-                probability, fact = self.check_consistent_prob_fact(new_line)
+                probability, fact = check_consistent_prob_fact(new_line)
                 self.add_probabilistic_fact(fact, probability)
                 new_clause = "ic" + str(self.n_probabilistic_ics) + ":- " + line.split(':-')[1]
                 self.lines_prob.append(new_clause)
@@ -531,4 +587,4 @@ class PastaParser:
         "n probabilistic facts:\n" + str(self.probabilistic_facts) + "\n" + \
         "original file:\n" + str(self.lines_original) + "\n" + \
         "probabilities file:\n" + str(self.lines_prob) + "\n" + \
-        (("abducibles: " + str(self.abducibles))  if len(self.abducibles) > 0 else "")
+        (("abducibles: " + str(self.abducibles)) if len(self.abducibles) > 0 else "")

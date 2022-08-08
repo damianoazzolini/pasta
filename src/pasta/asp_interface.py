@@ -2,6 +2,9 @@
 
 import random
 import time
+import numpy as np
+import re
+import sys
 
 import utils
 
@@ -11,6 +14,59 @@ except:
     utils.print_error_and_exit('Install clingo')
 
 from models_handler import ModelsHandler
+
+
+def sample_continuous_value(distribution : str, parameters : 'list[str]') -> str:
+    if distribution == "gaussian":
+        mean = float(parameters[0])
+        variance = float(parameters[1])
+        return str(np.random.normal(mean, variance))
+    else:
+        utils.print_error_and_exit(f"Distribution {distribution} not supported")
+
+
+# https://stackoverflow.com/questions/2371436/evaluating-a-mathematical-expression-in-a-string
+_re_simple_eval = re.compile(rb'd([\x00-\xFF]+)S\x00')
+
+def simple_eval(expr: str) -> float:
+    try:
+        c = compile(expr, 'userinput', 'eval')
+    except SyntaxError:
+        raise ValueError(f"Malformed expression: {expr}")
+    m = _re_simple_eval.fullmatch(c.co_code)
+    if not m:
+        raise ValueError(f"Not a simple algebraic expression: {expr}")
+    try:
+        return c.co_consts[int.from_bytes(m.group(1), sys.byteorder)]
+    except IndexError:
+        raise ValueError(f"Expression not evaluated as constant: {expr}")
+
+
+def evaluate_constraint_expression(expression: str, sampled_values: 'dict[str,str]') -> float:
+    '''
+    Evaluates a constraint given the samples for the variables
+    '''
+    if utils.is_number(expression):
+        return float(expression)
+
+    expression = expression.replace(' ', '').replace('\n', '')
+    variables = expression.replace('+','-').replace('*','-').replace('/','-').replace('<','-').replace('>','-')
+    variables = variables.split('-')
+    # print(variables)
+    variables_in_expr = [x for x in variables if not x.isdigit()]
+    # print(variables_in_expr)
+    
+    for i in range(0, len(variables_in_expr)):
+        expression = expression.replace(
+            variables_in_expr[i], sampled_values[variables_in_expr[i]])
+
+    try:
+        result = simple_eval(expression)
+    except ValueError as e:
+        print(e)
+        sys.exit()
+
+    return result 
 
 
 class AspInterface:
@@ -29,7 +85,9 @@ class AspInterface:
         pedantic : bool = False,
         n_samples : int = 1000,
         stop_if_inconsistent : bool = False,
-        normalize_prob : bool = False
+        normalize_prob : bool = False,
+        continuous_vars : 'dict[str,list[str|list[str]]]' = {},
+        constraints_list : 'list[str]' = []
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -55,6 +113,8 @@ class AspInterface:
         self.stop_if_inconsistent : bool = stop_if_inconsistent
         self.normalize_prob : bool = normalize_prob
         self.normalizing_factor : float = 0
+        self.continuous_vars: 'dict[str,list[str|list[str]]]' = continuous_vars
+        self.constraints_list: 'list[str]' = constraints_list
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -207,6 +267,56 @@ class AspInterface:
         if random.random() < self.prob_facts_dict[key]:
             return 'T'
         return 'F'
+
+
+    def compute_samples_dependency(self) -> 'dict[str,str]':
+        '''
+        Computes the dependency of the variables, to spot variables that
+        depends on other variables, such as x:gaussian(0,1), y:gaussian(x,0)
+        '''
+
+        samples: 'dict[str,str]' = {}
+
+        # check no cyclic dependencies, i.e.,
+        # x:gaussian(y,0). y:gaussian(x,0).
+
+        while len(samples) < len(self.continuous_vars):
+            current_sampled = 0
+
+            for el in self.continuous_vars:
+                if el not in samples:
+                    distr = self.continuous_vars[el][0]
+                    parameters = self.continuous_vars[el][1]
+
+                    # check if there are some dependencies and the current
+                    # variable can be sampled
+                    can_sample = True
+                    for p in parameters:
+                        if not p.isdigit() and not p in samples:
+                            # the variable has not yet been sampled
+                            can_sample = False
+                            break
+
+                    if can_sample:
+                        current_sampled = current_sampled + 1
+                        # replace the variables
+                        pars: 'list[str]' = []
+                        for p in parameters:
+                            if not p.isdigit():
+                                pars.append(samples[p])
+                            else:
+                                pars.append(p)
+
+                        samples[el] = sample_continuous_value(distr, pars)
+
+            if current_sampled == 0:
+                # there is a sort of cyclic dependency between variables
+                utils.print_error_and_exit(
+                    "Found cyclic dependency in the parameters of continuous variables")
+
+        # return list(samples.values())
+        return samples
+
 
 
     @staticmethod
@@ -523,18 +633,36 @@ class AspInterface:
             w_id = self.sample_world()
             k = k + 1
 
-            if w_id in sampled:
+            if w_id in sampled and len(self.continuous_vars) == 0:
                 n_lower = n_lower + sampled[w_id][0]
                 n_upper = n_upper + sampled[w_id][1]
             else:
                 i = 0
+                i_constr = 0
                 for atm in ctl.symbolic_atoms:
                     # atm.symbol.name # functor
                     # atm.symbol.arguments[0].number # index
                     if atm.is_external:
-                        # possible since dicts are ordered in Python 3.7+
-                        ctl.assign_external(atm.literal, w_id[i] == 'T')
-                        i = i + 1
+                        if atm.symbol.name in self.prob_facts_dict:
+                            # possible since dicts are ordered in Python 3.7+
+                            ctl.assign_external(atm.literal, w_id[i] == 'T')
+                            i = i + 1
+                        elif atm.symbol.name.startswith('constraint_'):
+                            # this is a constraint
+                            sampled_values = self.compute_samples_dependency()
+                            if ">" in self.constraints_list[i_constr]:
+                                op = self.constraints_list[i_constr].split('>')
+                            else:
+                                op = self.constraints_list[i_constr].split('<')
+
+                            v0 = evaluate_constraint_expression(op[0], sampled_values)
+                            v1 = evaluate_constraint_expression(op[1], sampled_values)
+                            if ">" in self.constraints_list[i_constr]:
+                                ctl.assign_external(atm.literal, v0 > v1)
+                            else:
+                                ctl.assign_external(atm.literal, v0 < v1)
+
+                            i_constr = i_constr + 1
 
                 upper_count = 0
                 lower_count = 0
@@ -551,7 +679,8 @@ class AspInterface:
                 up = 1 if upper_count > 0 else 0
                 lp = 1 if up and lower_count == 0 else 0
 
-                sampled[w_id] = [lp, up]
+                if len(self.continuous_vars) == 0:
+                    sampled[w_id] = [lp, up]
 
                 n_lower = n_lower + lp
                 n_upper = n_upper + up
