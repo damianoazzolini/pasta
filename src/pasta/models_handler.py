@@ -27,8 +27,8 @@ class AbdWorld:
         s = "id: " + self.id + " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + "\n"
 
-        for el in self.probabilistic_worlds:
-            s = s + "\t" + self.probabilistic_worlds[el].__str__() + "\n"
+        for worlds in self.probabilistic_worlds.values():
+            s = s + "\t" + worlds.__str__() + "\n"
 
         return s
 
@@ -113,18 +113,11 @@ class ModelsHandler():
         self.upper_evidence_prob = self.upper_evidence_prob + p
 
 
-    def get_number_worlds(self) -> int:
-        return len(self.worlds_dict.keys())
-
-
     def keep_best_model(self) -> 'tuple[float,float]':
         for el in self.abd_worlds_dict:
             acc_lp = 0
             acc_up = 0
             worlds_comb = self.abd_worlds_dict[el].probabilistic_worlds
-            print(worlds_comb)
-            print(len(worlds_comb))
-            print(2**self.n_prob_facts)
             for w_id in worlds_comb:
                 p = worlds_comb[w_id].prob
                 if worlds_comb[w_id].model_query_count != 0:

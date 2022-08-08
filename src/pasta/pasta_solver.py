@@ -1,5 +1,4 @@
 """ Main module for the PASTA solver """
-import sys
 
 import argparse
 
@@ -46,7 +45,7 @@ class Pasta:
         verbose : bool = False,
         pedantic : bool = False,
         samples : int = 1000,
-        cautious : bool = True,
+        consider_lower_prob : bool = True,
         no_minimal : bool = False,
         normalize_prob : bool = False,
         stop_if_inconsistent : bool = False,
@@ -60,7 +59,7 @@ class Pasta:
             self.verbose = True
         self.samples = samples
         # lower or upper probability bound for MAP/Abduction, default lower
-        self.cautious = cautious
+        self.consider_lower_prob = consider_lower_prob
         self.no_minimal = no_minimal
         self.normalize_prob = normalize_prob
         self.stop_if_inconsistent = stop_if_inconsistent
@@ -74,10 +73,8 @@ class Pasta:
         Checks whether lp =< up
         '''
         if (lp > up) or (int(lp * 10e8) > 10e8) or (int(up * 10e8) > 10e8):
-            print("Error in computing probabilities")
-            print(f"Lower: {lp:.8f}")
-            print(f"Upper: {up:.8f}")
-            sys.exit()
+            s = f"Error in computing probabilities\nLower: {lp:.8f}\nUpper: {up:.8f}"
+            print_error_and_exit(s)
 
 
     def parameter_learning(self, from_string : str = "") -> None:
@@ -86,7 +83,8 @@ class Pasta:
         '''
         self.parser = PastaParser(self.filename)
         training_set, test_set, program, prob_facts_dict, offset = self.parser.parse_input_learning(from_string)
-        interpretations_to_worlds = learning_utilities.learn_parameters(training_set, test_set, program, prob_facts_dict, offset, not self.cautious, self.verbose)
+        interpretations_to_worlds = learning_utilities.learn_parameters(
+            training_set, test_set, program, prob_facts_dict, offset, not self.consider_lower_prob, self.verbose)
         learning_utilities.test_results(test_set, interpretations_to_worlds, prob_facts_dict, program, offset)
 
 
@@ -146,7 +144,7 @@ class Pasta:
 
         asp_program = self.parser.get_asp_program()
 
-        if not self.cautious:
+        if not self.consider_lower_prob:
             asp_program.append(f":- not {self.query}.")
 
         self.interface = AspInterface(
@@ -226,7 +224,7 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         self.interface.compute_probabilities()
-        return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.cautious)
+        return self.interface.model_handler.get_map_solution(self.parser.map_id_list, self.consider_lower_prob)
 
 
     @staticmethod
@@ -279,14 +277,14 @@ class Pasta:
 
 
     @staticmethod
-    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]', brave : bool = False) -> None:
+    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]', upper : bool = False) -> None:
         '''
         Prints the result for abduction.
         '''
         abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
         # abd_exp_no_dup = abd_exp
         if len(abd_exp_no_dup) > 0 and up != 0:
-            if brave:
+            if upper:
                 print(f"Upper probability for the query: {up}")
             else:
                 Pasta.print_prob(lp, up)
@@ -319,7 +317,7 @@ if __name__ == "__main__":
     command_parser.add_argument("--pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
-    command_parser.add_argument("--brave", help="Select upper probability (brave) for MAP and abduction", action="store_true", default=False)
+    command_parser.add_argument("--upper", help="Select upper probability for MAP and abduction", action="store_true", default=False)
     command_parser.add_argument("--no-minimal", help="Do not compute the minimal set of probabilistic facts", action="store_true", default=False)
     command_parser.add_argument("--normalize", help="Normalize the probability if some worlds do not have answer set", action="store_true", default=False)
     command_parser.add_argument("--stop-if-inconsistent", help="Raise an error if a world without answer sets is found", action="store_true", default=False)
@@ -327,11 +325,11 @@ if __name__ == "__main__":
     args = command_parser.parse_args()
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
-                         args.samples, not args.brave, args.no_minimal, args.normalize, args.stop_if_inconsistent)
+                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent)
 
     if args.abduction is True:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
-        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.brave)
+        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
     elif args.approximate or args.rejection or args.mh or args.gibbs is True:
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)

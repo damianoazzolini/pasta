@@ -2,12 +2,13 @@
 
 import random
 import time
-import sys
+
+import utils
 
 try:
     import clingo
 except:
-    sys.exit('Install clingo')
+    utils.print_error_and_exit('Install clingo')
 
 from models_handler import ModelsHandler
 
@@ -38,13 +39,10 @@ class AspInterface:
         self.upper_probability_evidence : float = 0
         self.lower_probability_evidence : float = 0
         self.evidence : str = evidence
-        self.n_prob_facts : int = len(probabilistic_facts)
         self.abducibles_list : 'list[str]' = abducibles_list
-        self.n_abducibles : int = len(self.abducibles_list)
         self.constraint_times_list : 'list[float]' = []
         self.computed_models : int = 0
         self.grounding_time : float = 0
-        self.n_worlds : int = 0
         self.world_analysis_time : float = 0
         self.computation_time : float = 0
         self.abductive_explanations : 'list[list[str]]' = []
@@ -142,10 +140,10 @@ class AspInterface:
             for el in ks:
                 l.append(int(el,2))
 
-            missing = sorted(set(range(0, 2**self.n_prob_facts)).difference(l))
+            missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l))
 
             if self.stop_if_inconsistent and len(missing) > 0:
-                sys.exit(f"Found worlds without answer sets: {missing}")
+                utils.print_error_and_exit(f"Found worlds without answer sets: {missing}")
 
             for el in missing:
                 n = str(bin(el))[2:]
@@ -166,8 +164,6 @@ class AspInterface:
                 print(self.inconsistent_worlds)
 
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
-
-        self.n_worlds = self.model_handler.get_number_worlds()
 
         self.world_analysis_time = time.time() - start_time
 
@@ -587,11 +583,11 @@ class AspInterface:
             for c in self.cautious_consequences:
                 ctl.add('base', [], ":- not " + c + '.')
 
-        if self.n_prob_facts == 0:
+        if len(self.prob_facts_dict) == 0:
             ctl.add('base', [], ':- not q.')
         ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
         ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
-        # TODO: instead of, for each iteration, rewrite the whole program,
+        # TODO: instead of, for each iteration, rewriting the whole program,
         # use multi-shot with Number
 
         for exp in previously_computed:
@@ -630,7 +626,7 @@ class AspInterface:
 
         start_time = time.time()
 
-        for i in range(0, self.n_abducibles + 1):
+        for i in range(0, len(self.abducibles_list) + 1):
             currently_computed, exec_time = self.abduction_iter(i, computed_abducibles_list)
             self.computed_models = self.computed_models + len(currently_computed)
             if self.verbose:
@@ -638,9 +634,9 @@ class AspInterface:
                 if self.pedantic:
                     print(currently_computed)
 
-            # TODO: gestire len(currently_computed) > 0 and i == 0 (vero senza abducibili)
+            # TODO: handle len(currently_computed) > 0 and i == 0 (true without abducibles)
 
-            if self.n_prob_facts == 0:
+            if len(self.prob_facts_dict) == 0:
                 # currently computed: list of computed models
                 for i in range(0, len(currently_computed)):
                     currently_computed[i] = currently_computed[i].split(' ')  # type: ignore
@@ -654,15 +650,18 @@ class AspInterface:
                 for el in currently_computed:
                     self.model_handler.add_model_abduction(str(el))
 
-                # This is not needed
-                # self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
-
             # keep the best model
             self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model()
             self.constraint_times_list.append(exec_time)
 
+        n_inconsistent = 0
         for el in self.model_handler.abd_worlds_dict:
+            if self.stop_if_inconsistent is True and len(self.model_handler.abd_worlds_dict[el].probabilistic_worlds) != 2**len(self.prob_facts_dict):
+                n_inconsistent = n_inconsistent + 1
             self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
+            # TODO: add normalization, as in compute_probabilities
+        if self.stop_if_inconsistent is True and n_inconsistent == len(self.model_handler.abd_worlds_dict):
+            utils.print_error_and_exit("All the worlds are inconsistent")
 
         self.abduction_time = time.time() - start_time
 
@@ -672,7 +671,6 @@ class AspInterface:
         Log some execution details
         '''
         print(f"Computed models: {self.computed_models}")
-        print(f"Considered worlds: {self.n_worlds}")
         print(f"Grounding time (s): {self.grounding_time}")
         print(f"Probability computation time (s): {self.computation_time}")
         print(f"World analysis time (s): {self.world_analysis_time}")
