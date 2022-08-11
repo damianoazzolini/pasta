@@ -15,7 +15,7 @@ class Generator:
     def generate_clauses_for_facts(term : str, probability : float) -> 'list[str]':
         generator_term = '0{' + term + '}1.'
         fact_false = f"not_{term}:- not {term}."
-        show_true = f"#show {term}:{term}."
+        show_true = f"#show.\n#show {term}:{term}."
         show_false = f"#show not_{term}:not_{term}."
         return [generator_term, fact_false, show_true, show_false]
 
@@ -104,7 +104,7 @@ class Generator:
 
         new_fact_true = t1 + ':- ' + term + '.'
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
-        show_true = f"#show {t1}:{t1}."
+        show_true = f"#show.\n#show {t1}:{t1}."
         show_false = f"#show not_{t1}:not_{t1}."
         abd_fact = "abd_fact(" + str(n_abd) + "):-" + term + "."
 

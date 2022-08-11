@@ -10,4 +10,4 @@ qr:- #constraint(value > 0.2).
 qr:- #constraint(value > 0), f(a), #constraint(value > 0.2).
 % qr:- v0, f(a), v1.
 
-% Exact value lp == up == 0.71035
+% Exact values for P(qr): lp == up == 0.71035
