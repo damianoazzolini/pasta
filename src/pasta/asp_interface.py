@@ -628,9 +628,8 @@ class AspInterface:
         n_upper : int = 0
         k : int = 0
 
-        while k < self.n_samples:
+        for k in utils.progressbar(range(self.n_samples), "Computing: ", 40):
             w_id = self.sample_world()
-            k = k + 1
 
             if w_id in sampled and len(self.continuous_vars) == 0:
                 n_lower = n_lower + sampled[w_id][0]

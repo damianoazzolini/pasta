@@ -96,7 +96,7 @@ class Pasta:
         self.parser.parse_approx(from_string)
         asp_program = self.parser.get_asp_program_approx()
 
-        print(asp_program)
+        # print(asp_program)
         # import sys
         # sys.exit()
 
