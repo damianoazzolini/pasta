@@ -21,6 +21,9 @@ def sample_continuous_value(distribution : str, parameters : 'list[str]') -> str
         mean = float(parameters[0])
         variance = float(parameters[1])
         return str(np.random.normal(mean, variance))
+    elif distribution == "uniform":
+        return str(np.random.uniform(float(parameters[0]), float(parameters[1])))
+
     else:
         utils.print_error_and_exit(f"Distribution {distribution} not supported")
 
@@ -53,7 +56,7 @@ def evaluate_constraint_expression(expression: str, sampled_values: 'dict[str,st
     variables = expression.replace('+','-').replace('*','-').replace('/','-').replace('<','-').replace('>','-')
     variables = variables.split('-')
     # print(variables)
-    variables_in_expr = [x for x in variables if not x.isdigit()]
+    variables_in_expr = [x for x in variables if not utils.is_number(x)]
     # print(variables_in_expr)
     
     for i in range(0, len(variables_in_expr)):
@@ -67,6 +70,20 @@ def evaluate_constraint_expression(expression: str, sampled_values: 'dict[str,st
         sys.exit()
 
     return result 
+
+
+def reconstruct_atom(atm) -> str:  # type: ignore
+    '''
+    Reconstructs a probabilistic fact from a clingo representation
+    of its. This is needed since a(1) is stored as a with 1 argument
+    and not as a(1) (string)
+    '''
+    s = f"{atm.symbol.name}("  # type: ignore
+    for arg in atm.symbol.arguments:  # type: ignore
+        s = s + str(arg) + ","  # type: ignore
+    if s[len(s) - 1] == '(':
+        return s[:-1]
+    return s[:-1] + ')'
 
 
 class AspInterface:
@@ -228,19 +245,22 @@ class AspInterface:
         self.world_analysis_time = time.time() - start_time
 
 
-    def sample_world(self):
+    def sample_world(self) -> 'tuple[dict[str,bool],str]':
         '''
         Samples a world for approximate probability computation
         '''
-        w_id = ""
+        w_id: 'dict[str,bool]' = {}
+        w_id_key: str = ""
 
         for key in self.prob_facts_dict:
             if random.random() < self.prob_facts_dict[key]:
-                w_id = w_id + "T"
+                w_id[key] = True
+                w_id_key = w_id_key + "T"
             else:
-                w_id = w_id + "F"
+                w_id[key] = False
+                w_id_key = w_id_key + "F"
 
-        return w_id
+        return w_id, w_id_key
 
 
     def pick_random_index(self, block : int, w_id : str) -> 'list[int]':
@@ -253,9 +273,10 @@ class AspInterface:
         # 	i = random.randint(0,len(id) - 1)
         return sorted(set([random.randint(0, len(w_id) - 1) for _ in range(0, block)]))
 
-    def resample(self, i : int) -> str:
+
+    def resample(self, i : int) -> 'tuple[str,str]':
         '''
-        Resamples a facts. Used in MH sampling.
+        Resamples a facts. Used in Gibbs sampling.
         '''
         key : str = ""
         for k in self.prob_facts_dict:
@@ -265,8 +286,8 @@ class AspInterface:
                 break
 
         if random.random() < self.prob_facts_dict[key]:
-            return 'T'
-        return 'F'
+            return 'T', key
+        return 'F', key
 
 
     def compute_samples_dependency(self) -> 'dict[str,str]':
@@ -292,7 +313,7 @@ class AspInterface:
                     # variable can be sampled
                     can_sample = True
                     for p in parameters:
-                        if not p.isdigit() and not p in samples:
+                        if not utils.is_number(p) and not p in samples:
                             # the variable has not yet been sampled
                             can_sample = False
                             break
@@ -302,7 +323,7 @@ class AspInterface:
                         # replace the variables
                         pars: 'list[str]' = []
                         for p in parameters:
-                            if not p.isdigit():
+                            if not utils.is_number(p):
                                 pars.append(samples[p])
                             else:
                                 pars.append(p)
@@ -345,14 +366,14 @@ class AspInterface:
 
 
     @staticmethod
-    def assign_T_F_and_get_count(ctl : clingo.Control, w_id : str) -> 'tuple[int,int,int,int]':
+    def assign_T_F_and_get_count(ctl : clingo.Control, w_assignments: 'dict[str,bool]') -> 'tuple[int,int,int,int]':
         '''
         It does what it is specified in its name.
         '''
         i = 0
         for atm in ctl.symbolic_atoms:
             if atm.is_external:
-                ctl.assign_external(atm.literal, w_id[i] == 'T')
+                ctl.assign_external(atm.literal, w_assignments[reconstruct_atom(atm)])
                 i = i + 1
 
         qe_count = 0
@@ -377,18 +398,16 @@ class AspInterface:
 
 
     @staticmethod
-    def assign_T_F_and_check_if_evidence(ctl : clingo.Control, w_id : str) -> bool:
+    def assign_T_F_and_check_if_evidence(ctl : clingo.Control, w_assignments: 'dict[str,bool]') -> bool:
         '''
         Assigns T or F to facts and checks whether q and e or not q and e
         is true.
         Used in Gibbs sampling
         '''
-        i : int = 0
 
         for atm in ctl.symbolic_atoms:
             if atm.is_external:
-                ctl.assign_external(atm.literal, w_id[i] == 'T')
-                i = i + 1
+                ctl.assign_external(atm.literal, w_assignments[reconstruct_atom(atm)])
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
@@ -403,6 +422,7 @@ class AspInterface:
     def get_val_or_compute_and_update_dict(
         sampled : 'dict[str,list[int]]',
         ctl : clingo.Control,
+        w_assignments: 'dict[str,bool]',
         w_id : str
         ) -> 'tuple[int,int,int,int]':
         '''
@@ -413,7 +433,7 @@ class AspInterface:
         if w_id in sampled:
             return sampled[w_id][0], sampled[w_id][1], sampled[w_id][2], sampled[w_id][3]
 
-        qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, w_id)
+        qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, w_assignments)
 
         lower_qe = (1 if qe_false_count == 0 else 0)
         upper_qe = (1 if qe_count > 0 else 0)
@@ -456,7 +476,7 @@ class AspInterface:
 
         n_samples = self.n_samples
 
-        w_id = self.sample_world()
+        w_assignments, w_id = self.sample_world()
         t_count = w_id.count('T')
         previous_t_count = t_count if t_count > 0 else 1
 
@@ -472,7 +492,7 @@ class AspInterface:
         previous_t_count : int = 1
 
         while k < n_samples:
-            w_id = self.sample_world()
+            w_assignments, w_id = self.sample_world()
             k = k + 1
 
             if w_id in sampled:
@@ -486,7 +506,7 @@ class AspInterface:
 
                 previous_t_count = current_t_count
             else:
-                qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, w_id)
+                qe_count, qe_false_count, nqe_count, nqe_false_count = AspInterface.assign_T_F_and_get_count(ctl, w_assignments)
 
                 if qe_count > 0 or nqe_count > 0:
                     t_count = w_id.count('T')
@@ -540,6 +560,7 @@ class AspInterface:
 
         w_id : str = ""
         idNew : str = ""
+        w_assignments: 'dict[str,bool]' = {}
 
         while k < n_samples:
             k = k + 1
@@ -547,11 +568,11 @@ class AspInterface:
             # Step 0: sample evidence
             ev = False
             while ev is False:
-                w_id = self.sample_world()
+                w_assignments, w_id = self.sample_world()
                 if w_id in sampled_evidence:
                     ev = sampled_evidence[id]
                 else:
-                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, w_id)
+                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, w_assignments)
                     sampled_evidence[w_id] = ev
 
             # Step 1: switch samples but keep the evidence true
@@ -562,16 +583,18 @@ class AspInterface:
                 to_resample = self.pick_random_index(block, w_id)
                 idNew = w_id
                 for i in to_resample:
-                    idNew = idNew[:i] + self.resample(i) + idNew[i + 1:]
+                    value, key = self.resample(i)
+                    idNew = idNew[:i] + value + idNew[i + 1:]
+                    w_assignments[key] = False if value == 'F' else True
 
                 if idNew in sampled_evidence:
                     ev = sampled_evidence[idNew]
                 else:
-                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, idNew)
+                    ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, w_assignments)
                     sampled_evidence[idNew] = ev
 
             # step 2: ask query
-            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled_query, ctl, idNew)
+            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled_query, ctl, w_assignments, idNew)
 
             n_lower_qe = n_lower_qe + lower_qe
             n_upper_qe = n_upper_qe + upper_qe
@@ -599,9 +622,9 @@ class AspInterface:
         k : int = 0
 
         while k < self.n_samples:
-            w_id = self.sample_world()
+            w_assignments, w_id = self.sample_world()
             k = k + 1
-            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled, ctl, w_id)
+            lower_qe, upper_qe, lower_nqe, upper_nqe = AspInterface.get_val_or_compute_and_update_dict(sampled, ctl, w_assignments, w_id)
 
             n_lower_qe = n_lower_qe + lower_qe
             n_upper_qe = n_upper_qe + upper_qe
@@ -626,26 +649,22 @@ class AspInterface:
 
         n_lower : int = 0
         n_upper : int = 0
-        k : int = 0
 
-        for k in utils.progressbar(range(self.n_samples), "Computing: ", 40):
-            w_id = self.sample_world()
+        # for k in utils.progressbar(range(self.n_samples), "Computing: ", 40):
+        for _ in range(self.n_samples):
+            w_assignments, w_id = self.sample_world()
 
             if w_id in sampled and len(self.continuous_vars) == 0:
                 n_lower = n_lower + sampled[w_id][0]
                 n_upper = n_upper + sampled[w_id][1]
             else:
-                i = 0
                 i_constr = 0
                 for atm in ctl.symbolic_atoms:
-                    # atm.symbol.name # functor
-                    # atm.symbol.arguments[0].number # index
                     if atm.is_external:
-                        if atm.symbol.name in self.prob_facts_dict:
-                            # possible since dicts are ordered in Python 3.7+
-                            ctl.assign_external(atm.literal, w_id[i] == 'T')
-                            i = i + 1
-                        elif atm.symbol.name.startswith('constraint_'):
+                        atom = reconstruct_atom(atm)
+                        if atom in self.prob_facts_dict:
+                            ctl.assign_external(atm.literal, w_assignments[atom])
+                        elif atom.startswith('constraint_'):
                             # this is a constraint
                             sampled_values = self.compute_samples_dependency()
                             if ">" in self.constraints_list[i_constr]:
@@ -666,13 +685,14 @@ class AspInterface:
                 lower_count = 0
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
-                        m1 = str(m)  # type: ignore
-                        if m1 == "q":
+                        if str(m) == "q":  # type: ignore
                             upper_count = upper_count + 1
                         else:
                             lower_count = lower_count + 1
 
                         handle.get()  # type: ignore
+                if lower_count == 0 and upper_count == 0 and self.stop_if_inconsistent:
+                    utils.print_error_and_exit("Found samples with 0 answer sets")
 
                 up = 1 if upper_count > 0 else 0
                 lp = 1 if up and lower_count == 0 else 0
@@ -692,7 +712,7 @@ class AspInterface:
             # 		a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
             # 		break
 
-        return n_lower / k, n_upper / k
+        return n_lower / self.n_samples, n_upper / self.n_samples
 
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':
