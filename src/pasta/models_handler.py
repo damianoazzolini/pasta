@@ -2,6 +2,8 @@
 Class to identify a world.
 '''
 
+import utils
+
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
@@ -152,12 +154,17 @@ class ModelsHandler():
         if term.startswith('not_'):
             term = term.split('not_')[1]
             positive = False
-
+        
+        found = False
         for el in self.prob_facts_dict:
             if term == el:
                 probability = self.prob_facts_dict[el] if positive else 1 - self.prob_facts_dict[el]
+                found = True
                 break
             index = index + 1
+
+        if found is False:
+            utils.print_error_and_exit(f"Probabilistic fact {term} not found")
 
         return index, 1 if positive else 0, probability
 

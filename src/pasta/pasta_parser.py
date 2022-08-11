@@ -143,10 +143,19 @@ class PastaParser:
                     self.lines_prob.append(f'#external {term}.')
                 elif ':' in l and continuous_distribution_in_str(l):
                     # continuous variable
+                    # TODO: add support range a(1..n)
                     l1 = l.split(':')
                     atom = l1[0]
                     distr = l1[1]
-                    self.continuous_vars[atom] = distr_to_list(distr)
+                    if '..' in atom:
+                        b = atom.split('(')[1].replace(')','').split('..')
+                        lb = int(b[0])
+                        ub = int(b[1].replace(')', '').replace('.', ''))
+                        name = atom.split('(')[0]
+                        for i in range(lb, ub + 1):
+                            self.continuous_vars[f"{name}({i})"] = distr_to_list(distr)
+                    else:
+                        self.continuous_vars[atom] = distr_to_list(distr)
                 elif '#constraint(' in l:
                     # clause with constraint in the body
                     new_clause : 'list[str]' = []

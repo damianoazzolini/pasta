@@ -14,15 +14,9 @@ class Generator:
     @staticmethod
     def generate_clauses_for_facts(term : str, probability : float) -> 'list[str]':
         generator_term = '0{' + term + '}1.'
-
-        commas = 0 if "(" not in term else term.count(',') + 1
-
         fact_false = f"not_{term}:- not {term}."
-
-        show_true = f"#show {term.split('(')[0]}/{commas}."
-
-        show_false = f"#show not_{term.split('(')[0]}/{commas}."
-
+        show_true = f"#show {term}:{term}."
+        show_false = f"#show not_{term}:not_{term}."
         return [generator_term, fact_false, show_true, show_false]
 
 
@@ -108,25 +102,10 @@ class Generator:
         generator = '0{' + term + '}1.'
         t1 = "abd_" + term
 
-        if "(" not in term:
-            commas = 0
-        else:
-            commas = term.count(',') + 1
-
         new_fact_true = t1 + ':- ' + term + '.'
-
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
-
-        show_true = "#show " + t1.split('(')[0] + "/" + str(commas) + "."
-
-        show_false = "#show not_" + t1.split('(')[0] + "/" + str(commas) + "."
-
-
-        # show_true = "#show " + t1 + "/" + str(commas) + "."
-
-        # show_false = "#show not_" + t1 + "/" + str(commas) + "."
-
-        # used since in the program i insert a constraint that counts the abducibles
+        show_true = f"#show {t1}:{t1}."
+        show_false = f"#show not_{t1}:not_{t1}."
         abd_fact = "abd_fact(" + str(n_abd) + "):-" + term + "."
 
         return [generator, new_fact_true, new_fact_false, abd_fact, show_true, show_false], term

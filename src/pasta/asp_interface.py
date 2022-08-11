@@ -318,7 +318,6 @@ class AspInterface:
         return samples
 
 
-
     @staticmethod
     def compute_conditional_lp_up(
         n_lower_qe : int,
