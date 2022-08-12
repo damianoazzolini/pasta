@@ -86,6 +86,40 @@ def reconstruct_atom(atm) -> str:  # type: ignore
     return s[:-1] + ')'
 
 
+def pick_random_index(block : int, w_id : str) -> 'list[int]':
+    '''
+    Pick a random index, used in Gibbs sampling.
+    '''
+    return sorted(set([random.randint(0, len(w_id) - 1) for _ in range(0, block)]))
+
+
+def compute_conditional_lp_up(
+    n_lower_qe: int,
+    n_upper_qe: int,
+    n_lower_nqe: int,
+    n_upper_nqe: int,
+    n_samples: int
+    ) -> 'tuple[float,float]':
+    '''
+    Computes the lower and upper conditional probabilities using the
+    formulas:
+    lower P(q | e) = lower P(q,e) / (lower P(q,e) + upper P(not q,e))
+    upper P(q | e) = upper P(q,e) / (upper P(q,e) + lower P(not q,e))
+    '''
+
+    lower_q_e = n_lower_qe / n_samples
+    upper_q_e = n_upper_qe / n_samples
+    lower_not_q_e = n_lower_nqe / n_samples
+    upper_not_q_e = n_upper_nqe / n_samples
+
+    lp = lower_q_e / \
+        (lower_q_e + upper_not_q_e) if (lower_q_e + upper_not_q_e) > 0 else 0
+    up = upper_q_e / \
+        (upper_q_e + lower_not_q_e) if (upper_q_e + lower_not_q_e) > 0 else 0
+
+    return lp, up
+
+
 class AspInterface:
     '''
     Parameters:
@@ -176,6 +210,7 @@ class AspInterface:
 
         return clingo_time
 
+
     def compute_probabilities(self) -> None:
         '''
         Parameters:
@@ -263,17 +298,6 @@ class AspInterface:
         return w_id, w_id_key
 
 
-    def pick_random_index(self, block : int, w_id : str) -> 'list[int]':
-        '''
-        Pick a random index, used in Gibbs sampling.
-        TODO: this can be a static method.
-        '''
-        # i = random.randint(0,len(id) - 1)
-        # while i == 1:
-        # 	i = random.randint(0,len(id) - 1)
-        return sorted(set([random.randint(0, len(w_id) - 1) for _ in range(0, block)]))
-
-
     def resample(self, i : int) -> 'tuple[str,str]':
         '''
         Resamples a facts. Used in Gibbs sampling.
@@ -337,32 +361,6 @@ class AspInterface:
 
         # return list(samples.values())
         return samples
-
-
-    @staticmethod
-    def compute_conditional_lp_up(
-        n_lower_qe : int,
-        n_upper_qe : int,
-        n_lower_nqe : int,
-        n_upper_nqe : int,
-        n_samples : int
-        ) -> 'tuple[float,float]':
-        '''
-        Computes the lower and upper conditional probabilities using the
-        formulas:
-        lower P(q | e) = lower P(q,e) / (lower P(q,e) + upper P(not q,e))
-        upper P(q | e) = upper P(q,e) / (upper P(q,e) + lower P(not q,e))
-        '''
-
-        lower_q_e = n_lower_qe / n_samples
-        upper_q_e = n_upper_qe / n_samples
-        lower_not_q_e = n_lower_nqe / n_samples
-        upper_not_q_e = n_upper_nqe / n_samples
-
-        lp = lower_q_e / (lower_q_e + upper_not_q_e) if (lower_q_e + upper_not_q_e) > 0 else 0
-        up = upper_q_e / (upper_q_e + lower_not_q_e) if (upper_q_e + lower_not_q_e) > 0 else 0
-
-        return lp, up
 
 
     @staticmethod
@@ -530,7 +528,7 @@ class AspInterface:
 
                 previous_t_count = current_t_count
 
-        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
+        return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
     def gibbs_sampling(self, block: int) -> 'tuple[float, float]':
@@ -580,7 +578,7 @@ class AspInterface:
 
             while ev is False:
                 # blocked gibbs
-                to_resample = self.pick_random_index(block, w_id)
+                to_resample = pick_random_index(block, w_id)
                 idNew = w_id
                 for i in to_resample:
                     value, key = self.resample(i)
@@ -601,7 +599,7 @@ class AspInterface:
             n_lower_nqe = n_lower_nqe + lower_nqe
             n_upper_nqe = n_upper_nqe + upper_nqe
 
-        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
+        return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
     def rejection_sampling(self) -> 'tuple[float, float]':
@@ -631,7 +629,7 @@ class AspInterface:
             n_lower_nqe = n_lower_nqe + lower_nqe
             n_upper_nqe = n_upper_nqe + upper_nqe
 
-        return AspInterface.compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
+        return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
 
 
     def sample_query(self) -> 'tuple[float, float]':
@@ -650,8 +648,8 @@ class AspInterface:
         n_lower : int = 0
         n_upper : int = 0
 
-        # for k in utils.progressbar(range(self.n_samples), "Computing: ", 40):
-        for _ in range(self.n_samples):
+        for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
+        # for _ in range(self.n_samples):
             w_assignments, w_id = self.sample_world()
 
             if w_id in sampled and len(self.continuous_vars) == 0:
@@ -691,7 +689,8 @@ class AspInterface:
                             lower_count = lower_count + 1
 
                         handle.get()  # type: ignore
-                if lower_count == 0 and upper_count == 0 and self.stop_if_inconsistent:
+
+                if lower_count == 0 and upper_count == 0 and self.stop_if_inconsistent is True:
                     utils.print_error_and_exit("Found samples with 0 answer sets")
 
                 up = 1 if upper_count > 0 else 0

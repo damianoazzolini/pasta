@@ -96,10 +96,6 @@ class Pasta:
         self.parser.parse_approx(from_string)
         asp_program = self.parser.get_asp_program_approx()
 
-        # print(asp_program)
-        # import sys
-        # sys.exit()
-
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
             asp_program,
@@ -109,8 +105,10 @@ class Pasta:
             self.verbose,
             self.pedantic,
             self.samples,
+            stop_if_inconsistent=self.stop_if_inconsistent,
+            normalize_prob=self.normalize_prob,
             continuous_vars=self.parser.continuous_vars,
-            constraints_list=self.parser.constraints_list
+            constraints_list=self.parser.constraints_list,
         )
 
         if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
