@@ -812,22 +812,11 @@ class AspInterface:
         self.abduction_time = time.time() - start_time
 
 
-    def log_infos(self) -> None:
-        '''
-        Log some execution details
-        '''
-        print(f"Computed models: {self.computed_models}")
-        print(f"Grounding time (s): {self.grounding_time}")
-        print(f"Probability computation time (s): {self.computation_time}")
-        print(f"World analysis time (s): {self.world_analysis_time}")
-
-
     def print_asp_program(self) -> None:
         '''
         Utility that prints the ASP program
         '''
-        for el in self.asp_program:
-            print(el)
+        print(*self.asp_program, sep='\n')
         if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 print(f":- not {c}.")

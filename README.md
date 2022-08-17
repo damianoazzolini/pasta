@@ -13,9 +13,9 @@ Then, clone this repository
 git clone git@github.com:damianoazzolini/pasta.git
 ```
 
-Finally, move into the src/pasta folder and you are ready to go
+Finally, move into the `pasta` folder and you are ready to go
 ```
-cd src/pasta
+cd pasta
 python3 pasta_solver.py --help
 ```
 
@@ -37,7 +37,7 @@ python3 -m pip install git+https://github.com/damianoazzolini/pasta
 ## Usage
 Use
 ```
-cd src/pasta
+cd pasta
 python3 pasta_solver.py --help
 ```
 to see the various available options.
@@ -46,7 +46,7 @@ You can also use it as a library
 ```
 import pasta_solver
 
-filename = "../../examples/inference/bird_4.lp"
+filename = "../examples/inference/bird_4.lp"
 query = "fly(1)"
 solver = pasta_solver.Pasta(filename, query)
 lp, up = solver.inference()
@@ -71,10 +71,10 @@ You can find more information about the API documentation in the `html/pasta` fo
 
 ### Exact inference
 ```
-cd src/pasta
-python3 pasta_solver.py ../../examples/conditionals/bird_4_cond.lp --query="fly"
+cd pasta
+python3 pasta_solver.py ../examples/conditionals/bird_4_cond.lp --query="fly"
 ```
-Asks the query `fly` for the program stored in `../../examples/conditionals/bird_4_cond.lp`.
+Asks the query `fly` for the program stored in `../examples/conditionals/bird_4_cond.lp`.
 Expected result:
 ```
 Lower probability for the query: 0.7
@@ -84,21 +84,21 @@ You can specify evidence with `--evidence`.
 
 ### Abduction
 ```
-cd src/pasta
-python3 pasta_solver.py ../../examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
+cd pasta
+python3 pasta_solver.py ../examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
 ```
 
 ### MAP/MPE inference
 ```
-cd src/pasta
-python3 pasta_solver.py ./../examples/map/color_map.lp --query="win" --map
+cd pasta
+python3 pasta_solver.py ../examples/map/color_map.lp --query="win" --map
 ```
 
 ### Approximate inference
 Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis hastings sampling (`--mh`), rejection sampling (`--rejection`).
 ```
-cd src/pasta
-python3 pasta_solver.py ../../examples/inference/bird_4.lp --query="fly(1)" --approximate
+cd pasta
+python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 
 ## Syntax

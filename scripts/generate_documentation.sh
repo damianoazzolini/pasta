@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd ../src/pasta/
+cd ../pasta/
 pdoc --html . -o ../../html

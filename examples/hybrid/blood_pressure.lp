@@ -23,7 +23,9 @@ systolic(1..4):gaussian(120,10).
 % 0.1587::p32.
 % 0.1587::p33.
 
-problem_d(I):- #constraint(diastolic(1) < 60).
+% this does not work since diastolic(I) is not ground
+% problem_d(I):- people(I), #constraint(diastolic(I) < 60).
+problem_d(1):- #constraint(diastolic(1) < 60).
 problem_d(2):- #constraint(diastolic(2) < 60).
 problem_d(3):- #constraint(diastolic(3) < 60).
 problem_d(4):- #constraint(diastolic(4) < 60).

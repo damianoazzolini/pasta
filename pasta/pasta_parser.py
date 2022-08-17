@@ -70,7 +70,6 @@ def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
     return prob, term
 
 
-
 def get_functor(term: str) -> str:
     '''
     Extracts the functor from a compound term. If the term is an atom

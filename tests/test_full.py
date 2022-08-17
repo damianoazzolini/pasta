@@ -3,9 +3,9 @@ import unittest
 import importlib.util
 
 import sys
-sys.path.append("../src/pasta/")
+sys.path.append("../pasta/")
 
-spec = importlib.util.spec_from_file_location("pasta", "../src/pasta/pasta_solver.py")
+spec = importlib.util.spec_from_file_location("pasta", "../pasta/pasta_solver.py")
 past = importlib.util.module_from_spec(spec)  # type: ignore
 spec.loader.exec_module(past)  # type: ignore
 
@@ -35,6 +35,7 @@ class TestClass(unittest.TestCase):
         expected_abd : 'list[str]' = []):
         if evidence is None:
             evidence = ""
+        # pasta_solver = past.Pasta(filename, query, evidence, 3, False, False, stop_if_inconsistent=True, no_minimal=True)
         pasta_solver = past.Pasta(filename, query, evidence, 3, False, False)
         lp, up = pasta_solver.inference()
 
@@ -82,6 +83,7 @@ class TestClass(unittest.TestCase):
         self.wrap_test_exact_inference("../examples/inference/disjunction.lp", "f", "", "disjunction", 0.6, 0.8)
         self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact", 1, 1)
         self.wrap_test_exact_inference("../examples/inference/evidence_certain.lp", "qr", "ev", "evidence_certain", 1, 1)
+        self.wrap_test_exact_inference("../examples/inference/certain_fact_2.lp", "qry", "", "certain_fact_2", 1, 1)
 
 
     def test_conditionals(self):

@@ -304,7 +304,7 @@ class Pasta:
                 print(sorted(el))
 
 
-if __name__ == "__main__":
+def main():
     command_parser = argparse.ArgumentParser(
         description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename", help="Program to analyse", type=str)
@@ -345,3 +345,7 @@ if __name__ == "__main__":
     else:
         lower_p, upper_p = pasta_solver.inference()
         Pasta.print_prob(lower_p, upper_p)
+
+
+if __name__ == "__main__":
+    main()

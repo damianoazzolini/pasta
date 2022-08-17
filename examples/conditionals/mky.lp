@@ -1,16 +1,16 @@
-(f1(X)|h(X))[0.2,1].
+% (f1(X)|h(X))[0.2,1].
 
-% f1(Y) ; not_f1(Y):- h(Y).
+f1(Y) ; not_f1(Y):- h(Y).
 
-% :- #count{X:h(X)} = H,
-%    #count{X:f1(X),h(X)} = FH,
-%    10*FH < 2*H.
+:- #count{X:h(X)} = H,
+   #count{X:f1(X),h(X)} = FH,
+   10*FH < 2*H.
 
 f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).
 
 :- #count{X:h(X),r(X,_)} = H,
    #count{Y,X:f2(X,Y),h(Y),r(X,Y)} = FH,
-   10*FH < 9*H.
+   10*FH < 1*H.
 
 0.3::h(a).
 0.3::h(b).
@@ -36,6 +36,8 @@ f2(X,Y) ; not_f2(X,Y) :- h(Y), r(X,Y).
 qr:- not f1(a), not f1(b), not f1(c), not f1(d), not f1(e), not f2(a,b), not f2(b,c), not f2(c,d), not f2(d,e).
 
 qry:- not qr.
+
+% qr:- f(0), f(0,1).
 
 % Example query: qry.
 % python3 pasta.py mky.lp --query="qry"

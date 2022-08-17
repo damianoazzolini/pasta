@@ -5,10 +5,10 @@
 
 # import sys
 # from unittest import result
-# sys.path.append("../src/pasta/")
+# sys.path.append("../pasta/")
 
 # spec = importlib.util.spec_from_file_location(
-#     "generator", "../src/pasta/generator.py")
+#     "generator", "../pasta/generator.py")
 # generat = importlib.util.module_from_spec(spec)
 # spec.loader.exec_module(generat)
 

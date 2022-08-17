@@ -3,9 +3,9 @@ import unittest
 import importlib.util
 
 import sys
-sys.path.append("../src/pasta/")
+sys.path.append("../pasta/")
 
-spec = importlib.util.spec_from_file_location("pasta_parser", "../src/pasta/pasta_parser.py")
+spec = importlib.util.spec_from_file_location("pasta_parser", "../pasta/pasta_parser.py")
 pasta_parser = importlib.util.module_from_spec(spec)  # type: ignore
 spec.loader.exec_module(pasta_parser)  # type: ignore
 
