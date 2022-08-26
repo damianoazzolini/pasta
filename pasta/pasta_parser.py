@@ -381,7 +381,7 @@ class PastaParser:
             if fact + '.' in self.lines_prob:
                 self.probabilistic_facts[fact] = 1
 
-            clauses = gen.generate_clauses_for_facts(fact, self.probabilistic_facts[fact])
+            clauses = gen.generate_clauses_for_facts(fact)
             for c in clauses:
                 self.lines_prob.append(c)
 

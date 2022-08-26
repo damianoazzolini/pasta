@@ -14,3 +14,7 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 :- cs(S), ce(C), 10* S < 4*C.
 
 qr:- bought(spaghetti,a).
+
+% query: qr 
+% Lower probability for the query: 0.0625
+% Upper probability for the query: 0.5

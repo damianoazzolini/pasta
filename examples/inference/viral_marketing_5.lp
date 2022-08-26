@@ -23,7 +23,7 @@ reached(X):- person(X), reach(_,X).
 reached(X):- person(X), advertise(X,_).
 
 % Once reached, a person can or cannot buy the product.
-buy(X);notbuy(X):- reached(X).
+0{buy(X)}1 :- reached(X).
 
 % At least 70% of the people reached buy an item.
 :- #count{X:reached(X),buy(X)} = RB, #count{X:reached(X)} = R, 10*RB < 7*R.

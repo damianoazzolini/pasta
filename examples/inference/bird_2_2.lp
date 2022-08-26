@@ -9,8 +9,8 @@
 0.4::bird_b(2).
 
 % A bird (of type a or b) can fly or not fly
-fly_a(X);nofly_a(X):- bird_a(X).
-fly_b(X);nofly_b(X):- bird_b(X).
+0{fly_a(X)}1 :- bird_a(X).
+0{fly_b(X)}1 :- bird_b(X).
 
 % Constraint: at least 60% of the total birds fly
 :-  #count{X:fly_a(X),bird_a(X)} = FBA,
@@ -25,6 +25,7 @@ fly_1:- fly_a(1).
 fly_1:- fly_b(1).
 
 query(fly_1).
+
 % Example query: fly_1
 % What is the lower and the upper bound for the probability of
 % the query fly_1?

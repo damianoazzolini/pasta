@@ -15,7 +15,7 @@
 (smokes(Y) | smokes(X), friend(X,Y))[0.4,1].
 
 % % The conditional is exploded into
-% smokes(Y) ; not_smokes(Y):- smokes(X), friend(X,Y).
+% 0{smokes(Y)}1:- smokes(X), friend(X,Y).
 
 % :- #count{Y,X:smokes(X),friend(X,Y)} = F,
 %    #count{Y,X:smokes(X),friend(X,Y),smokes(Y)} = SF,

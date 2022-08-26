@@ -27,12 +27,13 @@ docker pull damianodamianodamiano/pasta
 docker container run -it pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
+However, the image is not always updated.
 
-You can also install the package via `pip`.
+<!-- You can also install the package via `pip`.
 Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
 ```
 python3 -m pip install git+https://github.com/damianoazzolini/pasta
-```
+``` -->
 
 ## Usage
 Use
@@ -68,6 +69,42 @@ print("Upper probability for the query " + query + ": " + str(up))
 where `program` is a string containing your program.
 
 You can find more information about the API documentation in the `html/pasta` folder.
+
+### Options
+```
+python3 pasta_solver.py --help
+usage: pasta_solver.py [-h] [-q QUERY] [-e EVIDENCE] [-v] [--pedantic]
+                       [--approximate] [--samples SAMPLES] [--mh] [--gibbs]
+                       [--block BLOCK] [--rejection] [--pl] [--abduction]
+                       [--map] [--upper] [--no-minimal] [--normalize]
+                       [--stop-if-inconsistent]
+                       filename
+
+PASTA: Probabilistic Answer Set programming for STAtistical probabilities
+
+positional arguments:
+  filename              Program to analyse
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -q QUERY, --query QUERY Query
+  -e EVIDENCE, --evidence EVIDENCE Evidence
+  -v, --verbose         Verbose mode, default: false
+  --pedantic            Pedantic mode, default: false
+  --approximate         Compute approximate probability
+  --samples SAMPLES     Number of samples, default 1000
+  --mh                  Use Metropolis Hastings sampling
+  --gibbs               Use Gibbs Sampling sampling
+  --block BLOCK         Set the block value for Gibbs sampling
+  --rejection           Use rejection Sampling sampling
+  --pl                  Parameter learning
+  --abduction           Abduction
+  --map                 MAP (MPE) inference
+  --upper               Select upper probability for MAP and abduction
+  --no-minimal          Do not compute the minimal set of probabilistic facts
+  --normalize           Normalize the probability if some worlds do not have answer sets
+  --stop-if-inconsistent Raise an error if a world without answer sets is found
+```
 
 ### Exact inference
 ```
@@ -115,6 +152,8 @@ For example, "at least 60% of the birds fly" can be expressed with
 ```
 See `examples/conditionals/bird_4_cond.lp` for an example.
 
+Note: be super careful when using rules with disjunction in the head.
+You should replace them with choice rules.
 
 ## Description and How to Cite
 The papers describing this system will be soon available.

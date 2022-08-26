@@ -12,7 +12,11 @@ v(Y) :- e(X,Y).
 
 :- in(X), in(Y), v(X), v(Y), X!=Y, not e(X,Y), not e(Y,X).
 
-% Example query
-% python3 pasta.py ../../examples/clique.lp --query="in(1)"
+% Example query: in(1)
 % Lower probability for the query in(1): 0.4375
 % Upper probability for the query in(1): 0.875
+% This program has some worlds without answer sets, so there
+% can be a probability loss.
+% If you want to fix this, use the flags --no-minimal --normalize
+% Lower probability for the query: 0.4666666666666667
+% Upper probability for the query: 0.9333333333333333

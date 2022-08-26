@@ -43,3 +43,12 @@ friend(b,c).
 friend(c,b).
 friend(a,c).
 friend(c,a).
+
+% query: qr
+% Lower probability for the query: 0.041015625
+% Upper probability for the query: 0.09918212890625
+% This program has some worlds without answer sets, so there
+% can be a probability loss.
+% If you want to fix this, use the flags --no-minimal --normalize
+% Lower probability for the query: 0.055408970976253295
+% Upper probability for the query: 0.13398746701846967

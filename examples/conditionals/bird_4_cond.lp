@@ -7,16 +7,12 @@ bird(4).
 % the bird indexed by 1 flies with probability 0.7
 0.7::fly_w(1).
 
-% The following two lines are equivalent to the conditional
+% Conditional
 (fly(X) | bird(X))[0.6,1].
 
-% A bird can fly or not fly
-% fly(X) ; not_fly(X):- bird(X).
-
-% At least 60% of the birds flies
-% :- #count{X:fly(X),bird(X)} = FB, 
-   % #count{X:bird(X)} = B, 
-   % 10*FB < 6*B.
+% The conditional is equivalent to
+% 0{fly(X)}1:- bird(X).
+% :- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB < 6*B.
 
 fly:- fly(1).
 fly:- fly_w(1).

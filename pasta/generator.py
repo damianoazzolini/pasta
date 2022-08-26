@@ -12,7 +12,7 @@ class Generator:
 
 
     @staticmethod
-    def generate_clauses_for_facts(term : str, probability : float) -> 'list[str]':
+    def generate_clauses_for_facts(term : str) -> 'list[str]':
         generator_term = '0{' + term + '}1.'
         fact_false = f"not_{term}:- not {term}."
         show_true = f"#show.\n#show {term}:{term}."
@@ -57,7 +57,9 @@ class Generator:
         
         vars = Generator.extract_vars(cond[0])
 
-        disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
+        # disjunctive rules are not ok, I need to use choice rules
+        # disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
+        disjunct = f"0{{ {cond[0]} }}1 :- {cond[1]}."
         # here I consider only one term in the left part
         # f(a,b) | ... not f(a,b), f(b,c) | ...
         constr = ":- #count{" + ','.join(vars) + ":" + cond[1] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"

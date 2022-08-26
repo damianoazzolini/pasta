@@ -12,18 +12,18 @@ from utils import print_error_and_exit, print_waring
 import learning_utilities
 
 examples_string_exact = "python3 pasta_solver.py \
-    ../../examples/bird_4.lp \
+    ../examples/bird_4.lp \
     --query=\"fly(1)\""
 examples_string_exact_evidence = "python3 pasta_solver.py \
-    ../../examples/bird_4.lp \
+    ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\""
 examples_string_approximate = "python3 pasta_solver.py \
-    ../../examples/bird_4.lp \
+    ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --approximate"
 examples_string_approximate_rej = "python3 pasta_solver.py \
-    ../../examples/bird_4.lp \
+    ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\" --rejection"
 examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + \

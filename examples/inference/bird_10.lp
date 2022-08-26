@@ -12,7 +12,7 @@
 0.5::bird(10).
 
 % A bird can fly or not fly
-fly(X);nofly(X):- bird(X).
+0{fly(X)}1 :- bird(X).
 
 % Constraint: at least 80% of the birds fly
 :- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<8*B.
@@ -20,7 +20,3 @@ fly(X);nofly(X):- bird(X).
 % Example query: fly(1)
 % What is the lower and the upper bound of the probability for fly(1)?
 % Expected: lower: 0.127, upper: 0.5
-
-% Example query: nofly(1)
-% What is the lower and the upper bound of the probability for nofly(1)?
-% Expected: lower: 0, upper: 0.373
