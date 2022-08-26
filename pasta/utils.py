@@ -43,6 +43,7 @@ def is_number(n: 'int|float|str') -> bool:
         return False
     return True
 
+
 # progressbar from https://stackoverflow.com/questions/3160699/python-progress-bar
 def progressbar(it: range, prefix: str = "", size: int = 60):
     count = len(it)

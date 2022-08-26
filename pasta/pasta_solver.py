@@ -11,7 +11,6 @@ from utils import print_error_and_exit, print_waring
 
 import learning_utilities
 
-
 examples_string_exact = "python3 pasta_solver.py \
     ../../examples/bird_4.lp \
     --query=\"fly(1)\""
@@ -31,6 +30,15 @@ examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_s
     "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
 
 pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
+
+
+def check_lp_up(lp : float, up : float) -> None:
+    '''
+    Checks whether lp =< up
+    '''
+    if (lp > up) or (int(lp * 10e8) > 10e8) or (int(up * 10e8) > 10e8):
+        s = f"Error in computing probabilities\nLower: {lp:.8f}\nUpper: {up:.8f}"
+        print_error_and_exit(s)
 
 
 class Pasta:
@@ -65,16 +73,6 @@ class Pasta:
         self.stop_if_inconsistent = stop_if_inconsistent
         self.interface : AspInterface
         self.parser : PastaParser
-
-
-    @staticmethod
-    def check_lp_up(lp : float, up : float) -> None:
-        '''
-        Checks whether lp =< up
-        '''
-        if (lp > up) or (int(lp * 10e8) > 10e8) or (int(up * 10e8) > 10e8):
-            s = f"Error in computing probabilities\nLower: {lp:.8f}\nUpper: {up:.8f}"
-            print_error_and_exit(s)
 
 
     def parameter_learning(self, from_string : str = "") -> None:
@@ -191,7 +189,7 @@ class Pasta:
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
 
-        self.check_lp_up(lp, up)
+        check_lp_up(lp, up)
 
         return lp, up, self.interface.abductive_explanations
 
@@ -214,7 +212,7 @@ class Pasta:
             lp = lp / (1 - self.interface.normalizing_factor)
             up = up / (1 - self.interface.normalizing_factor)
 
-        self.check_lp_up(lp, up)
+        check_lp_up(lp, up)
 
         return lp, up
 
