@@ -67,25 +67,18 @@ class Generator:
         range = range.split(",")
         if len(range) != 2:
             sys.exit("Unbalanced range in conditional: " + conditional)
-        lower = range[0][1:]
-        upper = range[1][:-1]
+        lower = float(range[0][1:])
+        upper = float(range[1][:-1])
 
         cu = ""
         cl = ""
 
-        if float(lower) == 0 and float(upper) != 0:
-            ub = int(float(lower) * 100)
-            cu = constr +  ", " + "100 * FH > " + str(ub) + "*H."
-            cl = ""
-        elif float(upper) == 1 and float(lower) != 0:
-            lb = int(float(lower) * 100)
-            cl = constr + ", " + "100 * FH < " + str(lb) + "*H."
-            cu = ""
-        elif float(upper) != 1 and float(lower) != 0:
-            ub = int(float(lower) * 100)
-            cu = constr + ", " + "100 * FH > " + str(ub) + "*H."
-            lb = int(float(lower) * 100)
-            cl = constr + ", " + "100 * FH < " + str(lb) + "*H."
+        if float(upper) != 1:
+            ub = int(upper * 100)
+            cu = f"{constr}, 100*FH > {ub}*H."
+        elif float(lower) != 0:
+            lb = int(lower * 100)
+            cl = f"{constr}, 100*FH < {lb}*H."
 
         return [disjunct,cu,cl]
 
