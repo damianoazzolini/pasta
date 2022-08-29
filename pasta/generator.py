@@ -49,13 +49,25 @@ class Generator:
         if i == len(conditional):
             sys.exit("Syntax error in conditional: " + conditional)
 
-        cond, range = conditional[1:i-1], conditional[i:]
+        cond, prob_range = conditional[1:i-1], conditional[i:]
 
         cond = cond.split("|")
         if len(cond) != 2:
             sys.exit("Too many | in " + conditional)
         
         vars = Generator.extract_vars(cond[0])
+        body_atoms : "list[str]" = []
+        init_pos = 0
+        body = cond[1]
+        for i in range(0,len(body)):
+            if body[i] == ')':
+                body_atoms.append(body[init_pos:i+1])
+                init_pos = i + 1
+
+        for el in body_atoms:
+            vars = vars + Generator.extract_vars(el)
+        # remove duplicates
+        vars = list(set(vars)) 
 
         # disjunctive rules are not ok, I need to use choice rules
         # disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
@@ -64,11 +76,11 @@ class Generator:
         # f(a,b) | ... not f(a,b), f(b,c) | ...
         constr = ":- #count{" + ','.join(vars) + ":" + cond[1] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"
 
-        range = range.split(",")
-        if len(range) != 2:
+        prob_range = prob_range.split(",")
+        if len(prob_range) != 2:
             sys.exit("Unbalanced range in conditional: " + conditional)
-        lower = float(range[0][1:])
-        upper = float(range[1][:-1])
+        lower = float(prob_range[0][1:])
+        upper = float(prob_range[1][:-1])
 
         cu = ""
         cl = ""
