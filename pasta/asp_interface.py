@@ -275,6 +275,23 @@ class AspInterface:
             if self.pedantic:
                 print(self.inconsistent_worlds)
 
+        if self.pedantic:
+            print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
+            for el in self.prob_facts_dict:
+                print(el, end="\t")
+            print("prob")
+            for el in self.model_handler.worlds_dict:
+                for i in range(0,len(el)):
+                    print(f"{el[i]}", end="\t")
+                if self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count == 0:
+                    print(utils.RED, end = "")
+                elif self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count > 0:
+                    print(utils.YELLOW, end="")
+                print(self.model_handler.worlds_dict[el].prob, end="")
+                if self.model_handler.worlds_dict[el].model_query_count > 0:
+                    print(utils.END)
+                else:
+                    print("")
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
         self.world_analysis_time = time.time() - start_time

@@ -88,7 +88,7 @@ class Generator:
         if float(upper) != 1:
             ub = int(upper * 100)
             cu = f"{constr}, 100*FH > {ub}*H."
-        elif float(lower) != 0:
+        if float(lower) != 0:
             lb = int(lower * 100)
             cl = f"{constr}, 100*FH < {lb}*H."
 
