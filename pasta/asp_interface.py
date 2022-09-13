@@ -279,14 +279,16 @@ class AspInterface:
             print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
             for el in self.prob_facts_dict:
                 print(el, end="\t")
-            print("prob")
+            print("LP/UP\tProbability")
             for el in self.model_handler.worlds_dict:
                 for i in range(0,len(el)):
                     print(f"{el[i]}", end="\t")
                 if self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count == 0:
-                    print(utils.RED, end = "")
+                    print(utils.RED + "LP\t", end = "")
                 elif self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count > 0:
-                    print(utils.YELLOW, end="")
+                    print(utils.YELLOW + "UP\t", end="")
+                else:
+                    print("-\t", end="")
                 print(self.model_handler.worlds_dict[el].prob, end="")
                 if self.model_handler.worlds_dict[el].model_query_count > 0:
                     print(utils.END)
