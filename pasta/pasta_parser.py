@@ -1,11 +1,11 @@
 '''
 Class defining a parser for a PASTA program.
 '''
+from io import TextIOWrapper
 import os
-import sys
 import re
 
-from utils import print_waring, print_error_and_exit, warning_prob_fact_twice, is_number
+from utils import print_waring, print_error_and_exit, error_prob_fact_twice, is_number
 from generator import Generator
 
 
@@ -44,28 +44,27 @@ def endline_symbol(char1: str) -> bool:
 
 def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
     if not line_in.endswith('.'):
-        sys.exit("Missing final . in " + line_in)
+        print_error_and_exit("Missing final . in " + line_in)
 
     line = line_in.split("::")
     # for example: line = ['0.5', 'f(1..3).']
     if len(line) != 2:
-        sys.exit("Error in parsing: " + str(line))
+        print_error_and_exit(f"Error in parsing: {line}")
 
     if not is_number(line[0]):
         print("---- ")
-        sys.exit("Error: expected a float, found " + str(line[0]))
+        print_error_and_exit(f"Error: expected a float, found {line[0]}")
 
     prob = float(line[0])
 
     if prob > 1 or prob < 0:
-        sys.exit(
-            "Probabilities must be in the range [0,1], found " + str(prob))
+        print_error_and_exit(f"Probabilities must be in the range [0,1], found {prob}")
 
     # [:-1] to remove final .
     term = line[1][:-1]
 
     if len(term) == 0 or not term[0].islower():
-        sys.exit("Invalid probabilistic fact " + str(term))
+        print_error_and_exit(f"Invalid probabilistic fact {term}")
 
     return prob, term
 
@@ -114,21 +113,23 @@ class PastaParser:
         self.map_id_list : 'list[int]' = []
         self.constraints_list : 'list[str]' = []
 
+
+    def get_file_handler(self, from_string : str = "") -> TextIOWrapper:
+        if not from_string:
+            if not os.path.isfile(self.filename):
+                print_error_and_exit(f"File {self.filename} not found")
+            return open(self.filename, "r")
+        else:
+            import io
+            return io.StringIO(from_string)
+
+
     def parse_approx(self, from_string : str = "") -> None:
         '''
         Parses a program into an alternative form: probabilistic 
         facts are converted into external facts
         '''
-        if not from_string and os.path.isfile(self.filename) is False:
-            print("File " + self.filename + " not found")
-            sys.exit()
-
-        if not from_string:
-            f = open(self.filename,"r")
-        else:
-            import io
-            f = io.StringIO(from_string)
-
+        f = self.get_file_handler(from_string)
         lines = f.readlines()
 
         for l in lines:
@@ -210,20 +211,11 @@ class PastaParser:
         Behavior:
             - parses the file and extract the lines
         '''
-        if not from_string and os.path.isfile(self.filename) is False:
-            print("File " + self.filename + " not found")
-            sys.exit()
-        
-        if not from_string:
-            f = open(self.filename,"r")
-        else:
-            import io
-            f = io.StringIO(from_string)
+        f = self.get_file_handler(from_string)
         
         char = f.read(1)
         if not char:
-            print("Empty file")
-            sys.exit()
+            print_error_and_exit("Empty file or program")
 
         # eat possible white spaces or empty lines
         while symbol_endline_or_space(char):
@@ -578,9 +570,7 @@ class PastaParser:
         '''
         key = term.split('.')[0]
         if key in self.probabilistic_facts:
-            warning_prob_fact_twice(
-                key, prob, self.probabilistic_facts[key])
-            sys.exit()
+            error_prob_fact_twice(key, prob, self.probabilistic_facts[key])
         self.probabilistic_facts[key] = float(prob)
 
 

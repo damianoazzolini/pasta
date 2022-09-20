@@ -255,7 +255,17 @@ class AspInterface:
             missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l))
 
             if self.stop_if_inconsistent and len(missing) > 0:
-                utils.print_error_and_exit(f"Found worlds without answer sets: {missing}")
+                res = ""
+                for el in missing:
+                    s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
+                    i = 0
+                    res = res + s + "{ "
+                    for el in self.prob_facts_dict:
+                        if s[i] == '1':
+                            res += el + " "
+                        i = i + 1
+                    res += "}\n"
+                utils.print_error_and_exit(f"Found worlds without answer sets: {missing}\n{res[:-1]}")
 
             for el in missing:
                 n = str(bin(el))[2:]

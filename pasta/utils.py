@@ -23,7 +23,7 @@ def print_waring(message : str):
     print(YELLOW + "Warning: " + message + END)
 
 
-def warning_prob_fact_twice(
+def error_prob_fact_twice(
     key : str,
     new_prob : float,
     old_prob : float
@@ -34,6 +34,7 @@ def warning_prob_fact_twice(
     print(f"Probabilistic fact {key} already defined")
     print(f"with probability {old_prob}.")
     print(f"Trying to replace it with probability {new_prob}.")
+    sys.exit()
 
 
 def is_number(n: 'int|float|str') -> bool:
