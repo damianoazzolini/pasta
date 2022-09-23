@@ -1,5 +1,6 @@
 import sys
 import math
+import random
 
 from utils import print_error_and_exit
 
@@ -10,6 +11,10 @@ def add_log_probability_as_argument(atom: str, p: int) -> 'str':
     if atom.endswith(')'):
         atom = atom.split(')')[0] + ',' + str(p) + ')'
     return atom
+
+
+def flip():
+    return random.randint(0,1) == 1
 
 
 '''
@@ -147,3 +152,19 @@ class Generator:
         abd_fact = "abd_fact(" + str(n_abd) + "):-" + term + "."
 
         return [generator, new_fact_true, new_fact_false, abd_fact, show_true, show_false], term
+    
+
+    @staticmethod
+    def generate_xor_constraint(n_vars : int):
+        constr = ":- #count{"
+
+        for i in range(1, n_vars + 1):
+            if flip():
+                # constr = constr + f"1,bird({i}) : bird({i});"
+                constr = constr + f"1,a({i}) : a({i});"
+        if constr.endswith("{"):
+            # no constraints were added
+            return ""
+        # random even/odd constraint
+        parity = 0 if flip() else 1
+        return constr[:-1] + "} = N, N\\2 = " + str(parity) + "."

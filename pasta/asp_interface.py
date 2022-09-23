@@ -314,9 +314,9 @@ class AspInterface:
         Compute the upper MPE state by using an ASP solver.
         We require (not checked) that every world has at least one answer set.
         '''
-        ctl = clingo.Control(["-Wnone","--opt-mode=opt","--models=0"])
+        ctl = clingo.Control(["-Wnone","--opt-mode=opt","--models=0", "--output-debug=none"])
         for clause in self.asp_program:
-            ctl.add('base', [], clause)      
+            ctl.add('base', [], clause)
 
         start_time = time.time()
         ctl.ground([("base", [])])

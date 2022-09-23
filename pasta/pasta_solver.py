@@ -1,6 +1,8 @@
 """ Main module for the PASTA solver """
 
 import argparse
+import math
+import statistics
 
 # from pasta.pasta_parser import PastaParser
 from pasta_parser import PastaParser
@@ -8,6 +10,8 @@ from pasta_parser import PastaParser
 from asp_interface import AspInterface
 # import asp_interface
 from utils import print_error_and_exit, print_waring
+
+import generator
 
 import learning_utilities
 
@@ -89,6 +93,52 @@ class Pasta:
         learning_utilities.test_results(test_set, interpretations_to_worlds, prob_facts_dict, program, offset)
 
 
+    def approximate_solve_xor(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
+        '''
+        Approximate inference (upper probability) using XOR constraints
+        '''
+        self.parser = PastaParser(self.filename, self.query, self.evidence, for_asp_solver=True)
+        self.consider_lower_prob = False
+        self.for_asp_solver = True
+        self.no_minimal = True
+
+        map_program, n_vars = self.parser.inference_to_mpe(from_string)
+
+        n = math.ceil(math.log2(n_vars))
+        delta = arguments.delta # in [0,1], più grande meno accurato
+        alpha = arguments.alpha # < 0.0042 dal paper
+        # print(n)
+        t = math.ceil(math.log((n/delta)/alpha))
+        m_list : 'list[float]' = []
+
+        if self.verbose:
+            print(f"Probability median of {t} values")
+
+        for i in range(0, n + 1):
+            map_states : 'list[float]' = []
+            for _ in range(1, t + 1):
+                # compute xor
+                xor_constraints : 'list[str]' = []
+                current_program = map_program
+                for _ in range(0, i):
+                    current_constraint = generator.Generator.generate_xor_constraint(n_vars)
+                    xor_constraints.append(current_constraint)
+                    current_program = current_program + current_constraint + "\n"
+                prob, _ = self.upper_mpe_inference(current_program)
+                map_states.append(prob)
+            m_list.append(statistics.median(map_states))
+        
+        res_l = m_list[0]
+        res_u = m_list[0]
+
+        for i in range(0, len(m_list) - 1):
+            res_l += m_list[i+1]*(2**i)
+            res_u += m_list[i+1]*(2**(i+1))
+
+        return res_l if res_l <= 1 else 1, res_u if res_u <= 1 else 1 
+
+
+
     def approximate_solve(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
         '''
         Inference through sampling
@@ -163,9 +213,11 @@ class Pasta:
             normalize_prob=self.normalize_prob
         )
 
-        exec_time = self.interface.get_minimal_set_facts()
+        exec_time = 0
+        if self.no_minimal is False:
+            exec_time = self.interface.get_minimal_set_facts()
 
-        if self.verbose:
+        if self.verbose and self.no_minimal is False:
             print(f"Computed cautious consequences in {exec_time} seconds")
             if self.pedantic:
                 print("--- Minimal set of probabilistic facts ---")
@@ -176,10 +228,11 @@ class Pasta:
             print("--- Asp program ---")
             self.interface.print_asp_program()
             print("---")
-            print("--- Program to find minimal sets ---")
-            for e in content_find_minimal_set:
-                print(e)
-            print("---")
+            if self.no_minimal is False:
+                print("--- Program to find minimal sets ---")
+                for e in content_find_minimal_set:
+                    print(e)
+                print("---")
 
 
     def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
@@ -353,6 +406,9 @@ def main():
     command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action="store_true", default=False)
     command_parser.add_argument("--solver", help="Uses an ASP solver for the task", action="store_true", default=False)
     command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
+    command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
+    command_parser.add_argument("--alpha", help="Constant for apporximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
+    command_parser.add_argument("--delta", help="Accuracy for apporximate inferece with XOR constraints. Default = 0.05", type=float, default=0.05)
 
     args = command_parser.parse_args()
 
@@ -363,7 +419,10 @@ def main():
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
         Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
     elif args.approximate or args.rejection or args.mh or args.gibbs is True:
-        lower_p, upper_p = pasta_solver.approximate_solve(args)
+        if args.xor:
+            lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
+        else:
+            lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)
     elif args.pl is True:
         pasta_solver.parameter_learning()

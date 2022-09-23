@@ -401,6 +401,21 @@ class PastaParser:
         return True
 
 
+    def inference_to_mpe(self, from_string: str = "") -> 'tuple[str,int]':
+        '''
+        Adds 'map' before probabilistic facts.
+        '''
+        f = self.get_file_handler(from_string)
+        parsed_program : str = ""
+        n_vars = 0
+        for line in f:
+            if "::" in line:
+                line = f"map {line}"
+                n_vars += 1
+            parsed_program = parsed_program + line + "\n"
+        return parsed_program, n_vars 
+
+
     def parse_input_learning(self, from_string: str = "") -> 'tuple[list[list[str]],list[list[str]],str,dict[str,float],int]':
         '''
         #example(pos,Id,'atom') where Id is the Id of the (partial) answer set and atom is the correspondent atom

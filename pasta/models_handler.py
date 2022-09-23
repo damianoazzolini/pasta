@@ -522,6 +522,9 @@ class ModelsHandler():
         atoms : 'list[str]' = map_state.split(' ')
         map_state_parsed : 'list[str]' = []
 
+        if atoms[0] == '':
+            return 0, []
+
         for a in atoms:
             if a != 'q':
                 a = a.split('not_')
