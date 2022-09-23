@@ -57,6 +57,7 @@ class Pasta:
         no_minimal : bool = False,
         normalize_prob : bool = False,
         stop_if_inconsistent : bool = False,
+        one : bool = False
         ) -> None:
         self.filename = filename
         self.query = query
@@ -71,6 +72,8 @@ class Pasta:
         self.no_minimal = no_minimal
         self.normalize_prob = normalize_prob
         self.stop_if_inconsistent = stop_if_inconsistent
+        self.for_asp_solver = False
+        self.one = one
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -132,8 +135,7 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        self.parser = PastaParser(
-            self.filename, self.query, self.evidence)
+        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver)
         self.parser.parse(from_string)
 
         if self.verbose:
@@ -222,9 +224,11 @@ class Pasta:
         Maximum a posteriori (MAP) inference: find the state (world)
         with maximum probability where the evidence holds.
         Most probable explanation (MPE) is MAP where no evidence is present
-        i.e., find the world with highest probability.
+        i.e., find the world with highest probability where the query is true.
         '''
         self.setup_interface(from_string)
+        if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
+            print_waring("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
         self.interface.compute_probabilities()
         max_prob, map_state = self.interface.model_handler.get_map_solution(
             self.parser.map_id_list, self.consider_lower_prob)
@@ -236,6 +240,21 @@ class Pasta:
             max_prob = max_prob / (1 - self.interface.normalizing_factor)
 
         return max_prob, map_state
+
+
+    def upper_mpe_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
+        '''
+        MPE inference considering the upper probability.
+        We suppose that every world has at least one answer set.
+        '''
+        self.setup_interface(from_string)
+        if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict):
+            map_state = self.interface.compute_mpe_asp_solver(self.one)
+            probability, map_state_parsed = self.interface.model_handler.extract_prob_from_map_state(map_state)
+        else:
+            print_error_and_exit("MAP inference cannot be solved with an ASP solver. Remove the --solver option.")
+        
+        return probability, map_state_parsed
 
 
     @staticmethod
@@ -329,14 +348,16 @@ def main():
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
     command_parser.add_argument("--upper", help="Select upper probability for MAP and abduction", action="store_true", default=False)
-    command_parser.add_argument("--no-minimal", help="Do not compute the minimal set of probabilistic facts", action="store_true", default=False)
-    command_parser.add_argument("--normalize", help="Normalize the probability if some worlds do not have answer set", action="store_true", default=False)
-    command_parser.add_argument("--stop-if-inconsistent", help="Raise an error if a world without answer sets is found", action="store_true", default=False)
+    command_parser.add_argument("--no-minimal", "-nm", help="Do not compute the minimal set of probabilistic facts", action="store_true", default=False)
+    command_parser.add_argument("--normalize", help="Normalize the probability if some worlds have no answer sets", action="store_true", default=False)
+    command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action="store_true", default=False)
+    command_parser.add_argument("--solver", help="Uses an ASP solver for the task", action="store_true", default=False)
+    command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
 
     args = command_parser.parse_args()
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
-                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent)
+                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent, args.one)
 
     if args.abduction is True:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
@@ -347,7 +368,11 @@ def main():
     elif args.pl is True:
         pasta_solver.parameter_learning()
     elif args.map is True:
-        max_p, atoms_list_res = pasta_solver.map_inference()
+        if args.upper and not (args.normalize or args.stop_if_inconsistent) and args.solver:
+            pasta_solver.for_asp_solver = True
+            max_p, atoms_list_res = pasta_solver.upper_mpe_inference()
+        else:
+            max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
     else:
         lower_p, upper_p = pasta_solver.inference()

@@ -513,6 +513,31 @@ class ModelsHandler():
         return max_prob, atoms_list
 
 
+    def extract_prob_from_map_state(self, map_state : str) -> 'tuple[float,list[list[str]]]':
+        '''
+        Extracts the probability form the MAP state computed with an
+        ASP solver.
+        '''
+        probability : float = 1
+        atoms : 'list[str]' = map_state.split(' ')
+        map_state_parsed : 'list[str]' = []
+
+        for a in atoms:
+            if a != 'q':
+                a = a.split('not_')
+                negated = len(a) == 2
+                a1 = a[0] if len(a) == 1 else a[1]
+                if '-' in a1:
+                    a1 = a1.split('-')[0][:-1] + ')'
+                p = self.prob_facts_dict[a1] if not negated else (1-self.prob_facts_dict[a1])
+                probability = probability * p
+                
+                map_state_parsed.append("not " + a1 if negated else a1)
+
+        # return [map_state_parsed] to have uniformity with MAP
+        return probability, [map_state_parsed]
+
+
     def __repr__(self) -> str:
         s = ""
         if len(self.abd_worlds_dict) == 0:

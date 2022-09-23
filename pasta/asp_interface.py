@@ -309,6 +309,31 @@ class AspInterface:
         self.world_analysis_time = time.time() - start_time
 
 
+    def compute_mpe_asp_solver(self, one : bool = False):
+        '''
+        Compute the upper MPE state by using an ASP solver.
+        We require (not checked) that every world has at least one answer set.
+        '''
+        ctl = clingo.Control(["-Wnone","--opt-mode=opt","--models=0"])
+        for clause in self.asp_program:
+            ctl.add('base', [], clause)      
+
+        start_time = time.time()
+        ctl.ground([("base", [])])
+        self.grounding_time = time.time() - start_time
+
+        start_time = time.time()
+        opt : str = ""
+        with ctl.solve(yield_=True) as handle:  # type: ignore
+            for m in handle:  # type: ignore
+                opt = str(m)  # type: ignore
+                # self.computed_models = self.computed_models + 1
+            handle.get()   # type: ignore
+        self.computation_time = time.time() - start_time
+
+        return opt
+
+
     def sample_world(self) -> 'tuple[dict[str,bool],str]':
         '''
         Samples a world for approximate probability computation
@@ -381,7 +406,7 @@ class AspInterface:
                             else:
                                 pars.append(p)
 
-                        samples[el] = sample_continuous_value(distr, pars)
+                        samples[el] = sample_continuous_value(distr, pars)  # type: ignore
 
             if current_sampled == 0:
                 # there is a sort of cyclic dependency between variables

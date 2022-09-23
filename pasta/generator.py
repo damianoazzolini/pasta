@@ -1,6 +1,16 @@
 import sys
+import math
 
 from utils import print_error_and_exit
+
+
+def add_log_probability_as_argument(atom: str, p: int) -> 'str':
+    if atom.count(',') > 0:
+        print_error_and_exit("Expected atoms with arity 1")
+    if atom.endswith(')'):
+        atom = atom.split(')')[0] + ',' + str(p) + ')'
+    return atom
+
 
 '''
 Class defining a generator of an ASP program
@@ -9,7 +19,7 @@ Class defining a generator of an ASP program
 class Generator:
     def __init__(self):
         pass
-
+    
 
     @staticmethod
     def generate_clauses_for_facts(term : str) -> 'list[str]':
@@ -18,6 +28,27 @@ class Generator:
         show_true = f"#show.\n#show {term}:{term}."
         show_false = f"#show not_{term}:not_{term}."
         return [generator_term, fact_false, show_true, show_false]
+
+
+    @staticmethod
+    def generate_clauses_for_facts_for_asp_solver(term: str, probability: float) -> 'list[str]':
+        lp = math.ceil(math.log(probability)*1000)
+        lnp = math.ceil(math.log(1 - probability)*1000)
+        term_p = add_log_probability_as_argument(term, lp)
+        term_np = add_log_probability_as_argument(term, lnp)
+
+        name = term.split('(')[0]
+        arity = 2 # fixed by now
+
+        generator_term = "{" + term_p + "}."
+        wrap_fact_true = f"{term} :- {term_p}."
+        fact_false = f"not_{term_np}:- not {term_p}."
+        show_true = f"#show {name}/{arity}."
+        show_false = f"#show not_{name}/{arity}."
+        # show_false = f"#show not_{term_np}:not_{term_np}."
+        # #maximize{ X,Y:a(Y,X);X,Y:not_a(Y,X) }.
+        maximize_statement = "#maximize{X,Y:" + name + "(Y,X); X,Y:not_" + name + "(Y,X)}."
+        return [generator_term, wrap_fact_true, fact_false, show_true, show_false, maximize_statement]
 
 
     @staticmethod

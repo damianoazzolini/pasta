@@ -98,7 +98,8 @@ class PastaParser:
         self, 
         filename : str, 
         query : str = "", 
-        evidence : str = ""
+        evidence : str = "",
+        for_asp_solver : bool = False
         ) -> None:
         self.filename : str = filename
         self.query : str = query
@@ -112,6 +113,7 @@ class PastaParser:
         self.body_probabilistic_ics : 'list[str]' = []
         self.map_id_list : 'list[int]' = []
         self.constraints_list : 'list[str]' = []
+        self.for_asp_solver : bool = for_asp_solver
 
 
     def get_file_handler(self, from_string : str = "") -> TextIOWrapper:
@@ -252,7 +254,6 @@ class PastaParser:
                     l1 = "abducible"
                     for i in range(1, len(l0)):
                         l1 = l1 + ' ' + l0[i]
-                    # print(l1)
                 elif l0.startswith('map'):
                     l0 = l0.split('map')
                     for i in range(1, len(l0)):
@@ -283,8 +284,6 @@ class PastaParser:
                 comment = True
             else:
                 comment = False
-            # print(char)
-            # print(char1)
         f.close()
         self.parse_program()
 
@@ -366,6 +365,11 @@ class PastaParser:
         if not self.query:
             print_error_and_exit("Missing query")
 
+        # check that all the atoms have the same functor
+        # simplification: we only consider map a(1), map a(2), ...
+        # TODO: add these checks
+
+        i = 0
         for fact in self.probabilistic_facts:
             # To handle 0.1::a. a. q:- a.
             # Without this, the computed prob is 0.1, while the correct
@@ -373,9 +377,15 @@ class PastaParser:
             if fact + '.' in self.lines_prob:
                 self.probabilistic_facts[fact] = 1
 
-            clauses = gen.generate_clauses_for_facts(fact)
+            if self.for_asp_solver and i in self.map_id_list:
+                clauses = gen.generate_clauses_for_facts_for_asp_solver(
+                    fact, self.probabilistic_facts[fact])
+            else:
+                clauses = gen.generate_clauses_for_facts(fact)
+
             for c in clauses:
                 self.lines_prob.append(c)
+            i = i + 1
 
         i = 0
         for abd in self.abducibles:
@@ -535,7 +545,7 @@ class PastaParser:
             self.lines_prob.append(f"ne:- not {self.evidence}.")
             self.lines_prob.append("#show ne/0.")
 
-        return self.lines_prob
+        return list(set(self.lines_prob))
 
 
     def get_asp_program_approx(self) -> 'list[str]':
@@ -560,7 +570,7 @@ class PastaParser:
             self.lines_prob.append(f"nqe:- not {self.query}, {self.evidence}.")
             self.lines_prob.append("#show nqe/0.")
 
-        return self.lines_prob
+        return list(set(self.lines_prob))
 
 
     def add_probabilistic_fact(self, term : str, prob : float) -> None:
