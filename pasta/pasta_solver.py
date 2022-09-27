@@ -384,8 +384,7 @@ class Pasta:
 
 
 def main():
-    command_parser = argparse.ArgumentParser(
-        description=pasta_description, epilog=examples_strings)
+    command_parser = argparse.ArgumentParser(description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename", help="Program to analyse", type=str)
     command_parser.add_argument("-q", "--query", help="Query", type=str)
     command_parser.add_argument("-e", "--evidence", help="Evidence", type=str, default="")
@@ -407,26 +406,31 @@ def main():
     command_parser.add_argument("--solver", help="Uses an ASP solver for the task", action="store_true", default=False)
     command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
-    command_parser.add_argument("--alpha", help="Constant for apporximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
-    command_parser.add_argument("--delta", help="Accuracy for apporximate inferece with XOR constraints. Default = 0.05", type=float, default=0.05)
+    command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
+    command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 0.05", type=float, default=0.05)
 
     args = command_parser.parse_args()
+
+    if args.normalize:
+        args.no_minimal = True
+    if args.rejection or args.mh or args.gibbs:
+        args.approximate = True
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
                          args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent, args.one)
 
-    if args.abduction is True:
+    if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
         Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
-    elif args.approximate or args.rejection or args.mh or args.gibbs is True:
+    elif args.approximate:
         if args.xor:
             lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
         else:
             lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)
-    elif args.pl is True:
+    elif args.pl:
         pasta_solver.parameter_learning()
-    elif args.map is True:
+    elif args.map:
         if args.upper and not (args.normalize or args.stop_if_inconsistent) and args.solver:
             pasta_solver.for_asp_solver = True
             max_p, atoms_list_res = pasta_solver.upper_mpe_inference()

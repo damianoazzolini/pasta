@@ -246,14 +246,17 @@ class AspInterface:
 
         start_time = time.time()
 
+        ks = sorted(self.model_handler.worlds_dict.keys())
+        l : 'list[int]' = []
+        for el in ks:
+            l.append(int(el,2))
+
+        missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
+
+        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0):
+            utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
+
         if self.normalize_prob or self.stop_if_inconsistent:
-            ks = sorted(self.model_handler.worlds_dict.keys())
-            l : 'list[int]' = []
-            for el in ks:
-                l.append(int(el,2))
-
-            missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l))
-
             if self.stop_if_inconsistent and len(missing) > 0:
                 res = ""
                 for el in missing:
@@ -265,7 +268,7 @@ class AspInterface:
                             res += el + " "
                         i = i + 1
                     res += "}\n"
-                utils.print_error_and_exit(f"Found worlds without answer sets: {missing}\n{res[:-1]}")
+                utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
 
             for el in missing:
                 n = str(bin(el))[2:]
