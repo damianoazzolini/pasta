@@ -43,30 +43,14 @@ def endline_symbol(char1: str) -> bool:
 
 
 def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-    if not line_in.endswith('.'):
-        print_error_and_exit("Missing final . in " + line_in)
+    r = "0.[0-9]+::[a-z][a-z0-9]*(\([a-zA-Z0-9]*(,[a-zA-Z0-9]*)*\))*\."
+    x = re.match(r, line_in.strip())
+    if x is None:
+        print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
 
     line = line_in.split("::")
-    # for example: line = ['0.5', 'f(1..3).']
-    if len(line) != 2:
-        print_error_and_exit(f"Error in parsing: {line}")
 
-    if not is_number(line[0]):
-        print("---- ")
-        print_error_and_exit(f"Error: expected a float, found {line[0]}")
-
-    prob = float(line[0])
-
-    if prob > 1 or prob < 0:
-        print_error_and_exit(f"Probabilities must be in the range [0,1], found {prob}")
-
-    # [:-1] to remove final .
-    term = line[1][:-1]
-
-    if len(term) == 0 or not term[0].islower():
-        print_error_and_exit(f"Invalid probabilistic fact {term}")
-
-    return prob, term
+    return float(line[0]), line[1][:-1]
 
 
 def get_functor(term: str) -> str:
@@ -80,6 +64,17 @@ def get_functor(term: str) -> str:
         r = r + term[i]
         i = i + 1
     return r
+
+
+def get_fact_and_utility(term: str) -> 'tuple[str,float]':
+    '''
+    Extracts the utility and the term from utility(term,utility).
+    '''
+    t = term.split("utility")[1][1:-2] # eat ). and the initial (
+    i = len(t) - 1
+    while t[i] != ',' and i > 0:
+        i = i - 1
+    return t[0:i], float(t[i+1:])
 
 
 class PastaParser:
@@ -113,6 +108,8 @@ class PastaParser:
         self.body_probabilistic_ics : 'list[str]' = []
         self.map_id_list : 'list[int]' = []
         self.constraints_list : 'list[str]' = []
+        self.fact_utility : 'dict[str,float]' = {}
+        self.decision_facts : 'list[str]' = []
         self.for_asp_solver : bool = for_asp_solver
 
 
@@ -248,6 +245,7 @@ class PastaParser:
                         l1 = l1 + el + " not "
                     l1 = l1[:-4]  # remove last not
                 elif l0.startswith('abducible'):  # abducible facts
+                    # why these operations?
                     l0 = l0.split('abducible')
                     for i in range(1, len(l0)):
                         l0[i] = l0[i].replace(' ', '')
@@ -255,10 +253,19 @@ class PastaParser:
                     for i in range(1, len(l0)):
                         l1 = l1 + ' ' + l0[i]
                 elif l0.startswith('map'):
+                    # why these operations?
                     l0 = l0.split('map')
                     for i in range(1, len(l0)):
                         l0[i] = l0[i].replace(' ', '')
                     l1 = "map"
+                    for i in range(1, len(l0)):
+                        l1 = l1 + ' ' + l0[i]
+                elif l0.startswith('decision'):
+                    # why these operations?
+                    l0 = l0.split('decision')
+                    for i in range(1, len(l0)):
+                        l0[i] = l0[i].replace(' ', '')
+                    l1 = "decision"
                     for i in range(1, len(l0)):
                         l1 = l1 + ' ' + l0[i]
                 else:
@@ -334,6 +341,7 @@ class PastaParser:
                 _, abducible = gen.generate_clauses_for_abducibles(line, 0)
                 # self.lines_prob.append(clauses)
                 # self.abducibles.append(abducible)
+                print(abducible)
                 self.abducibles.append(abducible)
             elif line.startswith("map"):
                 # add the MAP fact as probabilistic
@@ -341,6 +349,23 @@ class PastaParser:
                 probability, fact = check_consistent_prob_fact(fact)
                 self.map_id_list.append(len(self.probabilistic_facts))
                 self.add_probabilistic_fact(fact,probability)
+            elif line.startswith("decision"):
+                fact = line.split('decision')[1][:-1].strip()
+                clauses = gen.generate_clauses_for_fact(fact,"decision")
+                self.decision_facts.append(fact)
+                for c in clauses:
+                    self.lines_prob.append(c)
+            elif line.startswith("utility"):
+                fact, utility = get_fact_and_utility(line)
+                self.fact_utility[fact] = utility
+                # keep it to possibly impose ASP constraints
+                # on the utilites (e.g. on weights?) 
+                self.lines_prob.append(line)
+                clauses = gen.generate_clauses_for_fact(fact,"utility")
+                # self.decision_facts.append(fact)
+                for c in clauses:
+                    self.lines_prob.append(c)
+
             elif is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")
@@ -362,7 +387,8 @@ class PastaParser:
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append(line)
-        if not self.query:
+        
+        if not self.query and len(self.decision_facts) == 0:
             print_error_and_exit("Missing query")
 
         # check that all the atoms have the same functor
@@ -409,8 +435,8 @@ class PastaParser:
         parsed_program : str = ""
         n_vars = 0
         for line in f:
-            if "::" in line:
-                line = f"map {line}"
+            if "::" in line and not line.strip().startswith('%'):
+                line = f"map {line.strip()}"
                 n_vars += 1
             parsed_program = parsed_program + line + "\n"
         return parsed_program, n_vars 
@@ -549,16 +575,17 @@ class PastaParser:
             returns a string that represent the ASP program where models 
             need to be computed
         '''
-        self.lines_prob.append(f"q:- {self.query}.")
-        self.lines_prob.append("#show q/0.")
-        self.lines_prob.append(f"nq:- not {self.query}.")
-        self.lines_prob.append("#show nq/0.")
+        if self.query:
+            self.lines_prob.append(f"q:- {self.query}.")
+            self.lines_prob.append("#show q/0.")
+            self.lines_prob.append(f"nq:- not {self.query}.")
+            self.lines_prob.append("#show nq/0.")
 
-        if self.evidence:
-            self.lines_prob.append(f"e:- {self.evidence}.")
-            self.lines_prob.append("#show e/0.")
-            self.lines_prob.append(f"ne:- not {self.evidence}.")
-            self.lines_prob.append("#show ne/0.")
+            if self.evidence:
+                self.lines_prob.append(f"e:- {self.evidence}.")
+                self.lines_prob.append("#show e/0.")
+                self.lines_prob.append(f"ne:- not {self.evidence}.")
+                self.lines_prob.append("#show ne/0.")
 
         return list(set(self.lines_prob))
 

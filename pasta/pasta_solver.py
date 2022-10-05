@@ -61,7 +61,8 @@ class Pasta:
         no_minimal : bool = False,
         normalize_prob : bool = False,
         stop_if_inconsistent : bool = False,
-        one : bool = False
+        one : bool = False,
+        xor : bool = False
         ) -> None:
         self.filename = filename
         self.query = query
@@ -78,6 +79,7 @@ class Pasta:
         self.stop_if_inconsistent = stop_if_inconsistent
         self.for_asp_solver = False
         self.one = one
+        self.xor = xor
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -103,29 +105,51 @@ class Pasta:
         self.no_minimal = True
 
         map_program, n_vars = self.parser.inference_to_mpe(from_string)
+        map_program = map_program + f":- not {self.query}.\n"
 
-        n = math.ceil(math.log2(n_vars))
-        delta = arguments.delta # in [0,1], più grande meno accurato
-        alpha = arguments.alpha # < 0.0042 dal paper
+        # n = math.ceil(math.log2(2**n_vars)) # useless
+        n = n_vars
+        delta = arguments.delta # higher this value, less accurate will be the result
+        alpha = arguments.alpha # < 0.0042 from the paper
         # print(n)
-        t = math.ceil(math.log((n/delta)/alpha))
+        t = math.ceil(math.log(n/delta)/alpha)
         m_list : 'list[float]' = []
+        # maximum number of attempts for finding a program with a 
+        # MAP state
+        max_attempts : int = 200
 
-        if self.verbose:
-            print(f"Probability median of {t} values")
+        # if self.verbose:
+        print(f"Probability median of {t} values for each iteration")
+        print(f"At least {n*t} MAP queries")
 
-        for i in range(0, n + 1):
+        for i in range(0, n+1): # or n+1?
+            print(f"Iteration {i}")
             map_states : 'list[float]' = []
-            for _ in range(1, t + 1):
-                # compute xor
+            ii : int = 1
+            attempts = 0
+            while ii < t + 1:
+            # for _ in range(1, t + 1):
+                # compute xor, loop until I get all the instances SAT
                 xor_constraints : 'list[str]' = []
                 current_program = map_program
                 for _ in range(0, i):
                     current_constraint = generator.Generator.generate_xor_constraint(n_vars)
                     xor_constraints.append(current_constraint)
                     current_program = current_program + current_constraint + "\n"
-                prob, _ = self.upper_mpe_inference(current_program)
-                map_states.append(prob)
+                prob, s = self.upper_mpe_inference(current_program)
+                # print(xor_constraints)
+                # print(s)
+                if prob >= 0:
+                    ii = ii + 1
+                    map_states.append(prob)
+                else:
+                    attempts = attempts + 1
+                    if attempts > max_attempts:
+                        ii = ii + 1
+                        attempts = 0
+                        print_waring(f"Exceeded the max number of attempts to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
+                        # print(current_program)
+            # print(map_states)
             m_list.append(statistics.median(map_states))
         
         res_l = m_list[0]
@@ -210,7 +234,10 @@ class Pasta:
             verbose=self.verbose,
             pedantic=self.pedantic,
             stop_if_inconsistent=self.stop_if_inconsistent,
-            normalize_prob=self.normalize_prob
+            normalize_prob=self.normalize_prob,
+            xor=self.xor,
+            decision_atoms_list=self.parser.decision_facts,
+            utilities_dict=self.parser.fact_utility
         )
 
         exec_time = 0
@@ -233,6 +260,16 @@ class Pasta:
                 for e in content_find_minimal_set:
                     print(e)
                 print("---")
+
+
+    def decision_theory(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
+        self.setup_interface(from_string)
+        self.interface.print_asp_program()
+        print(self.interface.decision_atoms_list)
+        print(self.interface.utilities_dict)
+        self.interface.decision_theory()
+        import sys
+        sys.exit()
 
 
     def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
@@ -302,8 +339,12 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict):
-            map_state = self.interface.compute_mpe_asp_solver(self.one)
-            probability, map_state_parsed = self.interface.model_handler.extract_prob_from_map_state(map_state)
+            map_state, unsat = self.interface.compute_mpe_asp_solver(self.one)
+            if unsat:
+                probability = -1
+                map_state_parsed = [["UNSAT"]]
+            else:
+                probability, map_state_parsed = self.interface.model_handler.extract_prob_from_map_state(map_state)
         else:
             print_error_and_exit("MAP inference cannot be solved with an ASP solver. Remove the --solver option.")
         
@@ -407,26 +448,29 @@ def main():
     command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
-    command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 0.05", type=float, default=0.05)
+    command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
+    # command_parser.add_argument("-dt", help="Decision theory", action="store_true", default=False)
 
     args = command_parser.parse_args()
 
-    if args.normalize:
+    if args.normalize or args.xor:
         args.no_minimal = True
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
+    if args.dt:
+        args.no_minimal = True
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
-                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent, args.one)
+                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent, args.one, args.xor)
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
         Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
+    elif args.xor:
+        lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
+        Pasta.print_prob(lower_p, upper_p)
     elif args.approximate:
-        if args.xor:
-            lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
-        else:
-            lower_p, upper_p = pasta_solver.approximate_solve(args)
+        lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)
     elif args.pl:
         pasta_solver.parameter_learning()
@@ -437,6 +481,8 @@ def main():
         else:
             max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
+    elif args.dt:
+        lower_p, upper_p, utility_atoms = pasta_solver.decision_theory()
     else:
         lower_p, upper_p = pasta_solver.inference()
         Pasta.print_prob(lower_p, upper_p)

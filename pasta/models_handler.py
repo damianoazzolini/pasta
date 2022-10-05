@@ -4,6 +4,37 @@ Class to identify a world.
 
 import utils
 
+class DecisionWorld:
+    '''
+    Class for storing the worlds defined by decision facts.
+    '''
+    def __init__(self,
+        id_decision : str,
+        id_prob : str,
+        prob : float,
+        id_utilities : str
+        ) -> None:
+        self.id_decision : str = id_decision
+        self.probabilistic_worlds : 'dict[str,World]' = {}
+        self.probabilistic_worlds_to_utility : 'dict[World,str]' = {}
+        # mi serve anche una struttura che associa ad un mondo quali
+        # utility atoms sono selezionati
+        self.id_utilities : str = id_utilities
+        self.probabilistic_worlds[id_prob] = World(prob)
+
+    def __str__(self) -> str:
+        s = f"id decision: {self.id_decision}, id utilities: {self.id_utilities}\n"
+
+        for world in self.probabilistic_worlds:
+            s = s + f"\t{world}\t{self.probabilistic_worlds[world].__str__()}\n"
+
+        return s
+
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 class AbdWorld:
     '''
     Class for the worlds defined by abducibles
@@ -82,7 +113,9 @@ class ModelsHandler():
     def __init__(self,
         prob_facts_dict : 'dict[str,float]',
         evidence : str,
-        abducibles_list : 'list[str]' = []
+        abducibles_list : 'list[str]' = [],
+        decision_atoms_list : 'list[str]' = [],
+        utilities_dict : 'dict[str,float]' = {}
         ) -> None:
         self.worlds_dict : 'dict[str,World]' = {}
         self.abd_worlds_dict : 'dict[str,AbdWorld]' = {}
@@ -97,6 +130,10 @@ class ModelsHandler():
         self.n_prob_facts : int = len(prob_facts_dict)
         self.evidence : str = evidence
         self.abducibles_list : 'list[str]' = abducibles_list # list of abducibles
+        self.decision_atoms_list: 'list[str]' = decision_atoms_list
+        self.utilities_dict: 'dict[str,float]' = utilities_dict
+        self.decision_worlds_dict : 'dict[str,DecisionWorld]' = {}
+
 
 
     def increment_lower_query_prob(self, p : float) -> None:
@@ -150,10 +187,8 @@ class ModelsHandler():
         '''
         index = 0
         probability = 0
-        positive = True
-        if term.startswith('not_'):
-            term = term.split('not_')[1]
-            positive = False
+
+        term, positive = utils.clean_term(term)
         
         found = False
         for el in self.prob_facts_dict:
@@ -169,21 +204,17 @@ class ModelsHandler():
         return index, 1 if positive else 0, probability
 
 
-    def extract_pos(self, term : str) -> 'tuple[int,int]':
+    # this could be static or removed from the method
+    def extract_pos(self, term : str, data_list : 'list[str]') -> 'tuple[int,int]':
         '''
         Computes the position in the list to get the index and the
-        sign (positive or negative) for the current abducible
+        sign (positive or negative) for the current term.
         '''
         index = 0
-        positive = True
 
-        if term.startswith('not_'):
-            term = term.split('not_')[1]
-            positive = False
+        term, positive = utils.clean_term(term)
 
-        term = term.split('abd_')[1]
-
-        for el in self.abducibles_list:
+        for el in data_list:
             if term == el:
                 break
 
@@ -251,7 +282,7 @@ class ModelsHandler():
             elif term == "nq":
                 model_query = False
             elif term.startswith('abd_') or term.startswith('not_abd_'):
-                position, true_or_false = self.extract_pos(term)
+                position, true_or_false = self.extract_pos(term, self.abducibles_list)
                 id_abd = id_abd[:position] + str(true_or_false) + id_abd[position + 1:]
             else:
                 position, true_or_false, prob = self.extract_pos_and_prob(term)
@@ -259,6 +290,35 @@ class ModelsHandler():
                 probability = probability * prob
 
         return id_abd, id_prob, probability, model_query
+
+
+    def get_ids_decision(self, line: str) -> 'tuple[str,str,float,str]':
+        '''
+        From an answer set returns:
+        id_decision, id_world, prob_world, id_utilities
+        '''
+        line_list = line.split(' ')
+        id_decision = "0" * len(self.decision_atoms_list)
+        id_world = "0" * len(self.prob_facts_dict)
+        id_utilities = "0" * len(self.utilities_dict)
+        prob_world = 1
+
+        for term in line_list:
+            t1, _ = utils.clean_term(term)
+            if term.startswith("decision_"):
+                position, true_or_false = self.extract_pos(term, self.decision_atoms_list)
+                id_decision = id_decision[:position] + str(true_or_false) + id_decision[position + 1:]
+                # not very clean since clean_term is called both here and in extract_pos
+            elif t1 in self.prob_facts_dict:
+                position, true_or_false, prob = self.extract_pos_and_prob(term)
+                id_world = id_world[:position] + str(true_or_false) + id_world[position + 1:]
+                prob_world = prob_world * prob
+
+            if t1 in self.utilities_dict:
+                position, true_or_false = self.extract_pos(term, list(self.utilities_dict.keys()))
+                id_utilities = id_utilities[:position] + str(true_or_false) + id_utilities[position + 1:]
+
+        return id_decision, id_world, prob_world, id_utilities
 
 
     def manage_worlds_dict(self,
@@ -331,6 +391,22 @@ class ModelsHandler():
         else:
             # add new key
             self.abd_worlds_dict[id_abd] = AbdWorld(id_abd, id_prob, prob, model_query)
+        
+
+    def manage_worlds_dict_decision(self,
+        id_decision: str,
+        id_world: str,
+        prob_world: float,
+        id_utilities: str
+        ) -> None:
+        '''
+        Checks whether the current id has been already encountered.
+        If so, updates it; otherwise add a new element to the dict.
+        '''
+        if id_decision in self.decision_worlds_dict:
+            self.manage_worlds_dict(self.decision_worlds_dict[id_decision].probabilistic_worlds, id_world, prob_world, True, False)
+        else:
+            self.decision_worlds_dict[id_decision] = DecisionWorld(id_decision,id_world,prob_world,id_utilities)
 
 
     def add_model_abduction(self, line : str) -> None:
@@ -340,6 +416,29 @@ class ModelsHandler():
         id_abd, id_prob, prob, model_query = self.get_ids_abduction(line)
         self.manage_worlds_dict_abduction(id_abd, id_prob, prob, model_query)
 
+
+    def add_decision_model(self, line : str) -> None:
+        '''
+        Adds a models for decision theory solving.
+        '''
+        print('--- DA IMPLEMENTARE ---')
+        print(line)
+        id_decision, id_world, prob_world, id_utilities = self.get_ids_decision(line)
+        self.manage_worlds_dict_decision(id_decision, id_world, prob_world, id_utilities)
+        # print(id_decision, id_world, prob_world, id_utilities)
+        # import sys
+        # sys.exit()
+        # devo estrarre:
+        # id_decision_atoms
+        # id_world
+        # probability_world
+        # utility facts true e false (01 string?) e salvare per ognuno il conteggio (lower e upper probability)
+
+
+    def compute_utility_atoms(self) -> None:
+        print(self.decision_worlds_dict)
+        import sys
+        sys.exit()
 
     def get_abducibles_from_id(self, w_id : str) -> 'list[str]':
         '''

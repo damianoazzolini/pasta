@@ -138,7 +138,10 @@ class AspInterface:
         stop_if_inconsistent : bool = False,
         normalize_prob : bool = False,
         continuous_vars : 'dict[str,list[str|list[str]]]' = {},
-        constraints_list : 'list[str]' = []
+        constraints_list : 'list[str]' = [],
+        xor : bool = False,
+        decision_atoms_list : 'list[str]' = [],
+        utilities_dict : 'dict[str,float]' = {}
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -166,11 +169,19 @@ class AspInterface:
         self.normalizing_factor : float = 0
         self.continuous_vars: 'dict[str,list[str|list[str]]]' = continuous_vars
         self.constraints_list: 'list[str]' = constraints_list
+        self.xor: bool = xor
+        self.decision_atoms_selected : 'list[str]' = []
+        self.utility : float = 0
+        self.decision_atoms_list: 'list[str]' = decision_atoms_list
+        self.utilities_dict : 'dict[str,float]' = utilities_dict
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
                 self.evidence,
-                self.abducibles_list)
+                self.abducibles_list,
+                self.decision_atoms_list,
+                self.utilities_dict
+            )
 
 
     def get_minimal_set_facts(self) -> float:
@@ -253,7 +264,7 @@ class AspInterface:
 
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
-        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0):
+        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor:
             utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
 
         if self.normalize_prob or self.stop_if_inconsistent:
@@ -293,13 +304,17 @@ class AspInterface:
             for el in self.prob_facts_dict:
                 print(el, end="\t")
             print("LP/UP\tProbability")
+            lp_count = 0
+            up_count = 0
             for el in self.model_handler.worlds_dict:
                 for i in range(0,len(el)):
                     print(f"{el[i]}", end="\t")
                 if self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count == 0:
                     print(utils.RED + "LP\t", end = "")
+                    lp_count = lp_count + 1
                 elif self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count > 0:
                     print(utils.YELLOW + "UP\t", end="")
+                    up_count = up_count + 1
                 else:
                     print("-\t", end="")
                 print(self.model_handler.worlds_dict[el].prob, end="")
@@ -307,12 +322,14 @@ class AspInterface:
                     print(utils.END)
                 else:
                     print("")
+            print(f"Total number of worlds that contribute to the probability: {lp_count + up_count}")
+            print(f"Only LP: {lp_count}, Only UP: {up_count}")
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
 
         self.world_analysis_time = time.time() - start_time
 
 
-    def compute_mpe_asp_solver(self, one : bool = False):
+    def compute_mpe_asp_solver(self, one : bool = False) -> 'tuple[str,bool]':
         '''
         Compute the upper MPE state by using an ASP solver.
         We require (not checked) that every world has at least one answer set.
@@ -321,20 +338,22 @@ class AspInterface:
         for clause in self.asp_program:
             ctl.add('base', [], clause)
 
+        # print(self.asp_program)
         start_time = time.time()
         ctl.ground([("base", [])])
         self.grounding_time = time.time() - start_time
 
         start_time = time.time()
-        opt : str = ""
+        opt : str = " "
+        unsat : bool = True
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
+                unsat = False
                 opt = str(m)  # type: ignore
-                # self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
         self.computation_time = time.time() - start_time
 
-        return opt
+        return opt, unsat
 
 
     def sample_world(self) -> 'tuple[dict[str,bool],str]':
@@ -770,6 +789,40 @@ class AspInterface:
 
         return n_lower / self.n_samples, n_upper / self.n_samples
 
+
+    def decision_theory(self) -> None:
+        '''
+        Decision theory naive solver: considers all the possible combinations
+        of utility facts
+        '''
+        ctl = clingo.Control(["0", "--project"])
+        for clause in self.asp_program:
+            ctl.add('base', [], clause)
+
+        if len(self.cautious_consequences) != 0:
+            for c in self.cautious_consequences:
+                ctl.add('base', [], ":- not " + c + '.')
+        
+        start_time = time.time()
+        ctl.ground([("base", [])])
+        self.grounding_time = time.time() - start_time
+
+        with ctl.solve(yield_=True) as handle:  # type: ignore
+            for m in handle:  # type: ignore
+                self.model_handler.add_decision_model(str(m))  # type: ignore
+                self.computed_models = self.computed_models + 1
+                # n_models = n_models + 1
+            handle.get()  # type: ignore
+
+        computation_time = time.time() - start_time
+
+        if self.verbose:
+            print(f"Time: {computation_time}")
+
+        self.lower_probability_query, self.upper_probability_query, self.decision_atoms_selected, self.utility = self.model_handler.compute_utility_atoms()
+
+        self.world_analysis_time = time.time() - start_time
+        
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':
         '''

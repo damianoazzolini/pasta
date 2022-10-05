@@ -45,6 +45,25 @@ def is_number(n: 'int|float|str') -> bool:
     return True
 
 
+def clean_term(term: str) -> 'tuple[str,bool]':
+    '''
+    Removes the suffixes used for abduction and decision thery.
+    '''
+    positive = True
+    if term.startswith('not_'):
+        term = term.split('not_')[1]
+        positive = False
+
+    if term.startswith('abd_'):
+        term = term.split('abd_')[1]
+    elif term.startswith('decision_'):
+        term = term.split('decision_')[1]
+    elif term.startswith('utility_'):
+        term = term.split('utility_')[1]
+    
+    return term, positive
+
+
 # progressbar from https://stackoverflow.com/questions/3160699/python-progress-bar
 def progressbar(it: range, prefix: str = "", size: int = 60):
     count = len(it)

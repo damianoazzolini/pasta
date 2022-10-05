@@ -24,7 +24,23 @@ Class defining a generator of an ASP program
 class Generator:
     def __init__(self):
         pass
-    
+
+    @staticmethod
+    def generate_clauses_for_fact(term: str, type: str) -> 'list[str]':
+        generator = '{' + term + '}.'
+        t1 = ""
+        if type == "utility":
+            t1 = "utility_" + term
+        elif type == "decision":
+            t1 = "decision_" + term
+
+        new_fact_true = t1 + ':- ' + term + '.'
+        new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
+        show_true = f"#show.\n#show {t1}:{t1}."
+        show_false = f"#show not_{t1}:not_{t1}."
+
+        return [generator, new_fact_true, new_fact_false, show_true, show_false]
+
 
     @staticmethod
     def generate_clauses_for_facts(term : str) -> 'list[str]':
