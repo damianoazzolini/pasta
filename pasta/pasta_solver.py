@@ -449,7 +449,7 @@ def main():
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
-    # command_parser.add_argument("-dt", help="Decision theory", action="store_true", default=False)
+    command_parser.add_argument("-dt", help="Decision theory", action="store_true", default=False)
 
     args = command_parser.parse_args()
 
