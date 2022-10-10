@@ -5,6 +5,14 @@ profilation.txt
 pasta/tmp/
 tests/html/
 
+temp.pl
+temp1.pl
+temp2.pl
+temp3.pl
+
+test_xor.py
+gen_inst.py
+a.py
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
