@@ -453,7 +453,7 @@ def main():
 
     args = command_parser.parse_args()
 
-    if args.normalize or args.xor:
+    if args.normalize or args.xor or args.stop_if_inconsistent:
         args.no_minimal = True
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
