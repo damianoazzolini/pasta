@@ -916,8 +916,6 @@ class AspInterface:
                 n_inconsistent = n_inconsistent + 1
             self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
             # TODO: add normalization, as in compute_probabilities
-        if self.stop_if_inconsistent is True and n_inconsistent == len(self.model_handler.abd_worlds_dict):
-            utils.print_error_and_exit("All the worlds are inconsistent")
 
         self.abduction_time = time.time() - start_time
 
