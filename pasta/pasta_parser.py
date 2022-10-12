@@ -43,7 +43,7 @@ def endline_symbol(char1: str) -> bool:
 
 
 def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-    r = "0.[0-9]+::[a-z][a-z0-9]*(\([a-zA-Z0-9]*(,[a-zA-Z0-9]*)*\))*\."
+    r = "0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
     x = re.match(r, line_in.strip())
     if x is None:
         print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
@@ -405,7 +405,7 @@ class PastaParser:
 
             if self.for_asp_solver and i in self.map_id_list:
                 clauses = gen.generate_clauses_for_facts_for_asp_solver(
-                    fact, self.probabilistic_facts[fact])
+                    i, fact, self.probabilistic_facts[fact])
             else:
                 clauses = gen.generate_clauses_for_facts(fact)
 
@@ -421,9 +421,6 @@ class PastaParser:
             for c in clauses:
                 self.lines_prob.append(c)
 
-        # for a in self.lines_prob:
-        #     print(a)
-        # sys.exit()
         return True
 
 
