@@ -11,7 +11,7 @@ valuable(X) ; not_valuable(X):- gold(X).
 % Map states: 1
 % State 0: ['gold(1)', 'not gold(3)']
 
-% python33 pasta_solver.py gold_map.lp --query="valuable(1)" --map --brave
+% python3 pasta_solver.py gold_map.lp --query="valuable(1)" --map --upper
 % MAP: 0.13999999999999999
 % Map states: 1
 % State 0: ['gold(1)', 'gold(3)']

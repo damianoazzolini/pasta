@@ -184,6 +184,7 @@ class Pasta:
             normalize_prob=self.normalize_prob,
             continuous_vars=self.parser.continuous_vars,
             constraints_list=self.parser.constraints_list,
+            upper = not self.consider_lower_prob
         )
 
         if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
@@ -237,7 +238,8 @@ class Pasta:
             normalize_prob=self.normalize_prob,
             xor=self.xor,
             decision_atoms_list=self.parser.decision_facts,
-            utilities_dict=self.parser.fact_utility
+            utilities_dict=self.parser.fact_utility,
+            upper=not self.consider_lower_prob
         )
 
         exec_time = 0
@@ -458,6 +460,11 @@ def main():
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dt:
+        args.no_minimal = True
+    if args.map and args.solver and not args.upper:
+        print_waring("Trying to compute the upper MPE state")
+        args.upper = True
+    if args.solver:
         args.no_minimal = True
 
     pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,

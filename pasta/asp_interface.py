@@ -141,7 +141,8 @@ class AspInterface:
         constraints_list : 'list[str]' = [],
         xor : bool = False,
         decision_atoms_list : 'list[str]' = [],
-        utilities_dict : 'dict[str,float]' = {}
+        utilities_dict : 'dict[str,float]' = {},
+        upper : bool = False
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -174,6 +175,7 @@ class AspInterface:
         self.utility : float = 0
         self.decision_atoms_list: 'list[str]' = decision_atoms_list
         self.utilities_dict : 'dict[str,float]' = utilities_dict
+        self.upper : bool = upper
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -264,7 +266,7 @@ class AspInterface:
 
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
-        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor:
+        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
             utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
 
         if self.normalize_prob or self.stop_if_inconsistent:
