@@ -27,7 +27,7 @@ docker pull damianodamianodamiano/pasta
 docker container run -it pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
-However, the image is not always updated.
+However, the image is *not always updated*.
 
 <!-- You can also install the package via `pip`.
 Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
@@ -73,12 +73,7 @@ You can find more information about the API documentation in the `html/pasta` fo
 ### Options
 ```
 python3 pasta_solver.py --help
-usage: pasta_solver.py [-h] [-q QUERY] [-e EVIDENCE] [-v] [--pedantic]
-                       [--approximate] [--samples SAMPLES] [--mh] [--gibbs]
-                       [--block BLOCK] [--rejection] [--pl] [--abduction]
-                       [--map] [--upper] [--no-minimal] [--normalize]
-                       [--stop-if-inconsistent]
-                       filename
+usage: pasta_solver.py [-h] [-q QUERY] [-e EVIDENCE] [-v] [--pedantic] [--approximate] [--samples SAMPLES] [--mh] [--gibbs] [--block BLOCK] [--rejection] [--pl] [--abduction] [--map] [--upper]                        [--no-minimal] [--normalize] [--stop-if-inconsistent] filename
 
 PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
@@ -87,10 +82,12 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -q QUERY, --query QUERY Query
-  -e EVIDENCE, --evidence EVIDENCE Evidence
+  -q QUERY, --query QUERY
+                        Query
+  -e EVIDENCE, --evidence EVIDENCE
+                        Evidence
   -v, --verbose         Verbose mode, default: false
-  --pedantic            Pedantic mode, default: false
+  --pedantic            Pedantic mode (prints the converted program and all the worlds), default: false
   --approximate         Compute approximate probability
   --samples SAMPLES     Number of samples, default 1000
   --mh                  Use Metropolis Hastings sampling
@@ -101,9 +98,10 @@ optional arguments:
   --abduction           Abduction
   --map                 MAP (MPE) inference
   --upper               Select upper probability for MAP and abduction
-  --no-minimal          Do not compute the minimal set of probabilistic facts
-  --normalize           Normalize the probability if some worlds do not have answer sets
-  --stop-if-inconsistent Raise an error if a world without answer sets is found
+  --no-minimal, -nm     Do not compute the minimal set of probabilistic facts
+  --normalize           Normalize the probability if some worlds have no answer sets
+  --stop-if-inconsistent, -sif
+                        Raise an error if some worlds have no answer sets (and lists them)
 ```
 
 ### Exact inference
@@ -138,6 +136,41 @@ cd pasta
 python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 
+### Handling Inconsistent Programs
+The credal semantics requires that every world has at least one answer set.
+These programs are called *consistent*.
+Here, we make the same assumption.
+Note that the minimal set of probabilistic facts is correct only if the program satisfies this requirement.
+If you don't want to compute this set, use the flag `--no-minimal` or `-nm`.
+If you ask a query on a program that is not consistent, you should get a warning.
+For example,
+```
+% file temp.pl
+0.5::a.
+0.5::b.
+qry:- a.
+qry:- b.
+:- a, b.
+```
+```
+> python3 pasta_solver.py temp.pl --query="qry"
+Warning: This program is inconsistent.
+You should use --normalize or --stop-if-inconsistent.
+Lower probability == upper probability for the query: 0.5
+```
+The computed probability is likely to be incorrect.
+There are two options: you can use the flag `--stop-if-inconsistent` or `-sif` that halts the computations (note that the consistency of the program is checked after the computation of all the projected answer sets, so it requires the same time as exact inference) and prints the unsatisfiable worlds
+```
+> python3 pasta_solver.py temp.pl --query="qry" -sif
+Error: found 1 worlds without answer sets: [3]
+11{ a b } % the world where both a and b is unsatisfiable
+```
+or you can use the `--normalize` flag, that normalizes the computed probability
+```
+> python3 pasta_solver.py temp1.pl --query="qry" --normalize
+Lower probability == upper probability for the query: 0.6666666666666666
+```
+
 ## Syntax
 Basically, PASTA (PASP) programs are ASP programs plus probabilistic facts.
 Probabilistic facts can be added with the syntax: `prob::atom.` where `prob` is a floating point number (0 < number <= 1) and `atom` is a standard ASP fact.
@@ -156,4 +189,6 @@ Note: be super careful when using rules with disjunction in the head.
 You should replace them with choice rules.
 
 ## Description and How to Cite
-The papers describing this system will be soon available.
+The system is currently described in:
+- Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
+- Exact inference and statistical staments: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`

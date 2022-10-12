@@ -430,7 +430,7 @@ def main():
     command_parser.add_argument("-q", "--query", help="Query", type=str)
     command_parser.add_argument("-e", "--evidence", help="Evidence", type=str, default="")
     command_parser.add_argument("-v", "--verbose", help="Verbose mode, default: false", action="store_true")
-    command_parser.add_argument("--pedantic", help="Pedantic mode, default: false", action="store_true")
+    command_parser.add_argument("--pedantic", help="Pedantic mode (prints the converted program and all the worlds), default: false", action="store_true")
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
     command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
     command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
