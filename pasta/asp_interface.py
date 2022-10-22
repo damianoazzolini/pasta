@@ -266,7 +266,16 @@ class AspInterface:
 
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
+        if len(ks) == 0:
+            utils.print_error_and_exit("This program has no answer sets.")
+
         if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
+            utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
+
+        ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
+        nw = 2**len(self.prob_facts_dict)
+
+        if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
             utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
 
         if self.normalize_prob or self.stop_if_inconsistent:
