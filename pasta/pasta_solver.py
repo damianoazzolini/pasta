@@ -239,7 +239,8 @@ class Pasta:
             xor=self.xor,
             decision_atoms_list=self.parser.decision_facts,
             utilities_dict=self.parser.fact_utility,
-            upper=not self.consider_lower_prob
+            upper=not self.consider_lower_prob,
+            n_probabilistic_ics= self.parser.n_probabilistic_ics
         )
 
         exec_time = 0

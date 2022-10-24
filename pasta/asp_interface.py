@@ -142,7 +142,8 @@ class AspInterface:
         xor : bool = False,
         decision_atoms_list : 'list[str]' = [],
         utilities_dict : 'dict[str,float]' = {},
-        upper : bool = False
+        upper : bool = False,
+        n_probabilistic_ics : int = 0
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -176,6 +177,7 @@ class AspInterface:
         self.decision_atoms_list: 'list[str]' = decision_atoms_list
         self.utilities_dict : 'dict[str,float]' = utilities_dict
         self.upper : bool = upper
+        self.n_probabilistic_ics : int = n_probabilistic_ics
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -267,16 +269,16 @@ class AspInterface:
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
         if len(ks) == 0:
-            utils.print_error_and_exit("This program has no answer sets.")
+            utils.print_inconsistent_program(True)
 
         if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
-            utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
+            utils.print_inconsistent_program(self.stop_if_inconsistent)
 
         ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
         nw = 2**len(self.prob_facts_dict)
 
         if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
-            utils.print_waring("This program is inconsistent.\nYou should use --normalize or --stop-if-inconsistent.")
+            utils.print_inconsistent_program(self.stop_if_inconsistent)
 
         if self.normalize_prob or self.stop_if_inconsistent:
             if self.stop_if_inconsistent and len(missing) > 0:
@@ -777,8 +779,8 @@ class AspInterface:
 
                         handle.get()  # type: ignore
 
-                if lower_count == 0 and upper_count == 0 and self.stop_if_inconsistent is True:
-                    utils.print_error_and_exit("Found samples with 0 answer sets")
+                if lower_count == 0 and upper_count == 0:
+                    utils.print_inconsistent_program(self.stop_if_inconsistent)
 
                 up = 1 if upper_count > 0 else 0
                 lp = 1 if up and lower_count == 0 else 0
@@ -914,6 +916,8 @@ class AspInterface:
                 for cc in currently_computed:
                     computed_abducibles_list.append(cc)
             else:
+                if i == 0 and len(currently_computed) != 2**(len(self.prob_facts_dict) - self.n_probabilistic_ics):
+                    utils.print_inconsistent_program(self.stop_if_inconsistent)
                 for el in currently_computed:
                     self.model_handler.add_model_abduction(str(el))
 

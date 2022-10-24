@@ -341,7 +341,6 @@ class PastaParser:
                 _, abducible = gen.generate_clauses_for_abducibles(line, 0)
                 # self.lines_prob.append(clauses)
                 # self.abducibles.append(abducible)
-                print(abducible)
                 self.abducibles.append(abducible)
             elif line.startswith("map"):
                 # add the MAP fact as probabilistic

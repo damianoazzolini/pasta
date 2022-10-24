@@ -23,6 +23,16 @@ def print_waring(message : str):
     print(YELLOW + "Warning: " + message + END)
 
 
+def print_inconsistent_program(stop: bool = False):
+    '''
+    Prints that the program is inconsistent
+    '''
+    message = "This program is inconsistent. The computed probability\nvalue is wrong."
+    if stop:
+        print_error_and_exit(message)
+    print_waring(message)
+
+
 def error_prob_fact_twice(
     key : str,
     new_prob : float,
