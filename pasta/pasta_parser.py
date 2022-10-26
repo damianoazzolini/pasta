@@ -35,11 +35,11 @@ def continuous_distribution_in_str(line : str) -> bool:
 
 
 def symbol_endline_or_space(char1: str) -> bool:
-    return char1 == '\n' or char1 == '\r\n' or char1 == ' '
+    return char1 == '\n' or char1 == '\r' or char1 == '\r\n' or char1 == '\n\r' or char1 == ' '
 
 
 def endline_symbol(char1: str) -> bool:
-    return char1 == '\n' or char1 == '\r\n'
+    return char1 == '\n' or char1 == '\r\n' or char1 == '\n\r'
 
 
 def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
