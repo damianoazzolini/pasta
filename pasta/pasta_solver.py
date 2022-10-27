@@ -58,11 +58,12 @@ class Pasta:
         pedantic : bool = False,
         samples : int = 1000,
         consider_lower_prob : bool = True,
-        no_minimal : bool = False,
+        minimal : bool = False,
         normalize_prob : bool = False,
         stop_if_inconsistent : bool = False,
         one : bool = False,
-        xor : bool = False
+        xor : bool = False,
+        k : int = 100
         ) -> None:
         self.filename = filename
         self.query = query
@@ -74,12 +75,13 @@ class Pasta:
         self.samples = samples
         # lower or upper probability bound for MAP/Abduction, default lower
         self.consider_lower_prob = consider_lower_prob
-        self.no_minimal = no_minimal
+        self.minimal = minimal
         self.normalize_prob = normalize_prob
         self.stop_if_inconsistent = stop_if_inconsistent
         self.for_asp_solver = False
         self.one = one
         self.xor = xor
+        self.k_credal : int = k
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -102,7 +104,6 @@ class Pasta:
         self.parser = PastaParser(self.filename, self.query, self.evidence, for_asp_solver=True)
         self.consider_lower_prob = False
         self.for_asp_solver = True
-        self.no_minimal = True
 
         map_program, n_vars = self.parser.inference_to_mpe(from_string)
         map_program = map_program + f":- not {self.query}.\n"
@@ -216,7 +217,7 @@ class Pasta:
         if self.verbose:
             print("Parsed program")
 
-        if self.no_minimal:
+        if self.minimal is False:
             content_find_minimal_set = []
         else:
             content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
@@ -244,12 +245,12 @@ class Pasta:
         )
 
         exec_time = 0
-        if self.no_minimal is False:
+        if self.minimal:
             exec_time = self.interface.get_minimal_set_facts()
 
-        if self.verbose and self.no_minimal is False:
+        if self.verbose:
             print(f"Computed cautious consequences in {exec_time} seconds")
-            if self.pedantic:
+            if self.pedantic and self.minimal:
                 print("--- Minimal set of probabilistic facts ---")
                 print(self.interface.cautious_consequences)
                 print("---")
@@ -258,7 +259,7 @@ class Pasta:
             print("--- Asp program ---")
             self.interface.print_asp_program()
             print("---")
-            if self.no_minimal is False:
+            if self.minimal:
                 print("--- Program to find minimal sets ---")
                 for e in content_find_minimal_set:
                     print(e)
@@ -444,32 +445,49 @@ def main():
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
     command_parser.add_argument("--upper", help="Select upper probability for MAP and abduction", action="store_true", default=False)
-    command_parser.add_argument("--no-minimal", "-nm", help="Do not compute the minimal set of probabilistic facts", action="store_true", default=False)
+    command_parser.add_argument("--minimal", "-nm", help="Compute the minimal set of probabilistic facts", action="store_true", default=False)
     command_parser.add_argument("--normalize", help="Normalize the probability if some worlds have no answer sets", action="store_true", default=False)
-    command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action="store_true", default=False)
+    command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action="store_true", default=True)
     command_parser.add_argument("--solver", help="Uses an ASP solver for the task", action="store_true", default=False)
     command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
     command_parser.add_argument("-dt", help="Decision theory", action="store_true", default=False)
+    command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
 
     args = command_parser.parse_args()
 
-    if args.normalize or args.xor or args.stop_if_inconsistent:
-        args.no_minimal = True
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dt:
-        args.no_minimal = True
+        print_error_and_exit("Not yet implemented")
+    if args.k != 100:
+        print_error_and_exit("Not yet implemented")
     if args.map and args.solver and not args.upper:
         print_waring("Trying to compute the upper MPE state")
         args.upper = True
     if args.solver:
-        args.no_minimal = True
+        args.minimal = False
+    if args.minimal and args.stop_if_inconsistent:
+        print_waring("The program may be inconsistent")
+        args.stop_if_inconsistent = False
+    if args.stop_if_inconsistent:
+        args.minimal = False
 
-    pasta_solver = Pasta(args.filename, args.query, args.evidence, args.verbose, args.pedantic,
-                         args.samples, not args.upper, args.no_minimal, args.normalize, args.stop_if_inconsistent, args.one, args.xor)
+    pasta_solver = Pasta(args.filename, 
+                         args.query, 
+                         args.evidence, 
+                         args.verbose, 
+                         args.pedantic,
+                         args.samples, 
+                         not args.upper, 
+                         args.minimal, 
+                         args.normalize, 
+                         args.stop_if_inconsistent, 
+                         args.one, 
+                         args.xor, 
+                         args.k)
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
