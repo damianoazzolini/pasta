@@ -342,6 +342,7 @@ class ModelsHandler():
                     current_dict[id].increment_model_query_count()
                 else:
                     current_dict[id].increment_model_not_query_count()
+                current_dict[id].increment_model_count()
             else:
                 current_dict[id].increment_model_count()
                 if (model_query is True) and (model_evidence is True):
@@ -357,6 +358,7 @@ class ModelsHandler():
                 w.increment_model_query_count()
             else:
                 w.increment_model_not_query_count()
+            w.increment_model_count()
         else:
             w.increment_model_count()
             if (model_query is True) and (model_evidence is True):
