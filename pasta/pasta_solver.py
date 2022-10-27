@@ -60,7 +60,7 @@ class Pasta:
         consider_lower_prob : bool = True,
         minimal : bool = False,
         normalize_prob : bool = False,
-        stop_if_inconsistent : bool = False,
+        stop_if_inconsistent : bool = True,
         one : bool = False,
         xor : bool = False,
         k : int = 100
@@ -241,7 +241,8 @@ class Pasta:
             decision_atoms_list=self.parser.decision_facts,
             utilities_dict=self.parser.fact_utility,
             upper=not self.consider_lower_prob,
-            n_probabilistic_ics= self.parser.n_probabilistic_ics
+            n_probabilistic_ics= self.parser.n_probabilistic_ics,
+            k_credal = self.k_credal
         )
 
         exec_time = 0
@@ -463,7 +464,8 @@ def main():
     if args.dt:
         print_error_and_exit("Not yet implemented")
     if args.k != 100:
-        print_error_and_exit("Not yet implemented")
+        # print_error_and_exit("Not yet implemented")
+        pass
     if args.map and args.solver and not args.upper:
         print_waring("Trying to compute the upper MPE state")
         args.upper = True
