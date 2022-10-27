@@ -143,7 +143,8 @@ class AspInterface:
         decision_atoms_list : 'list[str]' = [],
         utilities_dict : 'dict[str,float]' = {},
         upper : bool = False,
-        n_probabilistic_ics : int = 0
+        n_probabilistic_ics : int = 0,
+        k_credal: int = 100
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -178,6 +179,7 @@ class AspInterface:
         self.utilities_dict : 'dict[str,float]' = utilities_dict
         self.upper : bool = upper
         self.n_probabilistic_ics : int = n_probabilistic_ics
+        self.k_credal : int = k_credal
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -228,17 +230,13 @@ class AspInterface:
 
     def compute_probabilities(self) -> None:
         '''
-        Parameters:
-            - None
-        Return:
-            - int: number of computed models
-            - float: grounding time
-            - float: computing probability time
-        Behavior:
-            compute the lower and upper bound for the query
-            clingo 0 <filename> --project
+        Computes the lower and upper bound for the query
         '''
-        ctl = clingo.Control(["0","--project","-Wnone"])
+        clingo_arguments : 'list[str]' = ["0","-Wnone"]
+        if self.k_credal == 100:
+            clingo_arguments.append("--project")
+
+        ctl = clingo.Control(clingo_arguments)
         for clause in self.asp_program:
             ctl.add('base',[],clause)
 
