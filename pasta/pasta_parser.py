@@ -77,6 +77,13 @@ def get_fact_and_utility(term: str) -> 'tuple[str,float]':
     return t[0:i], float(t[i+1:])
 
 
+def remove_trailing_comments(line: str) -> str:
+    percent = line.find('%')
+    if percent != -1:
+        line = line[:percent]
+    return line
+
+
 class PastaParser:
     '''
     Parameters:
@@ -203,101 +210,50 @@ class PastaParser:
 
     def parse(self, from_string : str = "") -> None:
         '''
-        Parameters:
-            - None
-        Returns:
-            - list of strings representing the program
-        Behavior:
-            - parses the file and extract the lines
+        Parses the file
         '''
         f = self.get_file_handler(from_string)
-        
-        char = f.read(1)
-        if not char:
-            print_error_and_exit("Empty file or program")
-
-        # eat possible white spaces or empty lines
-        while symbol_endline_or_space(char):
-            char = f.read(1)
-
-        comment = False
-        if char == '%':
-            comment = True
-
-        char1 = f.read(1)
-        
-        while char1:
-            l0 = ""
-            while char1 and not(((char == '.' and not comment) and symbol_endline_or_space(char1)) or (comment and endline_symbol(char1))):
-                # look for a . followed by \n
-                l0 = l0 + char
-                char = char1
-                char1 = f.read(1)
-            # new line
-            l0 = l0 + char
-            if not comment:
-                l0 = l0.replace('\n', '').replace('\r', '')
-                if "not " in l0: # to handle not fact, and avoid removing spaces, important space after not
-                    l0 = l0.split("not")
-                    l1 = ""
-                    for el in l0:
-                        el = el.replace(' ', '')
-                        l1 = l1 + el + " not "
-                    l1 = l1[:-4]  # remove last not
-                elif l0.startswith('abducible'):  # abducible facts
-                    # why these operations?
-                    l0 = l0.split('abducible')
-                    for i in range(1, len(l0)):
-                        l0[i] = l0[i].replace(' ', '')
-                    l1 = "abducible"
-                    for i in range(1, len(l0)):
-                        l1 = l1 + ' ' + l0[i]
-                elif l0.startswith('map'):
-                    # why these operations?
-                    l0 = l0.split('map')
-                    for i in range(1, len(l0)):
-                        l0[i] = l0[i].replace(' ', '')
-                    l1 = "map"
-                    for i in range(1, len(l0)):
-                        l1 = l1 + ' ' + l0[i]
-                elif l0.startswith('decision'):
-                    # why these operations?
-                    l0 = l0.split('decision')
-                    for i in range(1, len(l0)):
-                        l0[i] = l0[i].replace(' ', '')
-                    l1 = "decision"
-                    for i in range(1, len(l0)):
-                        l1 = l1 + ' ' + l0[i]
-                else:
-                    l1 = l0.replace(' ','')
-
-                if l0[0].startswith('not_'):
-                    print_waring("The head of a clause that starts with not_ is not suggested.")
-                    print_waring("Hou should change its name. If not, you may get a wrong probability range")
-
-                # hack to handle something like: 0.5::a % comment, to remove
-                # the part after the %
-                percent = l1.find('%')
-                if percent != -1:
-                    l1 = l1[:percent]
-
-                self.lines_original.append(l1)
-            char = char1
-            # eat white spaces or empty lines
-            char1 = f.read(1)
-            while symbol_endline_or_space(char1):
-                char1 = f.read(1)
-            if char1 == '%':
-                comment = True
-            else:
-                comment = False
+        lines = f.readlines()
         f.close()
+        
+        i = 0
+        while i < len(lines):
+            l1 : str = ""
+            line = lines[i].replace('\n','').replace('\r','')
+            if not line.lstrip().startswith('%') and len(line) > 0:
+                ls = line.split('. ')
+                if len(ls) > 1:
+                    # two probabilistic facts on the same line
+                    for ii in range(0,len(ls)):
+                        if ii != len(ls) - 1:
+                            ls[ii] += '.'
+                        self.lines_original.append(ls[ii])
+                else:
+                    if not line.rstrip().endswith('.'):
+                        while not line.rstrip().endswith('.') and i < len(lines):
+                            percent = line.find('%')
+                            if percent != -1:
+                                line = line[:percent]
+                            l1 += line
+                            i = i + 1
+                            line = lines[i].replace('\n', '').replace('\r', '')
+                        percent = line.find('%')
+                        if percent != -1:
+                            line = line[:percent]
+                        l1 += line
+                        i = i + 1
+                    else:
+                        l1 = line
+                self.lines_original.append(l1)
+            i = i + 1
+
         self.parse_program()
 
 
     def parse_program(self) -> bool:
         '''
-        Second layer of program parsing
+        Second layer of program parsing: generates the ASP encoding
+        for the probabilistic, abducible, map, ... facts
         '''
         n_probabilistic_facts = 0
         gen = Generator()
@@ -389,10 +345,6 @@ class PastaParser:
         
         if not self.query and len(self.decision_facts) == 0:
             print_error_and_exit("Missing query")
-
-        # check that all the atoms have the same functor
-        # simplification: we only consider map a(1), map a(2), ...
-        # TODO: add these checks
 
         i = 0
         for fact in self.probabilistic_facts:
