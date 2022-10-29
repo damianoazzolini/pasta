@@ -335,7 +335,7 @@ class AspInterface:
                     print("")
             print(f"Total number of worlds that contribute to the probability: {lp_count + up_count}")
             print(f"Only LP: {lp_count}, Only UP: {up_count}")
-        self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability()
+        self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
 
         self.world_analysis_time = time.time() - start_time
 

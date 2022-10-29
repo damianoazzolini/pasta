@@ -464,8 +464,7 @@ def main():
     if args.dt:
         print_error_and_exit("Not yet implemented")
     if args.k != 100:
-        # print_error_and_exit("Not yet implemented")
-        pass
+        print_waring("This is experimental, do not trust the results")
     if args.map and args.solver and not args.upper:
         print_waring("Trying to compute the upper MPE state")
         args.upper = True

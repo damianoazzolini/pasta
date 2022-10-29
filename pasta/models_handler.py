@@ -486,17 +486,22 @@ class ModelsHandler():
         return obtained_atoms
 
 
-    def compute_lower_upper_probability(self) -> 'tuple[float,float]':
+    def compute_lower_upper_probability(self, k_credal : int = 100) -> 'tuple[float,float]':
         '''
         Computes lower and upper probability
         '''
+        perc = k_credal / 100
         for w in self.worlds_dict:
             p = self.worlds_dict[w].prob
 
             if self.evidence == "":
                 if self.worlds_dict[w].model_query_count != 0:
-                    if self.worlds_dict[w].model_not_query_count == 0:
-                        self.increment_lower_query_prob(p)
+                    if int(perc) == 1:
+                        if self.worlds_dict[w].model_not_query_count == 0:
+                            self.increment_lower_query_prob(p)
+                    else:
+                        if self.worlds_dict[w].model_query_count/self.worlds_dict[w].model_count >= perc:
+                            self.increment_lower_query_prob(p)
                     self.increment_upper_query_prob(p)
             else:
                 mqe = self.worlds_dict[w].model_query_count
