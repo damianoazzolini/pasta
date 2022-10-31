@@ -112,8 +112,9 @@ class Pasta:
         n = n_vars
         delta = arguments.delta # higher this value, less accurate will be the result
         alpha = arguments.alpha # < 0.0042 from the paper
-        # print(n)
-        t = math.ceil(math.log(n/delta)/alpha)
+        epsilon = 10e-5
+        r = n/delta if n != delta else 1 + epsilon
+        t = math.ceil(math.log(r)/alpha)
         m_list : 'list[float]' = []
         # maximum number of attempts for finding a program with a 
         # MAP state
@@ -138,8 +139,6 @@ class Pasta:
                     xor_constraints.append(current_constraint)
                     current_program = current_program + current_constraint + "\n"
                 prob, s = self.upper_mpe_inference(current_program)
-                # print(xor_constraints)
-                # print(s)
                 if prob >= 0:
                     ii = ii + 1
                     map_states.append(prob)
@@ -148,7 +147,7 @@ class Pasta:
                     if attempts > max_attempts:
                         ii = ii + 1
                         attempts = 0
-                        print_waring(f"Exceeded the max number of attempts to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
+                        print_waring(f"Exceeded the max number of attempts ({max_attempts}) to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
                         # print(current_program)
             # print(map_states)
             m_list.append(statistics.median(map_states))
