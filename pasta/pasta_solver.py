@@ -124,7 +124,7 @@ class Pasta:
         print(f"Probability median of {t} values for each iteration")
         print(f"At least {n*t} MAP queries")
 
-        for i in range(0, n+1): # or n+1?
+        for i in range(0, n): # or n+1?
             print(f"Iteration {i}")
             map_states : 'list[float]' = []
             ii : int = 1
@@ -132,11 +132,9 @@ class Pasta:
             while ii < t + 1:
             # for _ in range(1, t + 1):
                 # compute xor, loop until I get all the instances SAT
-                xor_constraints : 'list[str]' = []
                 current_program = map_program
                 for _ in range(0, i):
                     current_constraint = generator.Generator.generate_xor_constraint(n_vars)
-                    xor_constraints.append(current_constraint)
                     current_program = current_program + current_constraint + "\n"
                 prob, s = self.upper_mpe_inference(current_program)
                 if prob >= 0:
@@ -264,6 +262,14 @@ class Pasta:
                 for e in content_find_minimal_set:
                     print(e)
                 print("---")
+
+
+    def decision_theory_naive(self, from_string: str = "") -> 'tuple[float,list[str]]':
+        '''
+        Naive implementation of decision theory.
+        '''
+        self.setup_interface(from_string)
+        return self.interface.decision_theory_naive_method()
 
 
     def decision_theory(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
@@ -461,7 +467,8 @@ def main():
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dt:
-        print_error_and_exit("Not yet implemented")
+        # print_error_and_exit("Not yet implemented")
+        pass
     if args.k != 100:
         print_waring("This is experimental, do not trust the results")
     if args.map and args.solver and not args.upper:
@@ -508,7 +515,8 @@ def main():
             max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
     elif args.dt:
-        lower_p, upper_p, utility_atoms = pasta_solver.decision_theory()
+        best_util, utility_atoms = pasta_solver.decision_theory_naive()
+        print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     else:
         lower_p, upper_p = pasta_solver.inference()
         Pasta.print_prob(lower_p, upper_p)

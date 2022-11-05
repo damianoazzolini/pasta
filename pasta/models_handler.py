@@ -423,8 +423,8 @@ class ModelsHandler():
         '''
         Adds a models for decision theory solving.
         '''
-        print('--- DA IMPLEMENTARE ---')
-        print(line)
+        # print('--- DA IMPLEMENTARE ---')
+        # print(line)
         id_decision, id_world, prob_world, id_utilities = self.get_ids_decision(line)
         self.manage_worlds_dict_decision(id_decision, id_world, prob_world, id_utilities)
         # print(id_decision, id_world, prob_world, id_utilities)

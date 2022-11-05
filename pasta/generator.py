@@ -19,18 +19,24 @@ class Generator:
 
     @staticmethod
     def generate_clauses_for_fact(term: str, type: str) -> 'list[str]':
-        generator = '{' + term + '}.'
         t1 = ""
         if type == "utility":
             t1 = "utility_" + term
+            generator = "" # only for naive
         elif type == "decision":
+            generator = '{' + term + '}.'
             t1 = "decision_" + term
 
         new_fact_true = t1 + ':- ' + term + '.'
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
-        show_true = f"#show.\n#show {t1}:{t1}."
-        show_false = f"#show not_{t1}:not_{t1}."
-
+        # do not show when naive solver is selected
+        # if type == "utility":
+        #     show_true = f"#show.\n#show {t1}:{t1}."
+        #     show_false = f"#show not_{t1}:not_{t1}."
+        # else:
+        show_true = ""
+        show_false = ""
+            
         return [generator, new_fact_true, new_fact_false, show_true, show_false]
 
 
@@ -51,7 +57,7 @@ class Generator:
         term_np = f"not__a({index},{lnp})"
 
         generator_term = "{" + term_p + "}." + f"\n{term_np}:- not {term_p}."
-        wrap_fact_true = f"{term} :- {term_p}."
+        wrap_fact_true = f"{term} :- {term_p}.\n__a({index}):- {term_p}."
         fact_false = f"not_{term}:- not {term_p}."
         show_true = f"#show {term}:{term}."
         show_false = f"#show not_{term}:not_{term}."
@@ -162,10 +168,10 @@ class Generator:
     def generate_xor_constraint(n_vars : int):
         constr = ":- #count{"
 
-        for i in range(1, n_vars + 1):
+        for i in range(0, n_vars):
             if flip():
                 # constr = constr + f"1,bird({i}) : bird({i});"
-                constr = constr + f"1,a({i}) : a({i});"
+                constr = constr + f"1,__a({i}) : __a({i});"
         if constr.endswith("{"):
             # no constraints were added
             return ""

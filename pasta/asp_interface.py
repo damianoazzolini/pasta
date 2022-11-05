@@ -735,8 +735,8 @@ class AspInterface:
         n_lower : int = 0
         n_upper : int = 0
 
-        for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
-        # for _ in range(self.n_samples):
+        # for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
+        for _ in range(self.n_samples):
             w_assignments, w_id = self.sample_world()
 
             if w_id in sampled and len(self.continuous_vars) == 0:
@@ -799,8 +799,82 @@ class AspInterface:
             # 		break
 
         return n_lower / self.n_samples, n_upper / self.n_samples
+    
+    
+    def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[float,list[str]]':
+        '''
+        Loops over the utility list and find the best assignment.
+        '''
+        best = -1000
+        best_comb : 'list[str]' = []
+        for el in computed_utilities_list:    
+            index = 0 if lower else 1
+            if computed_utilities_list[el][index] > best:
+                best = computed_utilities_list[el][index]
+                best_comb = []
+                for c, decision in zip(el,self.decision_atoms_list):
+                    if int(c) == 1:
+                        best_comb.append(decision)
+                    else:
+                        best_comb.append(f"not {decision}")
+    
+        return best, best_comb
 
 
+    def decision_theory_naive_method(self) -> 'tuple[float,list[str]]':
+        '''
+        Naive implementation of decision theory: enumerates all the possible
+        combinations of decision atoms and then ask the queries (i.e., the
+        probability of all the utility atoms) at every iteration.
+        Mainly used for reference: easy to implement but not optimal.
+        '''
+        decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
+        computed_utilities_list : 'dict[str,list[float]]' = {}
+
+        original_prg = self.asp_program.copy()
+        for el in decision_facts_combinations:
+            bin_value = bin(el)[2:].zfill(len(self.decision_atoms_list))
+            # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
+            # add the constraints for the truth values of the facts
+            constraints : list[str] = []
+            for index, v in enumerate(bin_value):
+                mode = "" if int(v) == 0 else "not"
+                c = f":- {mode} {self.decision_atoms_list[index]}."
+                constraints.append(c)
+                self.asp_program.append(c)
+            
+            # ask the queries
+            original_prg_constr = self.asp_program.copy()
+            current_utility_l : float = 0
+            current_utility_u : float = 0
+            for query in self.utilities_dict:
+                self.asp_program.append(f"q:- {query}.")
+                self.asp_program.append("#show q/0.")
+                self.asp_program.append(f"nq:- not {query}.")
+                self.asp_program.append("#show nq/0.")
+
+                self.compute_probabilities()
+                lp = self.lower_probability_query
+                up = self.upper_probability_query
+                self.model_handler = ModelsHandler(
+                    self.prob_facts_dict,
+                    self.evidence,
+                    self.abducibles_list,
+                    self.decision_atoms_list,
+                    self.utilities_dict
+                )
+                self.upper_probability_query = 0
+                self.lower_probability_query = 0
+                current_utility_l += lp * self.utilities_dict[query]
+                current_utility_u += up *self.utilities_dict[query]
+                self.asp_program = original_prg_constr.copy()
+            computed_utilities_list[bin_value] = [
+                current_utility_l, current_utility_u]
+            self.asp_program = original_prg.copy()
+        
+        return self.extract_best_utility(computed_utilities_list)
+        
+        
     def decision_theory(self) -> None:
         '''
         Decision theory naive solver: considers all the possible combinations
@@ -813,7 +887,7 @@ class AspInterface:
         if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 ctl.add('base', [], ":- not " + c + '.')
-        
+
         start_time = time.time()
         ctl.ground([("base", [])])
         self.grounding_time = time.time() - start_time
