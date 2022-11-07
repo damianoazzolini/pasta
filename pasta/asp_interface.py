@@ -873,9 +873,9 @@ class AspInterface:
             self.asp_program = original_prg.copy()
         
         return self.extract_best_utility(computed_utilities_list)
-        
-        
-    def decision_theory(self) -> None:
+
+
+    def decision_theory(self) -> 'tuple[float,list[str]]':
         '''
         Decision theory naive solver: considers all the possible combinations
         of utility facts
@@ -884,13 +884,7 @@ class AspInterface:
         for clause in self.asp_program:
             ctl.add('base', [], clause)
 
-        if len(self.cautious_consequences) != 0:
-            for c in self.cautious_consequences:
-                ctl.add('base', [], ":- not " + c + '.')
-
-        start_time = time.time()
         ctl.ground([("base", [])])
-        self.grounding_time = time.time() - start_time
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
@@ -899,14 +893,7 @@ class AspInterface:
                 # n_models = n_models + 1
             handle.get()  # type: ignore
 
-        computation_time = time.time() - start_time
-
-        if self.verbose:
-            print(f"Time: {computation_time}")
-
         self.lower_probability_query, self.upper_probability_query, self.decision_atoms_selected, self.utility = self.model_handler.compute_utility_atoms()
-
-        self.world_analysis_time = time.time() - start_time
         
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':

@@ -5,7 +5,7 @@ from io import TextIOWrapper
 import os
 import re
 
-from utils import print_waring, print_error_and_exit, error_prob_fact_twice, is_number
+from utils import print_error_and_exit, error_prob_fact_twice, is_number
 from generator import Generator
 
 
@@ -101,7 +101,8 @@ class PastaParser:
         filename : str, 
         query : str = "", 
         evidence : str = "",
-        for_asp_solver : bool = False
+        for_asp_solver : bool = False,
+        naive_dt : bool = False
         ) -> None:
         self.filename : str = filename
         self.query : str = query
@@ -118,6 +119,7 @@ class PastaParser:
         self.fact_utility : 'dict[str,float]' = {}
         self.decision_facts : 'list[str]' = []
         self.for_asp_solver : bool = for_asp_solver
+        self.naive_dt : bool = naive_dt
 
 
     def get_file_handler(self, from_string : str = "") -> TextIOWrapper:
@@ -306,7 +308,7 @@ class PastaParser:
                 self.add_probabilistic_fact(fact,probability)
             elif line.startswith("decision"):
                 fact = line.split('decision')[1][:-1].strip()
-                clauses = gen.generate_clauses_for_fact(fact,"decision")
+                clauses = gen.generate_clauses_for_dt(fact, "decision", self.naive_dt)
                 self.decision_facts.append(fact)
                 for c in clauses:
                     self.lines_prob.append(c)
@@ -316,7 +318,7 @@ class PastaParser:
                 # keep it to possibly impose ASP constraints
                 # on the utilites (e.g. on weights?) 
                 self.lines_prob.append(line)
-                clauses = gen.generate_clauses_for_fact(fact,"utility")
+                clauses = gen.generate_clauses_for_dt(fact, "utility", self.naive_dt)
                 # self.decision_facts.append(fact)
                 for c in clauses:
                     self.lines_prob.append(c)

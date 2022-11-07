@@ -9,7 +9,7 @@ from pasta_parser import PastaParser
 # import pasta_parser
 from asp_interface import AspInterface
 # import asp_interface
-from utils import print_error_and_exit, print_waring
+from utils import print_error_and_exit, print_warning
 
 import generator
 
@@ -63,7 +63,8 @@ class Pasta:
         stop_if_inconsistent : bool = True,
         one : bool = False,
         xor : bool = False,
-        k : int = 100
+        k : int = 100,
+        naive_dt : bool = False
         ) -> None:
         self.filename = filename
         self.query = query
@@ -82,6 +83,7 @@ class Pasta:
         self.one = one
         self.xor = xor
         self.k_credal : int = k
+        self.naive_dt : bool = naive_dt
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -145,7 +147,7 @@ class Pasta:
                     if attempts > max_attempts:
                         ii = ii + 1
                         attempts = 0
-                        print_waring(f"Exceeded the max number of attempts ({max_attempts}) to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
+                        print_warning(f"Exceeded the max number of attempts ({max_attempts}) to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
                         # print(current_program)
             # print(map_states)
             m_list.append(statistics.median(map_states))
@@ -208,7 +210,7 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver)
+        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt)
         self.parser.parse(from_string)
 
         if self.verbose:
@@ -272,7 +274,7 @@ class Pasta:
         return self.interface.decision_theory_naive_method()
 
 
-    def decision_theory(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
+    def decision_theory_improved(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
         self.setup_interface(from_string)
         self.interface.print_asp_program()
         print(self.interface.decision_atoms_list)
@@ -308,7 +310,7 @@ class Pasta:
         if self.interface.normalizing_factor >= 1:
             lp = 1
             up = 1
-            print_waring("No worlds have > 1 answer sets")
+            print_warning("No worlds have > 1 answer sets")
 
         if self.normalize_prob and self.interface.normalizing_factor != 0:
             lp = lp / (1 - self.interface.normalizing_factor)
@@ -328,13 +330,13 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
-            print_waring("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
+            print_warning("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
         self.interface.compute_probabilities()
         max_prob, map_state = self.interface.model_handler.get_map_solution(
             self.parser.map_id_list, self.consider_lower_prob)
         if self.interface.normalizing_factor >= 1:
             max_prob = 1
-            print_waring("No worlds have > 1 answer sets")
+            print_warning("No worlds have > 1 answer sets")
 
         if self.normalize_prob and self.interface.normalizing_factor != 0:
             max_prob = max_prob / (1 - self.interface.normalizing_factor)
@@ -459,25 +461,25 @@ def main():
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
-    command_parser.add_argument("-dt", help="Decision theory", action="store_true", default=False)
+    command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
+    command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
     command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
 
     args = command_parser.parse_args()
 
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
-    if args.dt:
-        # print_error_and_exit("Not yet implemented")
-        pass
+    if args.dtn:
+        print_warning("Naive decision theory solver, you shoul use -dt or -dti")
     if args.k != 100:
-        print_waring("This is experimental, do not trust the results")
+        print_warning("This is experimental, do not trust the results")
     if args.map and args.solver and not args.upper:
-        print_waring("Trying to compute the upper MPE state")
+        print_warning("Trying to compute the upper MPE state")
         args.upper = True
     if args.solver:
         args.minimal = False
     if args.minimal and args.stop_if_inconsistent:
-        print_waring("The program may be inconsistent")
+        print_warning("The program may be inconsistent")
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
         args.minimal = False
@@ -494,7 +496,8 @@ def main():
                          args.stop_if_inconsistent, 
                          args.one, 
                          args.xor, 
-                         args.k)
+                         args.k,
+                         args.dtn)
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
@@ -514,9 +517,13 @@ def main():
         else:
             max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
-    elif args.dt:
+    elif args.dtn:
         best_util, utility_atoms = pasta_solver.decision_theory_naive()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
+    elif args.dt:
+        best_util, utility_atoms = pasta_solver.decision_theory_improved()
+        print(f"Utility: {best_util}\nChoice: {utility_atoms}")
+
     else:
         lower_p, upper_p = pasta_solver.inference()
         Pasta.print_prob(lower_p, upper_p)

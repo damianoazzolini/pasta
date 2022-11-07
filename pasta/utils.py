@@ -16,7 +16,7 @@ def print_error_and_exit(message : str):
     sys.exit(-1)
 
 
-def print_waring(message : str):
+def print_warning(message : str):
     '''
     Prints the warning message 'message'.
     '''
@@ -30,7 +30,7 @@ def print_inconsistent_program(stop: bool = False):
     message = "This program is inconsistent. The computed probability\nvalue is wrong."
     if stop:
         print_error_and_exit(message)
-    print_waring(message)
+    print_warning(message)
 
 
 def error_prob_fact_twice(

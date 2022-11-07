@@ -18,24 +18,24 @@ class Generator:
         pass
 
     @staticmethod
-    def generate_clauses_for_fact(term: str, type: str) -> 'list[str]':
+    def generate_clauses_for_dt(term: str, type: str, naive : bool = False) -> 'list[str]':
         t1 = ""
         if type == "utility":
-            t1 = "utility_" + term
-            generator = "" # only for naive
-        elif type == "decision":
+            t1 = "utility_" + term # really needed?
+            generator = ""
+        else:
             generator = '{' + term + '}.'
             t1 = "decision_" + term
 
         new_fact_true = t1 + ':- ' + term + '.'
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
         # do not show when naive solver is selected
-        # if type == "utility":
-        #     show_true = f"#show.\n#show {t1}:{t1}."
-        #     show_false = f"#show not_{t1}:not_{t1}."
-        # else:
-        show_true = ""
-        show_false = ""
+        if (type == "utility" or type == "decision") and naive is False:
+            show_true = f"#show.\n#show {t1}:{t1}."
+            show_false = f"#show not_{t1}:not_{t1}."
+        else:
+            show_true = ""
+            show_false = ""
             
         return [generator, new_fact_true, new_fact_false, show_true, show_false]
 
