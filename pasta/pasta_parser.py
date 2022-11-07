@@ -268,7 +268,7 @@ class PastaParser:
                     print_error_and_exit(
                         "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
                 # line with probability value
-                probability, fact = check_consistent_prob_fact(line)
+                probability, fact = check_consistent_prob_fact(line.replace(' ',''))
 
                 self.add_probabilistic_fact(fact,probability)
 

@@ -277,21 +277,21 @@ class AspInterface:
 
         if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
             utils.print_inconsistent_program(self.stop_if_inconsistent)
+            
+        if self.stop_if_inconsistent and len(missing) > 0 and not self.normalize_prob:
+            res = ""
+            for el in missing:
+                s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
+                i = 0
+                res = res + s + "{ "
+                for el in self.prob_facts_dict:
+                    if s[i] == '1':
+                        res += el + " "
+                    i = i + 1
+                res += "}\n"
+            utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
 
-        if self.normalize_prob or self.stop_if_inconsistent:
-            if self.stop_if_inconsistent and len(missing) > 0:
-                res = ""
-                for el in missing:
-                    s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
-                    i = 0
-                    res = res + s + "{ "
-                    for el in self.prob_facts_dict:
-                        if s[i] == '1':
-                            res += el + " "
-                        i = i + 1
-                    res += "}\n"
-                utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
-
+        if self.normalize_prob:
             for el in missing:
                 n = str(bin(el))[2:]
                 n = str(n).zfill(len(ks[0]))

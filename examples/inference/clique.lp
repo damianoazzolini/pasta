@@ -13,10 +13,14 @@ v(Y) :- e(X,Y).
 :- in(X), in(Y), v(X), v(Y), X!=Y, not e(X,Y), not e(Y,X).
 
 % Example query: in(1)
-% Lower probability for the query in(1): 0.4375
-% Upper probability for the query in(1): 0.875
-% This program has some worlds without answer sets, so there
-% can be a probability loss.
-% If you want to fix this, use the flags --no-minimal --normalize
+% Expected:
+% Error: found 4 worlds without answer sets: [0, 1, 4, 5]
+% 000000{ }
+% 000001{ e(3,3) }
+% 000100{ e(2,2) }
+% 000101{ e(2,2) e(3,3) }
+% This program has some worlds without answer sets, so it is
+% inconsistent.
+% If you want to fix this, use the flags --normalize
 % Lower probability for the query: 0.4666666666666667
 % Upper probability for the query: 0.9333333333333333

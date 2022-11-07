@@ -11,8 +11,8 @@ alarm:- earthquake.
 calls(john) :- person(john), alarm, al(john).
 calls(mary) :- person(mary), alarm, al(mary).
 
-burglary.
-alarm.
+% burglary.
+% alarm.
 person(john).
 person(mary).
 
