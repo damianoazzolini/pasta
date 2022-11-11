@@ -315,6 +315,7 @@ class PastaParser:
             elif line.startswith("utility"):
                 fact, utility = get_fact_and_utility(line)
                 self.fact_utility[fact] = utility
+                # print(f"utility({fact},{int(utility)}):- {fact}.")
                 # keep it to possibly impose ASP constraints
                 # on the utilites (e.g. on weights?) 
                 self.lines_prob.append(line)

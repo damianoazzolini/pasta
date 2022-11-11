@@ -27,6 +27,7 @@ class Generator:
             generator = '{' + term + '}.'
             t1 = "decision_" + term
 
+        # TODO: add utility(f,10):- f. to allow aggregates over utilities
         new_fact_true = t1 + ':- ' + term + '.'
         new_fact_false = "not_" + t1 + ' :- not ' + term + '.'
         # do not show when naive solver is selected

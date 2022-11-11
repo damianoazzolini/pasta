@@ -262,14 +262,15 @@ class AspInterface:
         ks = sorted(self.model_handler.worlds_dict.keys())
         l : 'list[int]' = []
         for el in ks:
-            l.append(int(el,2))
+            if el != '':
+                l.append(int(el,2))
 
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
-        if len(ks) == 0:
+        if len(ks) == 0 and len(self.prob_facts_dict) > 0:
             utils.print_inconsistent_program(True)
 
-        if len(missing) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
+        if len(missing) > 0 and len(self.prob_facts_dict) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
             utils.print_inconsistent_program(self.stop_if_inconsistent)
 
         ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
@@ -278,7 +279,7 @@ class AspInterface:
         if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
             utils.print_inconsistent_program(self.stop_if_inconsistent)
             
-        if self.stop_if_inconsistent and len(missing) > 0 and not self.normalize_prob:
+        if self.stop_if_inconsistent and len(missing) > 0 and not self.normalize_prob and len(self.prob_facts_dict) > 0:
             res = ""
             for el in missing:
                 s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]

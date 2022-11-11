@@ -470,7 +470,7 @@ def main():
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dtn:
-        print_warning("Naive decision theory solver, you shoul use -dt or -dti")
+        print_warning("Naive decision theory solver, you should use -dt or -dti")
     if args.k != 100:
         print_warning("This is experimental, do not trust the results")
     if args.map and args.solver and not args.upper:
