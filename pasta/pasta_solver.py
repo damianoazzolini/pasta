@@ -64,7 +64,8 @@ class Pasta:
         one : bool = False,
         xor : bool = False,
         k : int = 100,
-        naive_dt : bool = False
+        naive_dt : bool = False,
+        lpmln : bool = False
         ) -> None:
         self.filename = filename
         self.query = query
@@ -84,6 +85,7 @@ class Pasta:
         self.xor = xor
         self.k_credal : int = k
         self.naive_dt : bool = naive_dt
+        self.lpmln : bool = lpmln
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -319,6 +321,14 @@ class Pasta:
         check_lp_up(lp, up)
 
         return lp, up
+    
+    
+    def inference_lpmln(self, from_string : str = "") -> 'float,float':
+        self.setup_interface(from_string)
+        # self.interface.identify_useless_variables()
+        self.interface.compute_probabilities_lpmln()
+        
+        return self.interface.lower_probability_query
 
 
     def map_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
@@ -464,6 +474,7 @@ def main():
     command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
     command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
     command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
+    command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", type=bool, default=False)
 
     args = command_parser.parse_args()
 
@@ -497,7 +508,8 @@ def main():
                          args.one, 
                          args.xor, 
                          args.k,
-                         args.dtn)
+                         args.dtn,
+                         args.lpmln)
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
@@ -525,7 +537,10 @@ def main():
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
 
     else:
-        lower_p, upper_p = pasta_solver.inference()
+        if args.lpmln:
+            prob = pasta_solver.inference_lpmln()
+        else:
+            lower_p, upper_p = pasta_solver.inference()
         Pasta.print_prob(lower_p, upper_p)
 
 
