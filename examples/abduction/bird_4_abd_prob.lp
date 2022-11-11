@@ -15,7 +15,7 @@ fly(X);nofly(X):- bird(X), fa(X).
 % fly(X);nofly(X):- bird(X).
 
 % Constraint: at least 60% of the birds fly
-% :- #count{X:fly(X),bird(X),fa(X)} = FB, #count{X:bird(X),fa(X)} = B, 10*FB<6*B.
+:- #count{X:fly(X),bird(X),fa(X)} = FB, #count{X:bird(X),fa(X)} = B, 10*FB<6*B.
 % :- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<6*B.
 
 % Query fly(1)
