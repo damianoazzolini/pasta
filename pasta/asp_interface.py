@@ -188,20 +188,19 @@ class AspInterface:
                 self.decision_atoms_list,
                 self.utilities_dict
             )
+            
+    
+    def admits_inconsistency(self) -> bool:
+        # Currently not used
+        return True in {not self.stop_if_inconsistent, self.xor, self.normalize_prob, self.upper, len(self.cautious_consequences) > 0}
 
 
     def get_minimal_set_facts(self) -> float:
         '''
-        Parameters:
-            - None
-        Return:
-            - str
-        Behavior:
-            compute the minimal set of facts
-            needed to make the query true. This operation is performed
-            only if there is not evidence.
-            Cautious consequences
-            clingo <filename> -e cautious
+        Compute the minimal set of probabilistic/abducible facts
+        needed to make the query true. This operation is performed
+        only if there is not evidence.
+        Cautious consequences: clingo <filename> -e cautious
         '''
         ctl = clingo.Control(["--enum-mode=cautious", "-Wnone"])
         for clause in self.program_minimal_set:
@@ -222,7 +221,6 @@ class AspInterface:
             if el != '':
                 self.cautious_consequences.append(el)
 
-        # sys.exit()
         clingo_time = time.time() - start_time
 
         return clingo_time
@@ -269,9 +267,6 @@ class AspInterface:
 
         if len(ks) == 0 and len(self.prob_facts_dict) > 0:
             utils.print_inconsistent_program(True)
-
-        if len(missing) > 0 and len(self.prob_facts_dict) > 0 and not (self.normalize_prob or self.stop_if_inconsistent or len(self.cautious_consequences) > 0) and not self.xor and not self.upper:
-            utils.print_inconsistent_program(self.stop_if_inconsistent)
 
         ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
         nw = 2**len(self.prob_facts_dict)
@@ -343,8 +338,8 @@ class AspInterface:
 
     def compute_mpe_asp_solver(self, one : bool = False) -> 'tuple[str,bool]':
         '''
-        Compute the upper MPE state by using an ASP solver.
-        We require (not checked) that every world has at least one answer set.
+        Computes the upper MPE state by using an ASP solver.
+        Assumes that every world has at least one answer set.
         '''
         ctl = clingo.Control(["-Wnone","--opt-mode=opt","--models=0", "--output-debug=none"])
         for clause in self.asp_program:
@@ -370,7 +365,7 @@ class AspInterface:
 
     def sample_world(self) -> 'tuple[dict[str,bool],str]':
         '''
-        Samples a world for approximate probability computation
+        Samples a world for approximate probability computation.
         '''
         w_id: 'dict[str,bool]' = {}
         w_id_key: str = ""
@@ -405,7 +400,7 @@ class AspInterface:
     def compute_samples_dependency(self) -> 'dict[str,str]':
         '''
         Computes the dependency of the variables, to spot variables that
-        depends on other variables, such as x:gaussian(0,1), y:gaussian(x,0)
+        depends on other variables, such as x:gaussian(0,1), y:gaussian(x,0).
         '''
 
         samples: 'dict[str,str]' = {}
@@ -488,7 +483,7 @@ class AspInterface:
         '''
         Assigns T or F to facts and checks whether q and e or not q and e
         is true.
-        Used in Gibbs sampling
+        Used in Gibbs sampling.
         '''
 
         for atm in ctl.symbolic_atoms:
@@ -722,10 +717,7 @@ class AspInterface:
 
     def sample_query(self) -> 'tuple[float, float]':
         '''
-        Samples the query self.n_samples times
-        If bound is True, stops when either the number of samples taken k
-        is greater than self.n_samples or
-        2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
+        Samples the query self.n_samples times.
         '''
         # sampled worlds
         # each element is a list [lower, upper]
@@ -789,15 +781,6 @@ class AspInterface:
 
                 n_lower = n_lower + lp
                 n_upper = n_upper + up
-
-
-            # if bound is True:
-            # 	p = n_lower / k
-            # 	# condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) >= 0.02
-            # 	condition = 2 * 1.96 * math.sqrt(p * (1-p) / k) < 0.02
-            # 	if condition and n_lower > 5 and k - n_lower > 5 and k % 101 == 0:
-            # 		a = 2 * 1.96 * math.sqrt(p * (1-p) / k)
-            # 		break
 
         return n_lower / self.n_samples, n_upper / self.n_samples
     
