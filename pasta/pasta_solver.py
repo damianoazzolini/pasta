@@ -326,6 +326,8 @@ class Pasta:
         i.e., find the world with highest probability where the query is true.
         '''
         self.setup_interface(from_string)
+        if len(self.parser.map_id_list) == 0:
+            print_error_and_exit("Specify at least one map fact.")
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
             print_warning("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
         self.interface.compute_probabilities()

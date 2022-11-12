@@ -887,6 +887,9 @@ class AspInterface:
         '''
         Abduction
         '''
+        if len(self.abducibles_list) == 0:
+            utils.print_error_and_exit("Specify at least one abducible.")
+
         computed_abducibles_list : 'list[str]' = []
 
         for i in range(0, len(self.abducibles_list) + 1):
