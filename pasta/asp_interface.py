@@ -1,7 +1,6 @@
 """ Module implementing the connection to clingo """
 
 import random
-import time
 import numpy as np
 import re
 import sys
@@ -155,13 +154,8 @@ class AspInterface:
         self.lower_probability_evidence : float = 0
         self.evidence : str = evidence
         self.abducibles_list : 'list[str]' = abducibles_list
-        self.constraint_times_list : 'list[float]' = []
         self.computed_models : int = 0
-        self.grounding_time : float = 0
-        self.world_analysis_time : float = 0
-        self.computation_time : float = 0
         self.abductive_explanations : 'list[list[str]]' = []
-        self.abduction_time : float = 0
         self.verbose : bool = verbose
         self.pedantic : bool = pedantic
         self.n_samples : int = n_samples
@@ -195,7 +189,7 @@ class AspInterface:
         return True in {not self.stop_if_inconsistent, self.xor, self.normalize_prob, self.upper, len(self.cautious_consequences) > 0}
 
 
-    def get_minimal_set_facts(self) -> float:
+    def compute_minimal_set_facts(self) -> None:
         '''
         Compute the minimal set of probabilistic/abducible facts
         needed to make the query true. This operation is performed
@@ -207,7 +201,6 @@ class AspInterface:
             ctl.add('base',[],clause)
 
         ctl.ground([("base", [])])
-        start_time = time.time()
 
         temp_cautious = []
         with ctl.solve(yield_=True) as handle:  # type: ignore
@@ -220,10 +213,6 @@ class AspInterface:
             # if el != '' and (el.split(',')[-2] + ')' if el.count(',') > 0 else el.split('(')[0]) in self.probabilistic_facts:
             if el != '':
                 self.cautious_consequences.append(el)
-
-        clingo_time = time.time() - start_time
-
-        return clingo_time
 
 
     def compute_probabilities(self) -> None:
@@ -246,20 +235,13 @@ class AspInterface:
         except RuntimeError:
             utils.print_error_and_exit('Syntax error, parsing failed.')
 
-        start_time = time.time()
         ctl.ground([("base", [])])
-        self.grounding_time = time.time() - start_time
-
-        start_time = time.time()
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
                 self.model_handler.add_value(str(m))  # type: ignore
                 self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
-        self.computation_time = time.time() - start_time
-
-        start_time = time.time()
 
         ks = sorted(self.model_handler.worlds_dict.keys())
         l : 'list[int]' = []
@@ -337,8 +319,6 @@ class AspInterface:
             print(f"Only LP: {lp_count}, Only UP: {up_count}")
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
 
-        self.world_analysis_time = time.time() - start_time
-
 
     def compute_mpe_asp_solver(self, one : bool = False) -> 'tuple[str,bool]':
         '''
@@ -350,11 +330,8 @@ class AspInterface:
             ctl.add('base', [], clause)
 
         # print(self.asp_program)
-        start_time = time.time()
         ctl.ground([("base", [])])
-        self.grounding_time = time.time() - start_time
 
-        start_time = time.time()
         opt : str = " "
         unsat : bool = True
         with ctl.solve(yield_=True) as handle:  # type: ignore
@@ -362,7 +339,6 @@ class AspInterface:
                 unsat = False
                 opt = str(m)  # type: ignore
             handle.get()   # type: ignore
-        self.computation_time = time.time() - start_time
 
         return opt, unsat
 
@@ -887,7 +863,7 @@ class AspInterface:
         self.lower_probability_query, self.upper_probability_query, self.decision_atoms_selected, self.utility = self.model_handler.compute_utility_atoms()
         
 
-    def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'tuple[list[str], float]':
+    def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'list[str]':
         '''
         Loop for exact abduction
         '''
@@ -917,9 +893,7 @@ class AspInterface:
             s = s[:-1] + '.'
             ctl.add('base', [], s)
 
-        start_time = time.time()
         ctl.ground([("base", [])])
-        self.grounding_time = time.time() - start_time
 
         computed_models : 'list[str]' = []
 
@@ -929,12 +903,8 @@ class AspInterface:
                 # n_models = n_models + 1
             handle.get()  # type: ignore
 
-        computation_time = time.time() - start_time
 
-        if self.verbose:
-            print(f"Time: {computation_time}")
-
-        return computed_models, computation_time
+        return computed_models
 
 
     def abduction(self) -> None:
@@ -943,10 +913,8 @@ class AspInterface:
         '''
         computed_abducibles_list : 'list[str]' = []
 
-        start_time = time.time()
-
         for i in range(0, len(self.abducibles_list) + 1):
-            currently_computed, exec_time = self.abduction_iter(i, computed_abducibles_list)
+            currently_computed = self.abduction_iter(i, computed_abducibles_list)
             self.computed_models = self.computed_models + len(currently_computed)
             if self.verbose:
                 print(f"Models with {i} abducibles: {len(currently_computed)}")
@@ -973,7 +941,6 @@ class AspInterface:
 
             # keep the best model
             self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model()
-            self.constraint_times_list.append(exec_time)
 
         n_inconsistent = 0
         for el in self.model_handler.abd_worlds_dict:
@@ -981,8 +948,6 @@ class AspInterface:
                 n_inconsistent = n_inconsistent + 1
             self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
             # TODO: add normalization, as in compute_probabilities
-
-        self.abduction_time = time.time() - start_time
 
 
     def print_asp_program(self) -> None:

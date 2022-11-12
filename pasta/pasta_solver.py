@@ -244,16 +244,13 @@ class Pasta:
             k_credal = self.k_credal
         )
 
-        exec_time = 0
         if self.minimal:
-            exec_time = self.interface.get_minimal_set_facts()
+            self.interface.compute_minimal_set_facts()
 
-        if self.verbose:
-            print(f"Computed cautious consequences in {exec_time} seconds")
-            if self.pedantic and self.minimal:
-                print("--- Minimal set of probabilistic facts ---")
-                print(self.interface.cautious_consequences)
-                print("---")
+        if self.pedantic and self.minimal:
+            print("--- Minimal set of probabilistic facts ---")
+            print(self.interface.cautious_consequences)
+            print("---")
 
         if self.pedantic:
             print("--- Asp program ---")
