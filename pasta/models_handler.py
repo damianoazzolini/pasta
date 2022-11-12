@@ -422,9 +422,10 @@ class ModelsHandler():
     def add_decision_model(self, line : str) -> None:
         '''
         Adds a models for decision theory solving.
+        Two possible options: aggregating the answer sets by worlds and, for each 
+        one, save which utilities are selected or viceversa.
+        Here, the viceversa is used.
         '''
-        # print('--- DA IMPLEMENTARE ---')
-        # print(line)
         id_decision, id_world, prob_world, id_utilities = self.get_ids_decision(line)
         self.manage_worlds_dict_decision(id_decision, id_world, prob_world, id_utilities)
         # print(id_decision, id_world, prob_world, id_utilities)
