@@ -323,7 +323,7 @@ class Pasta:
         return lp, up
     
     
-    def inference_lpmln(self, from_string : str = "") -> 'float,float':
+    def inference_lpmln(self, from_string : str = "") -> 'tuple[float,float]':
         self.setup_interface(from_string)
         # self.interface.identify_useless_variables()
         self.interface.compute_probabilities_lpmln()
@@ -474,7 +474,7 @@ def main():
     command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
     command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
     command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
-    command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", type=bool, default=False)
+    command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
 
     args = command_parser.parse_args()
 

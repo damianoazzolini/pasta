@@ -225,6 +225,15 @@ class AspInterface:
 
         return clingo_time
 
+    def compute_probabilities_lpmln(self) -> None:
+        '''
+        Inference using the LPMNL semnatics.
+        '''
+        ctl = self.init_clingo_ctl(["0","-Wnone"])
+        ctl.ground([("base", [])])
+        
+        sys.exit()
+        
 
     def compute_probabilities(self) -> None:
         '''
