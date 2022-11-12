@@ -211,9 +211,6 @@ class AspInterface:
                 self.cautious_consequences.append(el)
 
 
-        return clingo_time
-
-
     def compute_probabilities(self) -> None:
         '''
         Computes the lower and upper bound for the query
