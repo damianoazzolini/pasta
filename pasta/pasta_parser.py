@@ -139,8 +139,10 @@ class PastaParser:
         '''
         f = self.get_file_handler(from_string)
         lines = f.readlines()
+        gen = Generator()
 
         for l in lines:
+            l = l.rstrip().lstrip()
             if not l.startswith('%'):
                 if '::' in l:
                     # probabilistic fact
@@ -149,6 +151,11 @@ class PastaParser:
                     term = l[1].replace('\n','').replace('\r','').replace('.','')
                     self.probabilistic_facts[term] = float(prob)
                     self.lines_prob.append(f'#external {term}.')
+                elif l.startswith("("):
+                    l = l.replace('\n','').replace('\r','')
+                    expanded_conditional = gen.generate_clauses_for_conditionals(l)
+                    for el in expanded_conditional:
+                        self.lines_prob.append(el)
                 elif ':' in l and continuous_distribution_in_str(l):
                     # continuous variable
                     # TODO: add support range a(1..n)
