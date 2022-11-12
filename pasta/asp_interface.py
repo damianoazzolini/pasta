@@ -235,12 +235,16 @@ class AspInterface:
             clingo_arguments.append("--project")
 
         ctl = clingo.Control(clingo_arguments)
-        for clause in self.asp_program:
-            ctl.add('base',[],clause)
+        
+        try:
+            for clause in self.asp_program:
+                ctl.add('base',[],clause)
 
-        if len(self.cautious_consequences) != 0:
-            for c in self.cautious_consequences:
-                ctl.add('base',[],":- not " + c + '.')
+            if len(self.cautious_consequences) != 0:
+                for c in self.cautious_consequences:
+                    ctl.add('base',[],":- not " + c + '.')
+        except RuntimeError:
+            utils.print_error_and_exit('Syntax error, parsing failed.')
 
         start_time = time.time()
         ctl.ground([("base", [])])
@@ -533,14 +537,17 @@ class AspInterface:
         return lower_qe, upper_qe, lower_nqe, upper_nqe
 
 
-    def init_clingo_ctl(self) -> 'clingo.Control':
+    def init_clingo_ctl(self, clingo_arguments : 'list[str]') -> 'clingo.Control':
         '''
         Init clingo and grounds the program
         '''
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-        ctl.ground([("base", [])])
+        ctl = clingo.Control(clingo_arguments)
+        try:
+            for clause in self.asp_program:
+                ctl.add('base', [], clause)
+            ctl.ground([("base", [])])
+        except RuntimeError:
+            utils.print_error_and_exit('Syntax error, parsing failed.')
 
         return ctl
 
@@ -553,7 +560,7 @@ class AspInterface:
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, T_count]
         sampled = {}
 
-        ctl = self.init_clingo_ctl()
+        ctl = self.init_clingo_ctl(["0", "--project"])
 
         n_samples = self.n_samples
 
@@ -626,7 +633,7 @@ class AspInterface:
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
         sampled_query = {}
 
-        ctl = self.init_clingo_ctl()
+        ctl = self.init_clingo_ctl(["0", "--project"])
 
         n_samples = self.n_samples
 
@@ -693,7 +700,7 @@ class AspInterface:
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
         sampled = {}
 
-        ctl = self.init_clingo_ctl()
+        ctl = self.init_clingo_ctl(["0", "--project"])
 
         n_lower_qe : int = 0
         n_upper_qe : int = 0
@@ -723,7 +730,7 @@ class AspInterface:
         # each element is a list [lower, upper]
         sampled = {}
 
-        ctl = self.init_clingo_ctl()
+        ctl = self.init_clingo_ctl(["0", "--project"])
 
         n_lower : int = 0
         n_upper : int = 0
