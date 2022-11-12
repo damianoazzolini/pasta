@@ -42,8 +42,13 @@ def endline_symbol(char1: str) -> bool:
     return char1 == '\n' or char1 == '\r\n' or char1 == '\n\r'
 
 
-def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-    r = "0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+def check_consistent_prob_fact(line_in: str, weight : bool = False) -> 'tuple[float, str]':
+    if not weight:
+        r = "0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+    else:
+        # this regex is not fully correct
+        r = "[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+        
     x = re.match(r, line_in.strip())
     if x is None:
         print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
@@ -102,7 +107,8 @@ class PastaParser:
         query : str = "", 
         evidence : str = "",
         for_asp_solver : bool = False,
-        naive_dt : bool = False
+        naive_dt : bool = False,
+        lpmln : bool = False
         ) -> None:
         self.filename : str = filename
         self.query : str = query
@@ -118,6 +124,7 @@ class PastaParser:
         self.constraints_list : 'list[str]' = []
         self.fact_utility : 'dict[str,float]' = {}
         self.decision_facts : 'list[str]' = []
+        self.lpmln : bool = lpmln
         self.for_asp_solver : bool = for_asp_solver
         self.naive_dt : bool = naive_dt
 
@@ -275,7 +282,7 @@ class PastaParser:
                     print_error_and_exit(
                         "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
                 # line with probability value
-                probability, fact = check_consistent_prob_fact(line.replace(' ',''))
+                probability, fact = check_consistent_prob_fact(line.replace(' ',''), self.lpmln)
 
                 self.add_probabilistic_fact(fact,probability)
 

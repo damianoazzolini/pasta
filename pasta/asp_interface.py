@@ -926,6 +926,17 @@ class AspInterface:
             # TODO: add normalization, as in compute_probabilities
 
 
+    def compute_probabilities_lpmln(self) -> None:
+        ctl = self.init_clingo_ctl(["0"])
+        with ctl.solve(yield_=True) as handle:  # type: ignore
+            for m in handle:  # type: ignore
+                self.model_handler.add_value(str(m))  # type: ignore
+                self.computed_models = self.computed_models + 1
+            handle.get()   # type: ignore
+        self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(
+            self.k_credal)
+
+
     def print_asp_program(self) -> None:
         '''
         Utility that prints the ASP program

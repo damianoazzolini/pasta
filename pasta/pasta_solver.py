@@ -212,7 +212,7 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt)
+        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt, self.lpmln)
         self.parser.parse(from_string)
 
         if self.verbose:
@@ -325,6 +325,9 @@ class Pasta:
         # self.interface.identify_useless_variables()
         self.interface.compute_probabilities_lpmln()
         
+        lp = self.interface.lower_probability_query
+        up = self.interface.upper_probability_query
+        print(lp,up)
         return self.interface.lower_probability_query
 
 
