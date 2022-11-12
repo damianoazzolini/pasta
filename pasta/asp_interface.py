@@ -196,11 +196,7 @@ class AspInterface:
         only if there is not evidence.
         Cautious consequences: clingo <filename> -e cautious
         '''
-        ctl = clingo.Control(["--enum-mode=cautious", "-Wnone"])
-        for clause in self.program_minimal_set:
-            ctl.add('base',[],clause)
-
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl(["--enum-mode=cautious", "-Wnone"], self.program_minimal_set)
 
         temp_cautious = []
         with ctl.solve(yield_=True) as handle:  # type: ignore
@@ -222,20 +218,11 @@ class AspInterface:
         clingo_arguments : 'list[str]' = ["0","-Wnone"]
         if self.k_credal == 100:
             clingo_arguments.append("--project")
+        clauses = self.asp_program
+        for c in self.cautious_consequences:
+            clauses.append(f':- not {c}.')
 
-        ctl = clingo.Control(clingo_arguments)
-        
-        try:
-            for clause in self.asp_program:
-                ctl.add('base',[],clause)
-
-            if len(self.cautious_consequences) != 0:
-                for c in self.cautious_consequences:
-                    ctl.add('base',[],":- not " + c + '.')
-        except RuntimeError:
-            utils.print_error_and_exit('Syntax error, parsing failed.')
-
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl(clingo_arguments, clauses)
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
@@ -325,13 +312,7 @@ class AspInterface:
         Computes the upper MPE state by using an ASP solver.
         Assumes that every world has at least one answer set.
         '''
-        ctl = clingo.Control(["-Wnone","--opt-mode=opt","--models=0", "--output-debug=none"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-
-        # print(self.asp_program)
-        ctl.ground([("base", [])])
-
+        ctl = self.init_clingo_ctl(["-Wnone","--opt-mode=opt","--models=0", "--output-debug=none"])
         opt : str = " "
         unsat : bool = True
         with ctl.solve(yield_=True) as handle:  # type: ignore
@@ -513,13 +494,14 @@ class AspInterface:
         return lower_qe, upper_qe, lower_nqe, upper_nqe
 
 
-    def init_clingo_ctl(self, clingo_arguments : 'list[str]') -> 'clingo.Control':
+    def init_clingo_ctl(self, clingo_arguments : 'list[str]', clauses : 'list[str]' = []) -> 'clingo.Control':
         '''
         Init clingo and grounds the program
         '''
         ctl = clingo.Control(clingo_arguments)
+        lines = self.asp_program if len(clauses) == 0 else clauses
         try:
-            for clause in self.asp_program:
+            for clause in lines:
                 ctl.add('base', [], clause)
             ctl.ground([("base", [])])
         except RuntimeError:
@@ -847,11 +829,7 @@ class AspInterface:
         Decision theory naive solver: considers all the possible combinations
         of utility facts
         '''
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-
-        ctl.ground([("base", [])])
+        ctl = self.init_clingo_ctl(["0", "--project"])
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
@@ -870,21 +848,19 @@ class AspInterface:
         if self.verbose:
             print(str(n_abd) + " abd")
 
-        ctl = clingo.Control(["0", "--project"])
-        for clause in self.asp_program:
-            ctl.add('base', [], clause)
-
-        if len(self.cautious_consequences) != 0:
-            for c in self.cautious_consequences:
-                ctl.add('base', [], ":- not " + c + '.')
-
+        clauses = self.asp_program
+        for c in self.cautious_consequences:
+            clauses.append(f':- not {c}.')
         if len(self.prob_facts_dict) == 0:
-            ctl.add('base', [], ':- not q.')
-        ctl.add('base', [], 'abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
-        ctl.add('base', [], ':- abd_facts_counter(C), C != ' + str(n_abd) + '.')
+            clauses.append(':- not q.')
+        clauses.append('abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
+        clauses.append(f':- abd_facts_counter(C), C != {n_abd}.')
+        
         # TODO: instead of, for each iteration, rewriting the whole program,
         # use multi-shot with Number
 
+        ctl = self.init_clingo_ctl(["0", "--project"], clauses)
+    
         for exp in previously_computed:
             s = ":- "
             for el in exp:
