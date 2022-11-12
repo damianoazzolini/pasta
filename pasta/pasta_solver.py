@@ -481,16 +481,17 @@ def main():
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dtn:
-        print_warning("Naive decision theory solver, you should use -dt or -dti")
+        print_warning("Naive decision theory solver, you should use -dt or -dti.")
     if args.k != 100:
-        print_warning("This is experimental, do not trust the results")
-    if args.map and args.solver and not args.upper:
-        print_warning("Trying to compute the upper MPE state")
+        print_warning("This is experimental, do not trust the results.")
+    if args.map and args.solver:
+        print_warning("Computing the upper MPE state, the program is assumed to be consistent.")
         args.upper = True
-    if args.solver:
         args.minimal = False
-    if args.minimal and args.stop_if_inconsistent:
-        print_warning("The program may be inconsistent")
+        args.stop_if_inconsistent = False
+        args.normalize = False
+    if (args.minimal and args.stop_if_inconsistent) or args.upper:
+        print_warning("The program is assumed to be consistent.")
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
         args.minimal = False
@@ -523,7 +524,7 @@ def main():
     elif args.pl:
         pasta_solver.parameter_learning()
     elif args.map:
-        if args.upper and not (args.normalize or args.stop_if_inconsistent) and args.solver:
+        if args.upper or args.solver:
             pasta_solver.for_asp_solver = True
             max_p, atoms_list_res = pasta_solver.upper_mpe_inference()
         else:
