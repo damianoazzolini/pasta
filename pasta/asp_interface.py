@@ -848,14 +848,14 @@ class AspInterface:
         if self.verbose:
             print(str(n_abd) + " abd")
 
-        clauses = self.asp_program
+        clauses = self.asp_program.copy()
         for c in self.cautious_consequences:
             clauses.append(f':- not {c}.')
         if len(self.prob_facts_dict) == 0:
             clauses.append(':- not q.')
         clauses.append('abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
         clauses.append(f':- abd_facts_counter(C), C != {n_abd}.')
-        
+
         # TODO: instead of, for each iteration, rewriting the whole program,
         # use multi-shot with Number
 
@@ -903,7 +903,7 @@ class AspInterface:
             # TODO: handle len(currently_computed) > 0 and i == 0 (true without abducibles)
 
             if len(self.prob_facts_dict) == 0:
-                # currently computed: list of computed models
+                # deterministic abduction
                 for i in range(0, len(currently_computed)):
                     currently_computed[i] = currently_computed[i].split(' ')  # type: ignore
                     self.abductive_explanations.append(currently_computed[i])  # type: ignore
@@ -928,6 +928,11 @@ class AspInterface:
             self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
             # TODO: add normalization, as in compute_probabilities
 
+        if len(self.prob_facts_dict) == 0:
+            if len(self.abductive_explanations) > 0:
+                self.lower_probability_query = 1
+                self.upper_probability_query = 1
+                
 
     def print_asp_program(self) -> None:
         '''
