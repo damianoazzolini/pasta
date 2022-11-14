@@ -139,6 +139,7 @@ class PastaParser:
         '''
         f = self.get_file_handler(from_string)
         lines = f.readlines()
+        f.close()
         gen = Generator()
 
         for l in lines:
