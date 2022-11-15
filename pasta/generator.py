@@ -42,11 +42,17 @@ class Generator:
 
 
     @staticmethod
-    def generate_clauses_for_facts(term : str) -> 'list[str]':
-        generator_term = '0{' + term + '}1.'
-        fact_false = f"not_{term}:- not {term}."
-        show_true = f"#show.\n#show {term}:{term}."
-        show_false = f"#show not_{term}:not_{term}."
+    def generate_clauses_for_facts(term : str, approx : bool = False) -> 'list[str]':
+        if approx:
+            generator_term = f'#external {term}.'
+            fact_false = ""
+            show_true = ""
+            show_false = ""
+        else:
+            generator_term = '0{' + term + '}1.'
+            fact_false = f"not_{term}:- not {term}."
+            show_true = f"#show.\n#show {term}:{term}."
+            show_false = f"#show not_{term}:not_{term}."
         return [generator_term, fact_false, show_true, show_false]
 
 

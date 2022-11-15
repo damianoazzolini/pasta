@@ -217,8 +217,7 @@ class PastaParser:
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
 
-
-    def parse(self, from_string : str = "") -> None:
+    def parse(self, from_string: str = "", approximate_version : bool = False) -> None:
         '''
         Parses the file
         '''
@@ -257,10 +256,10 @@ class PastaParser:
                 self.lines_original.append(l1)
             i = i + 1
 
-        self.parse_program()
+        self.parse_program(approximate_version)
 
 
-    def parse_program(self) -> bool:
+    def parse_program(self, approximate_version : bool = False) -> bool:
         '''
         Second layer of program parsing: generates the ASP encoding
         for the probabilistic, abducible, map, ... facts
@@ -369,7 +368,7 @@ class PastaParser:
                 clauses = gen.generate_clauses_for_facts_for_asp_solver(
                     i, fact, self.probabilistic_facts[fact])
             else:
-                clauses = gen.generate_clauses_for_facts(fact)
+                clauses = gen.generate_clauses_for_facts(fact, approximate_version)
 
             for c in clauses:
                 self.lines_prob.append(c)

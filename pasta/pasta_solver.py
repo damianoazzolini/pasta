@@ -168,7 +168,7 @@ class Pasta:
         Inference through sampling
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence)
-        self.parser.parse_approx(from_string)
+        self.parser.parse(from_string,approximate_version=True)
         asp_program = self.parser.get_asp_program_approx()
 
         self.interface = AspInterface(
