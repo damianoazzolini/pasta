@@ -43,7 +43,7 @@ def endline_symbol(char1: str) -> bool:
 
 
 def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-    r = "0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+    r = r"0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
     x = re.match(r, line_in.strip())
     if x is None:
         print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
