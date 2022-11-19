@@ -77,8 +77,6 @@ class TestClassApproximateInference(unittest.TestCase):
     def test_clique_in_1_exit(self):
         with pytest.raises(SystemExit):
             self.wrap_test_approximate_inference("../examples/inference/clique.lp", "in(1)", "", "clique_in_1", 0.4666666666666667, 0.9333333333333333)
-            self.wrap_test_exit()
-
 
 
     def test_disjunction(self):
@@ -113,8 +111,6 @@ class TestClassApproximateInference(unittest.TestCase):
     def test_smoke_2_qr_exit(self):
         with pytest.raises(SystemExit):
             self.wrap_test_approximate_inference("../examples/inference/smoke_2.lp", "qr", "", "smoke_2_qr", 0.055408970976253295, 0.13398746701846967)
-            self.wrap_test_exit()
-
 
     
     def test_smoke_3(self):
