@@ -276,10 +276,8 @@ class ModelsHandler():
         for wr in self.prob_facts_dict:
             if wr in l:
                 weight += weight + math.e**self.prob_facts_dict[wr]
-            else:
-                weight += weight + 1
 
-        return weight, query in l
+        return weight if weight > 0 else 1, query in l
 
 
     def get_ids_abduction(self, line : str) -> 'tuple[str,str,float,bool]':
