@@ -182,8 +182,6 @@ class Pasta:
             self.samples,
             stop_if_inconsistent=self.stop_if_inconsistent,
             normalize_prob=self.normalize_prob,
-            continuous_vars=self.parser.continuous_vars,
-            constraints_list=self.parser.constraints_list,
             upper = not self.consider_lower_prob
         )
 

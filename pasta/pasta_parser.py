@@ -9,31 +9,6 @@ from utils import print_error_and_exit, error_prob_fact_twice, is_number
 from generator import Generator
 
 
-def distr_to_list(s: str) -> 'list[str | list[str]]':
-    '''
-    Converts a string such as "gaussian(0,1)." into ["gaussian",["0","1"]].
-    Supposes that the string is well-formed.
-    '''
-    l : 'list[str | list[str]]' = []
-    distr = s.split('(')
-    l.append(distr[0])
-    l.append(distr[1].split(')')[0].split(','))
-
-    return l
-
-
-def valid_distributions() -> 'list[str]':
-    return ["gaussian","uniform","exponential"]
-
-
-def continuous_distribution_in_str(line : str) -> bool:
-    l = line.replace(' ','')
-    for d in valid_distributions():
-        if ':' + d in l:
-            return True
-    return False
-
-
 def symbol_endline_or_space(char1: str) -> bool:
     return char1 == '\n' or char1 == '\r' or char1 == '\r\n' or char1 == '\n\r' or char1 == ' '
 
@@ -110,12 +85,10 @@ class PastaParser:
         self.lines_original : 'list[str]' = []
         self.lines_prob : 'list[str]' = []
         self.probabilistic_facts : 'dict[str,float]' = {} # pairs [fact,prob]
-        self.continuous_vars : 'dict[str,list[str|list[str]]]' = {}
         self.abducibles : 'list[str]' = []
         self.n_probabilistic_ics : int = 0
         self.body_probabilistic_ics : 'list[str]' = []
         self.map_id_list : 'list[int]' = []
-        self.constraints_list : 'list[str]' = []
         self.fact_utility : 'dict[str,float]' = {}
         self.decision_facts : 'list[str]' = []
         self.for_asp_solver : bool = for_asp_solver
@@ -157,63 +130,6 @@ class PastaParser:
                     expanded_conditional = gen.generate_clauses_for_conditionals(l)
                     for el in expanded_conditional:
                         self.lines_prob.append(el)
-                elif ':' in l and continuous_distribution_in_str(l):
-                    # continuous variable
-                    # TODO: add support range a(1..n)
-                    l1 = l.split(':')
-                    atom = l1[0]
-                    distr = l1[1]
-                    if '..' in atom:
-                        b = atom.split('(')[1].replace(')','').split('..')
-                        lb = int(b[0])
-                        ub = int(b[1].replace(')', '').replace('.', ''))
-                        name = atom.split('(')[0]
-                        for i in range(lb, ub + 1):
-                            self.continuous_vars[f"{name}({i})"] = distr_to_list(distr)
-                    else:
-                        self.continuous_vars[atom] = distr_to_list(distr)
-                elif '#constraint(' in l:
-                    # clause with constraint in the body
-                    new_clause : 'list[str]' = []
-                    l = l.replace(' ','')
-                    # find all the starting positions of #constraint
-                    constr = [m.start() for m in re.finditer('#constraint', l)]
-                    end_pos : 'list[int]' = []
-                    # loop to find the ending positions
-                    for c in constr:
-                        sc = ""
-                        # 12 is len('#constraint') + 1
-                        i = c + 12
-                        count = 1
-                        while count != 0:
-                            if l[i] == ')':
-                                count = count - 1
-                            elif l[i] == '(':
-                                count = count + 1
-                            sc = sc + l[i]
-                            i = i + 1
-                        
-                        end_pos.append(i)
-                        self.lines_prob.append(f"#external constraint_{len(self.constraints_list)}.")
-                        new_clause.append(f"constraint_{len(self.constraints_list)}")
-                        self.constraints_list.append(sc[:-1])
-
-                    i = 0
-                    new_clause.append(l[0:constr[0]])
-                    for i in range(1, len(constr)):
-                        el = l[end_pos[i - 1]:constr[i]]
-                        if el.startswith(','):
-                            el = el[1:]
-                        if el.endswith(','):
-                            el = el[:-1]
-
-                        new_clause.insert(0, el)
-                    
-                    cl: str = new_clause[-1]
-                    for v in new_clause[:-1]:
-                        cl = cl + v + ','
-                    cl = cl[:-1] + '.'
-                    self.lines_prob.append(cl)
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
 
