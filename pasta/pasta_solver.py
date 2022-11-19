@@ -170,7 +170,7 @@ class Pasta:
         Inference through sampling
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence)
-        self.parser.parse_approx(from_string)
+        self.parser.parse(from_string,approximate_version=True)
         asp_program = self.parser.get_asp_program_approx()
 
         self.interface = AspInterface(
@@ -184,8 +184,6 @@ class Pasta:
             self.samples,
             stop_if_inconsistent=self.stop_if_inconsistent,
             normalize_prob=self.normalize_prob,
-            continuous_vars=self.parser.continuous_vars,
-            constraints_list=self.parser.constraints_list,
             upper = not self.consider_lower_prob
         )
 
@@ -339,6 +337,8 @@ class Pasta:
         i.e., find the world with highest probability where the query is true.
         '''
         self.setup_interface(from_string)
+        if len(self.parser.map_id_list) == 0:
+            print_error_and_exit("Specify at least one map fact.")
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
             print_warning("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
         self.interface.compute_probabilities()
