@@ -804,15 +804,22 @@ class AspInterface:
                 self.upper_probability_query = 1
                 
 
-    def compute_probabilities_lpmln(self) -> None:
+    def compute_probability_lpmln(self, query : str) -> None:
+        '''
+        Computes the probability for a PASP program following the
+        LPMLN semantics. Most of the data structures are reused,
+        so 'probability' should be considered as 'weight' until the
+        values are not normalized.
+        '''
         ctl = self.init_clingo_ctl(["0"])
+        nf : float = 0
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
-                self.model_handler.add_value(str(m))  # type: ignore
+                nf += self.model_handler.add_value_lpmln(str(m), query)  # type: ignore
                 self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
-        self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(
-            self.k_credal)
+        self.model_handler.normalize_weights_as(nf)
+        self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
 
 
     def print_asp_program(self) -> None:

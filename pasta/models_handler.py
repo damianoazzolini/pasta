@@ -3,6 +3,7 @@ Class to identify a world.
 '''
 
 import utils
+import math
 
 class DecisionWorld:
     '''
@@ -265,6 +266,22 @@ class ModelsHandler():
         return id, probability, False, False
 
 
+    def get_weight_as(self, line : str, query : str) -> 'tuple[float,bool]':
+        '''
+        Extracts the weight of a stable model
+        '''
+        l = line.split(' ')
+        weight : float = 0.0
+        
+        for wr in self.prob_facts_dict:
+            if wr in l:
+                weight += weight + math.e**self.prob_facts_dict[wr]
+            else:
+                weight += weight + 1
+
+        return weight, query in l
+
+
     def get_ids_abduction(self, line : str) -> 'tuple[str,str,float,bool]':
         '''
         From a line representing an answer set returns the id for both
@@ -371,10 +388,27 @@ class ModelsHandler():
 
     def add_value(self, line : str) -> None:
         '''
-        Analyzes the stable models and construct the world
+        Analyzes the stable models and construct the world (credal semantics)
         '''
         w_id, probability, model_query, model_evidence = self.get_id_prob_world(line, self.evidence)
         self.manage_worlds_dict(self.worlds_dict, w_id, probability, model_query, model_evidence)
+
+
+    def add_value_lpmln(self, line : str, query : str) -> float:
+        '''
+        Analyzes the answer set and store it, LPMLN semantics
+        '''
+        weight, model_query = self.get_weight_as(line, query)
+        self.manage_worlds_dict(self.worlds_dict, line, weight, model_query, model_query)
+        return weight
+
+
+    def normalize_weights_as(self, nf : float) -> None:
+        '''
+        Normalizes the weights
+        '''
+        for el in self.worlds_dict:
+            self.worlds_dict[el].prob = self.worlds_dict[el].prob/nf 
 
 
     def manage_worlds_dict_abduction(self,

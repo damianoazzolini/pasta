@@ -213,15 +213,12 @@ class Pasta:
         self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt, self.lpmln)
         self.parser.parse(from_string)
 
-        if self.verbose:
-            print("Parsed program")
-
         if self.minimal is False:
             content_find_minimal_set = []
         else:
             content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
 
-        asp_program = self.parser.get_asp_program()
+        asp_program = self.parser.get_asp_program(self.lpmln)
 
         if not self.consider_lower_prob:
             asp_program.append(f":- not {self.query}.")
@@ -318,14 +315,13 @@ class Pasta:
         return lp, up
     
     
-    def inference_lpmln(self, from_string : str = "") -> 'tuple[float,float]':
+    def inference_lpmln(self, from_string : str = "") -> 'float':
+        '''
+        Inference under the LPMLN semantics
+        '''
         self.setup_interface(from_string)
-        # self.interface.identify_useless_variables()
-        self.interface.compute_probabilities_lpmln()
-        
-        lp = self.interface.lower_probability_query
-        up = self.interface.upper_probability_query
-        print(lp,up)
+        self.interface.compute_probability_lpmln(self.query)
+
         return self.interface.lower_probability_query
 
 
@@ -386,15 +382,18 @@ class Pasta:
 
 
     @staticmethod
-    def print_prob(lp : float, up : float) -> None:
+    def print_prob(lp : float, up : float, lpmln : bool) -> None:
         '''
         Prints the probability values.
         '''
-        if lp == up:
-            print(f"Lower probability == upper probability for the query: {lp}")
+        if not lpmln:
+            if lp == up:
+                print(f"Lower probability == upper probability for the query: {lp}")
+            else:
+                print(f"Lower probability for the query: {lp}")
+                print(f"Upper probability for the query: {up}")
         else:
-            print(f"Lower probability for the query: {lp}")
-            print(f"Upper probability for the query: {up}")
+            print(f"Probability for the query: {lp}")
 
 
     @staticmethod
@@ -449,7 +448,7 @@ class Pasta:
 def main():
     command_parser = argparse.ArgumentParser(description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename", help="Program to analyse", type=str)
-    command_parser.add_argument("-q", "--query", help="Query", type=str)
+    command_parser.add_argument("-q", "--query", help="Query", type=str, default="")
     command_parser.add_argument("-e", "--evidence", help="Evidence", type=str, default="")
     command_parser.add_argument("-v", "--verbose", help="Verbose mode, default: false", action="store_true")
     command_parser.add_argument("--pedantic", help="Pedantic mode (prints the converted program and all the worlds), default: false", action="store_true")
@@ -475,8 +474,17 @@ def main():
     command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
     command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
+    command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
 
     args = command_parser.parse_args()
+
+    if args.query == "" and not args.lpmln:
+        print_error_and_exit("Missing query")
+    elif args.lpmln:
+        if args.query == "" and not args.all:
+            print_error_and_exit("Specify a query or use --all")
+        if args.all:
+            args.query = "__placeholder__"
 
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
@@ -540,9 +548,15 @@ def main():
     else:
         if args.lpmln:
             prob = pasta_solver.inference_lpmln()
+            lower_p = prob
+            upper_p = prob
         else:
             lower_p, upper_p = pasta_solver.inference()
-        Pasta.print_prob(lower_p, upper_p)
+        if args.lpmln and args.all:
+            for w in pasta_solver.interface.model_handler.worlds_dict:
+                print(f"{w}: {pasta_solver.interface.model_handler.worlds_dict[w].prob}")
+        else:
+            Pasta.print_prob(lower_p, upper_p, args.lpmln)
 
 
 if __name__ == "__main__":

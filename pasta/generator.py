@@ -42,9 +42,12 @@ class Generator:
 
 
     @staticmethod
-    def generate_clauses_for_facts(term : str, approx : bool = False) -> 'list[str]':
-        if approx:
-            generator_term = f'#external {term}.'
+    def generate_clauses_for_facts(term : str, approx : bool = False, lpmln : bool = False) -> 'list[str]':
+        if approx or lpmln:
+            if approx:
+                generator_term = f'#external {term}.'
+            else:
+                generator_term = '{' + term + '}.'
             fact_false = ""
             show_true = ""
             show_false = ""

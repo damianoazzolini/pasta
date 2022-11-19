@@ -17,8 +17,12 @@ def endline_symbol(char1: str) -> bool:
     return char1 == '\n' or char1 == '\r\n' or char1 == '\n\r'
 
 
-def check_consistent_prob_fact(line_in: str) -> 'tuple[float, str]':
-    r = r"0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[float, str]':
+    if lpmln:
+        r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+    else:
+        r = r"0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+        
     x = re.match(r, line_in.strip())
     if x is None:
         print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
@@ -286,7 +290,7 @@ class PastaParser:
                 clauses = gen.generate_clauses_for_facts_for_asp_solver(
                     i, fact, self.probabilistic_facts[fact])
             else:
-                clauses = gen.generate_clauses_for_facts(fact, approximate_version)
+                clauses = gen.generate_clauses_for_facts(fact, approximate_version, self.lpmln)
 
             for c in clauses:
                 self.lines_prob.append(c)
@@ -440,7 +444,7 @@ class PastaParser:
         return prog
 
 
-    def get_asp_program(self) -> 'list[str]':
+    def get_asp_program(self, lpmln : bool = False) -> 'list[str]':
         '''
         Parameters:
             - None
@@ -451,7 +455,7 @@ class PastaParser:
             returns a string that represent the ASP program where models 
             need to be computed
         '''
-        if self.query:
+        if self.query and not lpmln:
             self.lines_prob.append(f"q:- {self.query}.")
             self.lines_prob.append("#show q/0.")
             self.lines_prob.append(f"nq:- not {self.query}.")
