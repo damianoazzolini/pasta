@@ -21,7 +21,7 @@ def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[floa
     if lpmln:
         r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
     else:
-        r = r"0.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+        r = r"0\.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
         
     x = re.match(r, line_in.strip())
     if x is None:
