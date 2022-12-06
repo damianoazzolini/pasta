@@ -382,7 +382,7 @@ class Pasta:
 
 
     @staticmethod
-    def print_prob(lp : float, up : float, lpmln : bool) -> None:
+    def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
         '''
         Prints the probability values.
         '''
