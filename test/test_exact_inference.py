@@ -126,8 +126,5 @@ class TestClassExactInference(unittest.TestCase):
         #self.wrap_test_exact_inference("../examples/inference/alarm.lp","calls(mary)", "", "alarm_calls_mary",0.7, 0.7)
 
 
-
-
-
 if __name__ == '__main__':
     unittest.main(buffer=True)
