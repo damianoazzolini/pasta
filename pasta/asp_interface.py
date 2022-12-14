@@ -607,7 +607,7 @@ class AspInterface:
                         handle.get()  # type: ignore
 
                 if lower_count == 0 and upper_count == 0:
-                    utils.print_inconsistent_program(self.stop_if_inconsistent)
+                    utils.print_inconsistent_program_approx(self.stop_if_inconsistent, w_id)
 
                 up = 1 if upper_count > 0 else 0
                 lp = 1 if up and lower_count == 0 else 0
@@ -826,7 +826,9 @@ class AspInterface:
         '''
         Utility that prints the ASP program
         '''
+        print("--- Asp program ---")
         print(*self.asp_program, sep='\n')
         if len(self.cautious_consequences) != 0:
             for c in self.cautious_consequences:
                 print(f":- not {c}.")
+        print("---")
