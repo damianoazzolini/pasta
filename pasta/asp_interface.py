@@ -261,7 +261,7 @@ class AspInterface:
         return opt, unsat
 
 
-    def sample_world(self) -> 'tuple[dict[str,bool],str]':
+    def sample_world(self, randomly : bool = False) -> 'tuple[dict[str,bool],str]':
         '''
         Samples a world for approximate probability computation.
         '''
@@ -269,7 +269,8 @@ class AspInterface:
         w_id_key: str = ""
 
         for key in self.prob_facts_dict:
-            if random.random() < self.prob_facts_dict[key]:
+            comp = 0.5 if randomly else self.prob_facts_dict[key] 
+            if random.random() < comp:
                 w_id[key] = True
                 w_id_key = w_id_key + "T"
             else:
@@ -619,7 +620,40 @@ class AspInterface:
 
         return n_lower / self.n_samples, n_upper / self.n_samples
     
-    
+    def check_inconsistency_by_sampling(self, just_test: bool = False) -> 'tuple[list[str],list[str]]':
+        '''
+        Takes self.n_samples and returns the inconsistent worlds.
+        If just_test = True, then stops as soon as it founds and inconsistent world.
+        '''
+        inconsistent : 'list[str]' = []
+        tested : 'list[str]' = []
+        unsat_count : int = 0
+
+        ctl = self.init_clingo_ctl(["-Wnone"])
+        for _ in range(self.n_samples):
+            w_assignments, w_id = self.sample_world(True)
+            
+            if w_id not in tested:
+                tested.append(w_id)
+
+            for atm in ctl.symbolic_atoms:
+                if atm.is_external:
+                    atom = reconstruct_atom(atm)
+                    if atom in self.prob_facts_dict:
+                        ctl.assign_external(atm.literal, w_assignments[atom])
+            if str(ctl.solve()) == "UNSAT":
+                unsat_count += 1
+                if w_id not in inconsistent:
+                    inconsistent.append(w_id)
+                if just_test:
+                    return tested, inconsistent
+
+            if len(tested) == 2**len(self.prob_facts_dict):
+                return tested, inconsistent
+                
+        return tested, inconsistent
+
+
     def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[float,list[str]]':
         '''
         Loops over the utility list and find the best assignment.

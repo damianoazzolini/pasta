@@ -33,6 +33,16 @@ def print_inconsistent_program(stop: bool = False):
     print_warning(message)
 
 
+def print_inconsistent_program_approx(stop: bool = False, world: str = ""):
+    '''
+    Prints that the program is inconsistent
+    '''
+    message = f"Found inconsistent world {world}.\nCannot use approximate inference with inconsistent programs."
+    if stop:
+        print_error_and_exit(message)
+    print_warning(message)
+
+
 def error_prob_fact_twice(
     key : str,
     new_prob : float,

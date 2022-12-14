@@ -164,10 +164,9 @@ class Pasta:
         return res_l if res_l <= 1 else 1, res_u if res_u <= 1 else 1 
 
 
-
-    def approximate_solve(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
+    def setup_sampling(self, from_string: str = "") -> None:
         '''
-        Inference through sampling
+        Setup the variables for sampling
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence)
         self.parser.parse(from_string,approximate_version=True)
@@ -185,7 +184,32 @@ class Pasta:
             stop_if_inconsistent=self.stop_if_inconsistent,
             normalize_prob=self.normalize_prob,
             upper = not self.consider_lower_prob
-        )
+        )       
+
+
+    def test_consistency(self, just_test : bool = False, from_string : str = "") -> None:
+        '''
+        Test the consistency of a program by sampling.
+        '''
+        self.setup_sampling(from_string)
+        tested, inconsistent = self.interface.check_inconsistency_by_sampling(just_test)
+        ratio = len(inconsistent) / 2**len(self.interface.prob_facts_dict)
+        if ratio == 0:
+            if len(tested) == 2**len(self.interface.prob_facts_dict):
+                print("Program consistent")
+            else:
+                print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} world ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%): probably consistent")
+        else:
+            print("Inconsistent program")
+            print(f"Inconsistent worlds: {inconsistent}")
+            print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} worlds ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%)")
+
+
+    def approximate_solve(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
+        '''
+        Inference through sampling
+        '''
+        self.setup_sampling(from_string)
 
         if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
             lp, up = self.interface.sample_query()
@@ -250,13 +274,10 @@ class Pasta:
             print("---")
 
         if self.pedantic:
-            print("--- Asp program ---")
             self.interface.print_asp_program()
-            print("---")
             if self.minimal:
                 print("--- Program to find minimal sets ---")
-                for e in content_find_minimal_set:
-                    print(e)
+                print(*content_find_minimal_set, sep='\n')
                 print("---")
 
 
@@ -475,16 +496,19 @@ def main():
     command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
+    command_parser.add_argument("--test", "-t", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int)
 
     args = command_parser.parse_args()
 
-    if args.query == "" and not args.lpmln:
+    if args.query == "" and (not args.lpmln) and (not args.test):
         print_error_and_exit("Missing query")
     elif args.lpmln:
         if args.query == "" and not args.all:
             print_error_and_exit("Specify a query or use --all")
         if args.all:
             args.query = "__placeholder__"
+    elif args.test:
+        args.query = "__placeholder__"
 
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
@@ -544,7 +568,8 @@ def main():
     elif args.dt:
         best_util, utility_atoms = pasta_solver.decision_theory_improved()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
-
+    elif args.test:
+        pasta_solver.test_consistency(args.test == 1)
     else:
         if args.lpmln:
             prob = pasta_solver.inference_lpmln()
