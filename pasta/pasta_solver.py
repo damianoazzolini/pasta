@@ -493,10 +493,10 @@ def main():
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
     command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
     command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
-    command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
+    # command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
-    command_parser.add_argument("--test", "-t", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int)
+    command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
 
     args = command_parser.parse_args()
 
@@ -514,8 +514,6 @@ def main():
         args.approximate = True
     if args.dtn:
         print_warning("Naive decision theory solver, you should use -dt or -dti.")
-    if args.k != 100:
-        print_warning("This is experimental, do not trust the results.")
     if args.map and args.solver:
         print_warning("Computing the upper MPE state, the program is assumed to be consistent.")
         args.upper = True
@@ -540,7 +538,7 @@ def main():
                          args.stop_if_inconsistent, 
                          args.one, 
                          args.xor, 
-                         args.k,
+                         100,
                          args.dtn,
                          args.lpmln)
 

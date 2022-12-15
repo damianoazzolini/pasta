@@ -27,7 +27,7 @@ docker pull damianodamianodamiano/pasta
 docker container run -it pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
-However, the image is *not always updated*.
+However, the image is *rarely updated*.
 
 <!-- You can also install the package via `pip`.
 Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
@@ -113,9 +113,20 @@ python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --appro
 The credal semantics requires that every world has at least one answer set.
 These programs are called *consistent*.
 Here, we make the same assumption.
-Note that the minimal set of probabilistic facts is correct only if the program satisfies this requirement.
-If you don't want to compute this set, use the flag `--no-minimal` or `-nm`.
+<!-- Note that the minimal set of probabilistic facts is correct only if the program satisfies this requirement. -->
+<!-- If you don't want to compute this set, use the flag `--no-minimal` or `-nm`. -->
 If you ask a query on a program that is not consistent, you should get an error.
+You can normalize the probability with the flag `--normalize`.
+
+### Caveat
+Make sure to not write clauses with the same functor of probabilistic facts.
+For example, you should not write:
+```
+0.4::c(1).
+c(X):- a(X).
+...
+```
+
 
 ## Syntax
 Basically, PASTA (PASP) programs are ASP programs plus probabilistic facts.

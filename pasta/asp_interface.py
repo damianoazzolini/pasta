@@ -153,8 +153,7 @@ class AspInterface:
         Computes the lower and upper bound for the query
         '''
         clingo_arguments : 'list[str]' = ["0","-Wnone"]
-        if self.k_credal == 100:
-            clingo_arguments.append("--project")
+        clingo_arguments.append("--project")
         clauses = self.asp_program
         for c in self.cautious_consequences:
             clauses.append(f':- not {c}.')
@@ -269,7 +268,7 @@ class AspInterface:
         w_id_key: str = ""
 
         for key in self.prob_facts_dict:
-            comp = 0.5 if randomly else self.prob_facts_dict[key] 
+            comp = 0.5 if randomly else self.prob_facts_dict[key]
             if random.random() < comp:
                 w_id[key] = True
                 w_id_key = w_id_key + "T"
@@ -581,14 +580,22 @@ class AspInterface:
 
         n_lower : int = 0
         n_upper : int = 0
+        
+        n_inconsistent : int = 0
+        
+        inc_sampled : 'dict[str,int]' = {}
 
         # for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
         for _ in range(self.n_samples):
             w_assignments, w_id = self.sample_world()
 
             if w_id in sampled:
-                n_lower = n_lower + sampled[w_id][0]
-                n_upper = n_upper + sampled[w_id][1]
+                if sampled[w_id][0] == -1 and sampled[w_id][1] == -1:
+                    n_inconsistent += 1
+                    inc_sampled[w_id] += 1
+                else:
+                    n_lower = n_lower + sampled[w_id][0]
+                    n_upper = n_upper + sampled[w_id][1]
             else:
                 for atm in ctl.symbolic_atoms:
                     if atm.is_external:
@@ -607,16 +614,29 @@ class AspInterface:
 
                         handle.get()  # type: ignore
 
-                if lower_count == 0 and upper_count == 0:
-                    utils.print_inconsistent_program_approx(self.stop_if_inconsistent, w_id)
+                # if lower_count == 0 and upper_count == 0:
+                if str(ctl.solve()) == "UNSAT":
+                    if not self.normalize_prob:
+                        utils.print_inconsistent_program_approx(self.stop_if_inconsistent, w_id)
+                    n_inconsistent += 1
+                    inc_sampled[w_id] = 1
 
-                up = 1 if upper_count > 0 else 0
-                lp = 1 if up and lower_count == 0 else 0
+                if lower_count + upper_count > 0:
+                    up = 1 if upper_count > 0 else 0
+                    lp = 1 if up and lower_count == 0 else 0
+                    n_lower = n_lower + lp
+                    n_upper = n_upper + up    
+                else:
+                    lp = -1
+                    up = -1
 
                 sampled[w_id] = [lp, up]
 
-                n_lower = n_lower + lp
-                n_upper = n_upper + up
+        if self.normalize_prob:
+            p_inc = n_inconsistent / self.n_samples
+            lp_u = n_lower / self.n_samples
+            up_u = n_upper / self.n_samples
+            return lp_u / (1 - p_inc), up_u / (1 - p_inc) 
 
         return n_lower / self.n_samples, n_upper / self.n_samples
     

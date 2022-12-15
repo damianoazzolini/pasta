@@ -62,24 +62,11 @@ class TestClassExactInference(unittest.TestCase):
 
     def test_disjunction(self):
         self.wrap_test_exact_inference("../examples/inference/disjunction.lp", "f", "", "disjunction", 0.6, 0.8)
-
-
-
-    def test_certain_fact_a1_normalize(self):
-        self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact_a1", 1.0, 1.0, True)
  
 
     def test_certain_fact_a1_exit(self):
         with pytest.raises(SystemExit):
             self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact_a1", 1.0, 1.0)
-
-
-    def test_evidence_certain(self):
-        self.wrap_test_exact_inference("../examples/inference/evidence_certain.lp", "qr", "ev", "evidence_certain", 1, 1)
-
-
-    def test_certain_fact_2(self):
-        self.wrap_test_exact_inference("../examples/inference/certain_fact_2.lp", "qry", "", "certain_fact_2", 1, 1)
 
 
     def test_smoke_3(self):
@@ -114,7 +101,7 @@ class TestClassExactInference(unittest.TestCase):
 
 
     def test_smoke_2_qr_normalize(self):
-        self.wrap_test_exact_inference("../examples/inference/smoke_2.lp", "qr", "", "smoke_2_qr", 0.055408970976253295, 0.13398746701846967, True)
+        self.wrap_test_exact_inference("../examples/inference/smoke_2.lp", "qr", "", "smoke_2_qr", 0.5, 0.5, True)
 
 
     def test_smoke_2_qr_exit(self):

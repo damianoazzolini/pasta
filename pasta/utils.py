@@ -37,7 +37,7 @@ def print_inconsistent_program_approx(stop: bool = False, world: str = ""):
     '''
     Prints that the program is inconsistent
     '''
-    message = f"Found inconsistent world {world}.\nCannot use approximate inference with inconsistent programs."
+    message = f"Found inconsistent world {world}.\nUse the --normalize flag (only for unconditional sampling)."
     if stop:
         print_error_and_exit(message)
     print_warning(message)

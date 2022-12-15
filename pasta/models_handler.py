@@ -136,7 +136,6 @@ class ModelsHandler():
         self.decision_worlds_dict : 'dict[str,DecisionWorld]' = {}
 
 
-
     def increment_lower_query_prob(self, p : float) -> None:
         self.lower_query_prob = self.lower_query_prob + p
 
@@ -183,8 +182,8 @@ class ModelsHandler():
 
     def extract_pos_and_prob(self, term : str) -> 'tuple[int,int,float]':
         '''
-        Computes the position in the dict to generate the string and the probability
-        of the current fact
+        Computes the position in the dict to generate the string and the 
+        probability of the current fact
         '''
         index = 0
         probability = 0
@@ -233,6 +232,12 @@ class ModelsHandler():
         and whether it contributes to the lower and upper probability
         '''
         line_list = line.split(' ')
+        if len(line_list) != len(self.prob_facts_dict) + 1:
+            # this because with the project statment the result will not
+            # be correct: 0.5::a(1). a(X):- c(X). c(1). will provide a 
+            # wrong result
+            utils.print_error_and_exit("Error: maybe a probabilitic facts has the same functor of a clause? Or you use not_f where f is a probabilistic fact.")
+
         model_query = False  # model q and e for evidence, q without evidence
         model_evidence = False  # model nq and e for evidence, nq without evidence
         id = "0" * len(self.prob_facts_dict)
