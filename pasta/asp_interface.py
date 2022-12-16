@@ -175,7 +175,7 @@ class AspInterface:
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
         if len(ks) == 0 and len(self.prob_facts_dict) > 0:
-            utils.print_inconsistent_program(True)
+            utils.print_pathological_program()
 
         ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
         nw = 2**len(self.prob_facts_dict)

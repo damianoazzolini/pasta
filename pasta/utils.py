@@ -23,6 +23,14 @@ def print_warning(message : str):
     print(YELLOW + "Warning: " + message + END)
 
 
+def print_pathological_program():
+    '''
+    The program has 0 answer sets
+    '''
+    message = "This program is UNSAT (no answer sets)."
+    print_error_and_exit(message)
+
+
 def print_inconsistent_program(stop: bool = False):
     '''
     Prints that the program is inconsistent

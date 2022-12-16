@@ -139,6 +139,7 @@ class PastaParser:
                 elif not l.startswith('\n'):
                     self.lines_prob.append(l.replace('\n','').replace('\r',''))
 
+
     def parse(self, from_string: str = "", approximate_version : bool = False) -> None:
         '''
         Parses the file
@@ -146,39 +147,55 @@ class PastaParser:
         f = self.get_file_handler(from_string)
         lines = f.readlines()
         f.close()
+        l2 : 'list[str]' = []
+
+        # https://stackoverflow.com/questions/68652859/how-to-exclude-floating-numbers-from-pythonss-regular-expressions-that-splits-o
+        for l in lines:
+            if not l.lstrip().startswith('%'):
+                ll = re.findall(r"\S.*?(?:[?!\n]|(?<!\d)\.(?!\d))", l)
+                for lll in ll:
+                    l2.append(lll)
+    
         
         i = 0
-        while i < len(lines):
+        while i < len(l2):
+            line = l2[i].replace('\n','').replace('\r','')
+            
             l1 : str = ""
-            line = lines[i].replace('\n','').replace('\r','')
-            if not line.lstrip().startswith('%') and len(line) > 0:
-                ls = line.split('. ')
-                if len(ls) > 1:
-                    # two probabilistic facts on the same line
-                    for ii in range(0,len(ls)):
-                        if ii != len(ls) - 1:
-                            ls[ii] += '.'
-                        self.lines_original.append(ls[ii])
-                else:
-                    if not line.rstrip().endswith('.'):
-                        while not line.rstrip().endswith('.') and i < len(lines):
-                            percent = line.find('%')
-                            if percent != -1:
-                                line = line[:percent]
-                            l1 += line
-                            i = i + 1
-                            line = lines[i].replace('\n', '').replace('\r', '')
-                        percent = line.find('%')
-                        if percent != -1:
-                            line = line[:percent]
-                        l1 += line
-                        i = i + 1
-                    else:
-                        l1 = line
-                self.lines_original.append(l1)
-            i = i + 1
+  
+            if not line.rstrip().endswith('.'):
+                # to consider clauses that spans multiple lines
+                while not line.rstrip().endswith('.') and i < len(l2):
+                    percent = line.find('%')
+                    if percent != -1:
+                        line = line[:percent]
+                    l1 += line
+                    i = i + 1
+                    line = l2[i].replace('\n', '').replace('\r', '')
+                percent = line.find('%')
+                if percent != -1:
+                    line = line[:percent]
+                l1 += line
+                i = i + 1
+            else:
+                l1 = line
+                i = i + 1
+
+            self.lines_original.append(l1)
 
         self.parse_program(approximate_version)
+        
+        # TODO: check that none og the clauses have a prob fact in the head
+        # heads : 'list[str]' = []
+        
+        # for el in self.lines_prob:
+        #     if ':-' in el:
+        #         print(el)
+        #         heads.append(el.split(':-')[0])
+    
+        # for pf in self.probabilistic_facts.keys():
+        #     if el.startswith(pf):
+        #         print("Error")
 
 
     def parse_program(self, approximate_version : bool = False) -> bool:
