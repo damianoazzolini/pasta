@@ -126,6 +126,7 @@ For example, you should not write:
 c(X):- a(X).
 ...
 ```
+In other words, probabilistic facts cannot appear as head atoms of any rule.
 
 
 ## Syntax

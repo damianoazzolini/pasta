@@ -65,15 +65,6 @@ class TestClassApproximateInference(unittest.TestCase):
         self.wrap_test_approximate_inference("../examples/inference/bird_4_different.lp", "fly(1)", "", "bird_4_different_fly_1", 0.102222, 0.11)
 
 
-    def test_certain_fact_a1(self):
-        self.wrap_test_approximate_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact_a1", 1.0, 1.0)
-
-
-    def test_certain_fact_2(self):
-        self.wrap_test_approximate_inference("../examples/inference/certain_fact_2.lp", "qry", "", "certain_fact_2", 1, 1)
-
-
-
     def test_clique_in_1_exit(self):
         with pytest.raises(SystemExit):
             self.wrap_test_approximate_inference("../examples/inference/clique.lp", "in(1)", "", "clique_in_1", 0.4666666666666667, 0.9333333333333333)
