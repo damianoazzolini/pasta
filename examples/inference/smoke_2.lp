@@ -44,6 +44,5 @@ friend(a,c).
 friend(c,a).
 
 % query: qr
-% This program is inconsistent.
-% If you want to perform inference, use the flag --normalize
-% Lower probability == upper probability for the query: 0.5
+% This program uses a probabilistic fact has head of a clause, so
+% so inference cannot be performed in it.
