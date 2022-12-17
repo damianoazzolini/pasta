@@ -5,7 +5,7 @@ from io import TextIOWrapper
 import os
 import re
 
-from utils import print_error_and_exit, error_prob_fact_twice, is_number
+import utils
 from generator import Generator
 
 
@@ -25,24 +25,25 @@ def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[floa
         
     x = re.match(r, line_in.strip())
     if x is None:
-        print_error_and_exit(f"Probabilistic fact ->{line_in}<- ill formed")
+        utils.print_error_and_exit(
+            f"Probabilistic fact ->{line_in}<- ill formed")
 
     line = line_in.split("::")
 
     return float(line[0]), line[1][:-1]
 
 
-def get_functor(term: str) -> str:
+def get_functor(term: str) -> 'tuple[str,int]':
     '''
-    Extracts the functor from a compound term. If the term is an atom
-    returns the atom itself.
+    Extracts the functor from a compound term.
     '''
-    r = ""
-    i = 0
-    while i < len(term) and term[i] != '(':
-        r = r + term[i]
-        i = i + 1
-    return r
+    # clean up choice rules m{f}n
+    t1 = term.split('{')
+    term = t1[len(t1) - 1]
+    t1 = term.split('}')
+    term = t1[0]
+    
+    return term.split('(')[0], term.count(',') + 1 if '(' in term else 0
 
 
 def get_fact_and_utility(term: str) -> 'tuple[str,float]':
@@ -54,13 +55,6 @@ def get_fact_and_utility(term: str) -> 'tuple[str,float]':
     while t[i] != ',' and i > 0:
         i = i - 1
     return t[0:i], float(t[i+1:])
-
-
-def remove_trailing_comments(line: str) -> str:
-    percent = line.find('%')
-    if percent != -1:
-        line = line[:percent]
-    return line
 
 
 class PastaParser:
@@ -104,50 +98,23 @@ class PastaParser:
     def get_file_handler(self, from_string : str = "") -> TextIOWrapper:
         if not from_string:
             if not os.path.isfile(self.filename):
-                print_error_and_exit(f"File {self.filename} not found")
+                utils.print_error_and_exit(f"File {self.filename} not found")
             return open(self.filename, "r")
         else:
             import io
             return io.StringIO(from_string)
 
 
-    def parse_approx(self, from_string : str = "") -> None:
-        '''
-        Parses a program into an alternative form: probabilistic 
-        facts are converted into external facts
-        '''
-        f = self.get_file_handler(from_string)
-        lines = f.readlines()
-        f.close()
-        gen = Generator()
-
-        for l in lines:
-            l = l.rstrip().lstrip()
-            if not l.startswith('%'):
-                if '::' in l:
-                    # probabilistic fact
-                    l = l.replace('\n','').replace('\t','').split('::')
-                    prob = l[0]
-                    term = l[1].replace('\n','').replace('\r','').replace('.','')
-                    self.probabilistic_facts[term] = float(prob)
-                    self.lines_prob.append(f'#external {term}.')
-                elif l.startswith("("):
-                    l = l.replace('\n','').replace('\r','')
-                    expanded_conditional = gen.generate_clauses_for_conditionals(l)
-                    for el in expanded_conditional:
-                        self.lines_prob.append(el)
-                elif not l.startswith('\n'):
-                    self.lines_prob.append(l.replace('\n','').replace('\r',''))
-
-
     def parse(self, from_string: str = "", approximate_version : bool = False) -> None:
         '''
         Parses the file
         '''
+        l2 : 'list[str]' = []
+        heads : 'list[str]' = []
+        
         f = self.get_file_handler(from_string)
         lines = f.readlines()
         f.close()
-        l2 : 'list[str]' = []
 
         # https://stackoverflow.com/questions/68652859/how-to-exclude-floating-numbers-from-pythonss-regular-expressions-that-splits-o
         for l in lines:
@@ -155,8 +122,7 @@ class PastaParser:
                 ll = re.findall(r"\S.*?(?:[?!\n]|(?<!\d)\.(?!\d))", l)
                 for lll in ll:
                     l2.append(lll)
-    
-        
+
         i = 0
         while i < len(l2):
             line = l2[i].replace('\n','').replace('\r','')
@@ -184,21 +150,28 @@ class PastaParser:
             self.lines_original.append(l1)
 
         self.parse_program(approximate_version)
-        
-        # TODO: check that none og the clauses have a prob fact in the head
-        # heads : 'list[str]' = []
-        
-        # for el in self.lines_prob:
-        #     if ':-' in el:
-        #         print(el)
-        #         heads.append(el.split(':-')[0])
-    
-        # for pf in self.probabilistic_facts.keys():
-        #     if el.startswith(pf):
-        #         print("Error")
 
+        for el in self.lines_prob:
+            if ':-' in el:
+                h = el.split(':-')[0]
+                if len(h) > 0: # filter out constraints
+                    for hh in h.split(';'):
+                        heads.append(hh.replace(' ',''))
 
-    def parse_program(self, approximate_version : bool = False) -> bool:
+        # check for clauses with a prob fact in the head
+        for pf in self.probabilistic_facts.keys():
+            for h in heads:
+                if get_functor(h) == get_functor(pf):
+                    utils.print_error_and_exit(f"Cannot use the probabilistic fact {pf} as head of a rule.")
+
+        # check for clauses with q or nq or 3 or ne in the head
+        for h in heads:
+            if h in ("q", "nq", "e", "ne"):
+                utils.print_error_and_exit(
+                    f"Cannot use {h} as head of a rule.")
+                
+
+    def parse_program(self, approximate_version : bool = False) -> None:
         '''
         Second layer of program parsing: generates the ASP encoding
         for the probabilistic, abducible, map, ... facts
@@ -206,20 +179,15 @@ class PastaParser:
         n_probabilistic_facts = 0
         gen = Generator()
         for line in self.lines_original:
-            self.check_reserved(line)
-            if "::" in line and not line.startswith('%') and not line.startswith("map"):
+            if "::" in line and not line.startswith("map"):
                 if ':-' in line:
-                    print_error_and_exit("Probabilistic clauses are not supported\n" + line)
+                    utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
-                    print_error_and_exit(
-                        "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.\nExample: 0.6::a;0.2::b. can be written as\n0.6::a. 0.5::b. where 0.5=0.2/(1 - 0.6)")
+                    utils.print_error_and_exit(
+                        "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.")
                 # line with probability value
                 probability, fact = check_consistent_prob_fact(line.replace(' ',''), self.lpmln)
-
                 self.add_probabilistic_fact(fact,probability)
-
-                # self.lines_prob.append(clauses)
-
                 n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query("):
                 # remove the "query" functor and handles whether the line
@@ -270,7 +238,7 @@ class PastaParser:
                 for c in clauses:
                     self.lines_prob.append(c)
 
-            elif is_number(line.split(':-')[0]):
+            elif utils.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")
                 # generate the probabilistic fact
@@ -293,16 +261,10 @@ class PastaParser:
                     self.lines_prob.append(line)
         
         if not self.query and len(self.decision_facts) == 0:
-            print_error_and_exit("Missing query")
+            utils.print_error_and_exit("Missing query")
 
         i = 0
         for fact in self.probabilistic_facts:
-            # To handle 0.1::a. a. q:- a.
-            # Without this, the computed prob is 0.1, while the correct
-            # prob should be 1.
-            if fact + '.' in self.lines_prob:
-                self.probabilistic_facts[fact] = 1
-
             if self.for_asp_solver and i in self.map_id_list:
                 clauses = gen.generate_clauses_for_facts_for_asp_solver(
                     i, fact, self.probabilistic_facts[fact])
@@ -320,8 +282,6 @@ class PastaParser:
             i = i + 1
             for c in clauses:
                 self.lines_prob.append(c)
-
-        return True
 
 
     def inference_to_mpe(self, from_string: str = "") -> 'tuple[str,int]':
@@ -428,20 +388,6 @@ class PastaParser:
         return training_set, test_set, program, prob_facts_dict, offset
 
 
-    def check_reserved(self, line : str) -> None:
-        '''
-        Dummy check for reserved names (q, nq, e, ne)
-        '''
-        if line.startswith('q:-'):
-            print_error_and_exit("q is a reserved fact")
-        elif line.startswith('nq:-'):
-            print_error_and_exit("nq is a reserved fact")
-        elif line.startswith('e:-'):
-            print_error_and_exit("e is a reserved fact")
-        elif line.startswith('ne:-'):
-            print_error_and_exit("ne is a reserved fact")
-
-
     def get_content_to_compute_minimal_set_facts(self) -> 'list[str]':
         '''
         Parameters:
@@ -453,36 +399,18 @@ class PastaParser:
             generate the file to pass to ASP to compute the minimal set
             of probabilistic facts to make the query true
         '''
-        if self.evidence == "":
-            prog = self.lines_prob + [":- not " + self.query + "."]
-        else:
-            prog = self.lines_prob + [":- not " + self.evidence + "."]
-        
-        return prog
+        return self.lines_prob + [":- not " + self.query + "."] if self.evidence == "" else self.lines_prob + [":- not " + self.evidence + "."]
 
 
     def get_asp_program(self, lpmln : bool = False) -> 'list[str]':
         '''
-        Parameters:
-            - None
-        Returns:
-            - str: string representing the program that can be used to 
-            compute lower and upper probability
-        Behavior:
-            returns a string that represent the ASP program where models 
-            need to be computed
+        Returns a string that represent the ASP program obtained by converting the PASP
         '''
         if self.query and not lpmln:
-            self.lines_prob.append(f"q:- {self.query}.")
-            self.lines_prob.append("#show q/0.")
-            self.lines_prob.append(f"nq:- not {self.query}.")
-            self.lines_prob.append("#show nq/0.")
+            self.lines_prob.extend([f"q:- {self.query}.","#show q/0.",f"nq:- not {self.query}.","#show nq/0."])
 
             if self.evidence:
-                self.lines_prob.append(f"e:- {self.evidence}.")
-                self.lines_prob.append("#show e/0.")
-                self.lines_prob.append(f"ne:- not {self.evidence}.")
-                self.lines_prob.append("#show ne/0.")
+                self.lines_prob.extend([f"e:- {self.evidence}.","#show e/0.",f"ne:- not {self.evidence}.","#show ne/0."])
 
         return list(set(self.lines_prob))
 
@@ -519,7 +447,7 @@ class PastaParser:
         '''
         key = term.split('.')[0]
         if key in self.probabilistic_facts:
-            error_prob_fact_twice(key, prob, self.probabilistic_facts[key])
+            utils.error_prob_fact_twice(key, prob, self.probabilistic_facts[key])
         self.probabilistic_facts[key] = float(prob)
 
 
