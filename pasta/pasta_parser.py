@@ -19,9 +19,9 @@ def endline_symbol(char1: str) -> bool:
 
 def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[float, str]':
     if lpmln:
-        r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+        r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
     else:
-        r = r"0\.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_A-Z0-9]*(,[a-z_A-Z0-9]*)*\))*\."
+        r = r"0\.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
         
     x = re.match(r, line_in.strip())
     if x is None:
@@ -120,8 +120,7 @@ class PastaParser:
         for l in lines:
             if not l.lstrip().startswith('%'):
                 ll = re.findall(r"\S.*?(?:[?!\n]|(?<!\d)\.(?!\d))", l)
-                for lll in ll:
-                    l2.append(lll)
+                l2.extend(ll)
 
         i = 0
         while i < len(l2):
@@ -183,12 +182,16 @@ class PastaParser:
                 if ':-' in line:
                     utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
-                    utils.print_error_and_exit(
-                        "Disjunction is not yet supported in probabilistic facts\nplease rewrite it as single fact.")
-                # line with probability value
-                probability, fact = check_consistent_prob_fact(line.replace(' ',''), self.lpmln)
-                self.add_probabilistic_fact(fact,probability)
-                n_probabilistic_facts = n_probabilistic_facts + 1
+                    new_facts, new_clauses = Generator.generate_facts_from_disjunction(line)
+                    self.lines_prob.extend(new_clauses)
+                    for f in new_facts:
+                        probability, fact = check_consistent_prob_fact(f, self.lpmln)
+                        self.add_probabilistic_fact(fact, probability)
+                        n_probabilistic_facts = n_probabilistic_facts + 1
+                else:
+                    probability, fact = check_consistent_prob_fact(line.replace(' ',''), self.lpmln)
+                    self.add_probabilistic_fact(fact,probability)
+                    n_probabilistic_facts = n_probabilistic_facts + 1
             elif line.startswith("query("):
                 # remove the "query" functor and handles whether the line
                 # does not terminate with .
@@ -207,8 +210,7 @@ class PastaParser:
                     self.evidence = line.split("evidence")[1][:-1][1:]
             elif line.startswith("("):
                 expanded_conditional = gen.generate_clauses_for_conditionals(line)
-                for el in expanded_conditional:
-                    self.lines_prob.append(el)
+                self.lines_prob.extend(expanded_conditional)
             elif line.startswith("abducible"):
                 _, abducible = gen.generate_clauses_for_abducibles(line, 0)
                 # self.lines_prob.append(clauses)
@@ -224,8 +226,7 @@ class PastaParser:
                 fact = line.split('decision')[1][:-1].strip()
                 clauses = gen.generate_clauses_for_dt(fact, "decision", self.naive_dt)
                 self.decision_facts.append(fact)
-                for c in clauses:
-                    self.lines_prob.append(c)
+                self.lines_prob.extend(clauses)
             elif line.startswith("utility"):
                 fact, utility = get_fact_and_utility(line)
                 self.fact_utility[fact] = utility
@@ -235,8 +236,7 @@ class PastaParser:
                 self.lines_prob.append(line)
                 clauses = gen.generate_clauses_for_dt(fact, "utility", self.naive_dt)
                 # self.decision_facts.append(fact)
-                for c in clauses:
-                    self.lines_prob.append(c)
+                self.lines_prob.extend(clauses)
 
             elif utils.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
@@ -280,8 +280,7 @@ class PastaParser:
             # kind of hack, refactor generate_clauses_for abducibles TODO
             clauses, _ = gen.generate_clauses_for_abducibles("abducible " + abd + ".", i)
             i = i + 1
-            for c in clauses:
-                self.lines_prob.append(c)
+            self.lines_prob.extend(clauses)
 
 
     def inference_to_mpe(self, from_string: str = "") -> 'tuple[str,int]':

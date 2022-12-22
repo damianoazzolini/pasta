@@ -188,3 +188,38 @@ class Generator:
         # random even/odd constraint
         parity = 0 if flip() else 1
         return constr[:-1] + "} = N, N\\2 = " + str(parity) + "."
+
+
+    @staticmethod
+    def generate_facts_from_disjunction(line : str) -> 'tuple[list[str],list[str]]':
+        print(line)
+        new_facts : list[str] = []
+        new_clauses : list[str] = []
+        prob_list : 'list[float]' = []
+        name : str = "__aux_fact__"
+        acc_prob : float = 0
+        line = line.split(';')
+        for index, el in enumerate(line):
+            head = el.split('::')[1].replace(' ','')
+            if head.endswith('.'):
+                head = head[:-1]
+            prob = float(el.split('::')[0])
+            acc_prob += prob
+            if acc_prob > 1:
+                print_error_and_exit(f"Probability exceeding 1 in disjunction {line}")
+            if index < len(line) - 1:
+                body = f"{name}{index},"
+            else:
+                body = ""
+            for i in range(0,len(prob_list)):
+                body += f"not {name}{i},"
+            body = body[:-1]
+
+            new_clauses.append(f"{head}:- {body}.")
+            cp = 1
+            for p in prob_list:
+                cp *= (1-p)
+            if index < len(line) - 1:
+                new_facts.append(f"{prob/cp}::{name}{index}.")
+            prob_list.append(prob)
+        return new_facts, new_clauses
