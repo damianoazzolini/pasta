@@ -192,7 +192,6 @@ class Generator:
 
     @staticmethod
     def generate_facts_from_disjunction(line : str) -> 'tuple[list[str],list[str]]':
-        print(line)
         new_facts : list[str] = []
         new_clauses : list[str] = []
         prob_list : 'list[float]' = []
