@@ -101,6 +101,66 @@ class Pasta:
         learning_utilities.test_results(test_set, interpretations_to_worlds, prob_facts_dict, program, offset)
 
 
+    def test_unsat_xor(self, arguments: argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
+        '''
+        Unsat testing with XOR
+        '''
+        import clingo
+        self.setup_interface(from_string)
+        n = len(self.interface.prob_facts_dict)
+        delta = arguments.delta # higher this value, less accurate will be the result
+        alpha = arguments.alpha # < 0.0042 from the paper
+        epsilon = 10e-5
+        r = n/delta if n != delta else 1 + epsilon
+        t = math.ceil(math.log(r)/alpha)
+        m_list : 'list[float]' = []
+        u_list : 'list[int]' = []
+        
+        # for c in self.parser.get_asp_program():
+        #     print(c)
+        print(f"{n*t} calls")
+        for i in range(0, n + 1):  # or n+1?
+            print(f"Iteration {i}")
+            map_states: 'list[float]' = []
+            ii: int = 1
+            attempts = 0
+            for _ in range(0,t + 1):
+                # for _ in range(1, t + 1):
+                # compute xor, loop until I get all the instances SAT
+                # print('-- init ---')
+                ctl = clingo.Control(["-Wnone"])
+                for clause in self.parser.get_asp_program():
+                    ctl.add('base', [], clause)
+                    # print(clause)
+
+                for _ in range(0, i):
+                    current_constraint = generator.Generator.generate_xor_constraint(n)
+                    ctl.add('base', [], current_constraint)
+                    # print(current_constraint)
+                ctl.ground([("base", [])])
+                # with ctl.solve(yield_=True) as handle:  # type: ignore
+                #     for m in handle:
+                #         print(str(m))
+
+                # print('--- END ---')
+
+                res = str(ctl.solve())
+                # print(res)
+                if str(res) == "UNSAT":
+                    attempts += 1
+                    
+            u_list.append(attempts) 
+        
+        print("Usat per iteration")
+        print(u_list)
+        l1 = []
+        for el in u_list:
+            l1.append(el/t)
+        print(l1)
+        import sys
+        sys.exit()
+
+
     def approximate_solve_xor(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
         '''
         Approximate inference (upper probability) using XOR constraints
@@ -123,6 +183,12 @@ class Pasta:
         # maximum number of attempts for finding a program with a 
         # MAP state
         max_attempts : int = 200
+        
+        print(n,t,r,delta,alpha)
+        
+        unsat_count : 'list[int]' = []
+        
+        # t = 10
 
         # if self.verbose:
         print(f"Probability median of {t} values for each iteration")
@@ -140,6 +206,7 @@ class Pasta:
                 for _ in range(0, i):
                     current_constraint = generator.Generator.generate_xor_constraint(n_vars)
                     current_program = current_program + current_constraint + "\n"
+
                 prob, s = self.upper_mpe_inference(current_program)
                 if prob >= 0:
                     ii = ii + 1
@@ -151,6 +218,7 @@ class Pasta:
                         attempts = 0
                         print_warning(f"Exceeded the max number of attempts ({max_attempts}) to find a consistent program.\nIteration (n): {i}, element (t): {ii}\nResults may be inaccurate.")
                         # print(current_program)
+            unsat_count.append(attempts)
             # print(map_states)
             m_list.append(statistics.median(map_states))
         
@@ -161,6 +229,8 @@ class Pasta:
             res_l += m_list[i+1]*(2**i)
             res_u += m_list[i+1]*(2**(i+1))
 
+        print(m_list)
+        print(unsat_count)
         return res_l if res_l <= 1 else 1, res_u if res_u <= 1 else 1 
 
 
@@ -192,17 +262,17 @@ class Pasta:
         Test the consistency of a program by sampling.
         '''
         self.setup_sampling(from_string)
-        tested, inconsistent = self.interface.check_inconsistency_by_sampling(just_test)
+        tested, inconsistent, iterations = self.interface.check_inconsistency_by_sampling(just_test)
         ratio = len(inconsistent) / 2**len(self.interface.prob_facts_dict)
         if ratio == 0:
             if len(tested) == 2**len(self.interface.prob_facts_dict):
                 print("Program consistent")
             else:
-                print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} world ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%): probably consistent")
+                print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} worlds ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%) in {iterations} iterations: probably consistent")
         else:
             print("Inconsistent program")
             print(f"Inconsistent worlds: {inconsistent}")
-            print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} worlds ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%)")
+            print(f"Tested {len(tested)} out of {2**len(self.interface.prob_facts_dict)} worlds ({(len(tested)/2**len(self.interface.prob_facts_dict))*100}%) in {iterations} iterations")
 
 
     def approximate_solve(self, arguments : argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
@@ -497,17 +567,18 @@ def main():
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
     command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
+    command_parser.add_argument("--uxor", help="Check the consistency by XOR sampling.", action="store_true", default=False)
 
     args = command_parser.parse_args()
 
-    if args.query == "" and (not args.lpmln) and (not args.test):
+    if args.query == "" and (not args.lpmln) and (args.test is None) and (args.uxor is None):
         print_error_and_exit("Missing query")
     elif args.lpmln:
         if args.query == "" and not args.all:
             print_error_and_exit("Specify a query or use --all")
         if args.all:
             args.query = "__placeholder__"
-    elif args.test:
+    elif args.test is not None:
         args.query = "__placeholder__"
 
     if args.rejection or args.mh or args.gibbs:
@@ -566,8 +637,10 @@ def main():
     elif args.dt:
         best_util, utility_atoms = pasta_solver.decision_theory_improved()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
-    elif args.test:
+    elif args.test is not None:
         pasta_solver.test_consistency(args.test == 1)
+    elif args.uxor:
+        pasta_solver.test_unsat_xor(args)
     else:
         if args.lpmln:
             prob = pasta_solver.inference_lpmln()

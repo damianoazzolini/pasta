@@ -639,18 +639,20 @@ class AspInterface:
             return lp_u / (1 - p_inc), up_u / (1 - p_inc) 
 
         return n_lower / self.n_samples, n_upper / self.n_samples
-    
-    def check_inconsistency_by_sampling(self, just_test: bool = False) -> 'tuple[list[str],list[str]]':
+
+
+    def check_inconsistency_by_sampling(self, just_test: bool = False) -> 'tuple[list[str],list[str],int]':
         '''
-        Takes self.n_samples and returns the inconsistent worlds.
         If just_test = True, then stops as soon as it founds and inconsistent world.
         '''
         inconsistent : 'list[str]' = []
         tested : 'list[str]' = []
         unsat_count : int = 0
+        iterations : int = 0
 
         ctl = self.init_clingo_ctl(["-Wnone"])
-        for _ in range(self.n_samples):
+        # for _ in range(self.n_samples):
+        while True:
             w_assignments, w_id = self.sample_world(True)
             
             if w_id not in tested:
@@ -666,14 +668,14 @@ class AspInterface:
                 if w_id not in inconsistent:
                     inconsistent.append(w_id)
                 if just_test:
-                    return tested, inconsistent
+                    return tested, inconsistent, iterations
 
             if len(tested) == 2**len(self.prob_facts_dict):
-                return tested, inconsistent
-                
-        return tested, inconsistent
+                return tested, inconsistent, iterations
 
+            iterations += 1
 
+   
     def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[float,list[str]]':
         '''
         Loops over the utility list and find the best assignment.
