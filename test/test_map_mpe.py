@@ -4,6 +4,7 @@ import pytest
 
 import importlib.util
 
+import utils_for_tests
 
 import sys
 sys.path.append("../pasta/")
@@ -13,7 +14,7 @@ past = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(past)
 
 
-t_utils = __import__('test_utils')
+# t_utils = __import__('test_utils')
 
             
 
@@ -37,11 +38,9 @@ class TestClassMapMpe(unittest.TestCase):
 
 
         if max_p is not None and atoms_list is not None:
-            self.assertTrue(t_utils.almostEqual(max_p, expected_map_mpe, 5), test_name + ": wrong MAP/MPE")
+            self.assertTrue(utils_for_tests.almostEqual(max_p, expected_map_mpe, 5), test_name + ": wrong MAP/MPE")
     
-            self.assertTrue(t_utils.check_if_lists_equal(atoms_list, expected_atoms_list), test_name + ": wrong atoms list")
-
-
+            self.assertTrue(utils_for_tests.check_if_lists_equal(atoms_list, expected_atoms_list), test_name + ": wrong atoms list")
 
 
     def test_map_bird_4(self):
@@ -66,7 +65,6 @@ class TestClassMapMpe(unittest.TestCase):
         ['e(a,b)', 'e(b,c)', 'not e(a,d)', 'not e(d,e)', 'e(e,c)'], ['e(a,b)', 'e(b,c)', 'e(a,d)', 'not e(d,e)', 'e(e,c)'], 
         ['not e(a,b)', 'e(b,c)', 'not e(a,d)', 'e(d,e)', 'e(e,c)'], ['not e(a,b)', 'e(b,c)', 'not e(a,d)', 'not e(d,e)', 'e(e,c)'], 
         ['not e(a,b)', 'not e(b,c)', 'not e(a,d)', 'e(d,e)', 'e(e,c)'], ['not e(a,b)', 'e(b,c)', 'e(a,d)', 'not e(d,e)', 'e(e,c)']])
-
 
 
     def test_map_win(self):

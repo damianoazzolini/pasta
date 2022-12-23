@@ -2,6 +2,8 @@ import unittest
 
 import importlib.util
 
+import utils_for_tests
+
 import sys
 sys.path.append("../pasta/")
 
@@ -9,9 +11,6 @@ spec = importlib.util.spec_from_file_location(
     "pasta", "../pasta/pasta_solver.py")
 past = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(past)
-
-
-t_utils = __import__('test_utils')
 
 
 class TestClassAbduction(unittest.TestCase):
@@ -29,12 +28,12 @@ class TestClassAbduction(unittest.TestCase):
         lp, up, abd = pasta_solver.abduction()
 
         if lp is not None and up is not None and abd is not None:
-            self.assertTrue(t_utils.almostEqual(lp, expected_lp, 5),
+            self.assertTrue(utils_for_tests.almostEqual(lp, expected_lp, 5),
                             test_name + ": wrong lower probability")
-            self.assertTrue(t_utils.almostEqual(up, expected_up, 5),
+            self.assertTrue(utils_for_tests.almostEqual(up, expected_up, 5),
                             test_name + ": wrong upper probability")
 
-            self.assertTrue(t_utils.check_if_lists_equal(
+            self.assertTrue(utils_for_tests.check_if_lists_equal(
                 abd, expected_abd), test_name + ": wrong abduction")
 
     def test_bird_4_abd_prob(self):

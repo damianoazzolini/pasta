@@ -4,6 +4,9 @@ import importlib.util
 import pytest
 import unittest
 
+import utils_for_tests
+
+
 
 sys.path.append("../pasta/")
 
@@ -11,9 +14,6 @@ spec = importlib.util.spec_from_file_location(
     "pasta", "../pasta/pasta_solver.py")
 past = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(past)
-
-
-t_utils = __import__('test_utils')
 
 
 class TestClassApproximateInference(unittest.TestCase):
@@ -40,9 +40,9 @@ class TestClassApproximateInference(unittest.TestCase):
 
         lp, up = pasta_solver.approximate_solve(args)
 
-        self.assertTrue(t_utils.almostEqual(lp, expected_lp, 0.02),
+        self.assertTrue(utils_for_tests.almostEqual(lp, expected_lp, 0.02),
                         test_name + ": wrong lower probability")
-        self.assertTrue(t_utils.almostEqual(up, expected_up, 0.02),
+        self.assertTrue(utils_for_tests.almostEqual(up, expected_up, 0.02),
                         test_name + ": wrong upper probability")
 
     def test_alarm_calls_mary(self):

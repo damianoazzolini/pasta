@@ -4,15 +4,14 @@ import pytest
 
 import importlib.util
 
+import utils_for_tests
+
 import sys
 sys.path.append("../pasta/")
 
 spec = importlib.util.spec_from_file_location("pasta", "../pasta/pasta_solver.py")
 past = importlib.util.module_from_spec(spec) 
 spec.loader.exec_module(past)
-
-
-t_utils = __import__('test_utils')
 
 
 class TestClassExactInference(unittest.TestCase):
@@ -32,8 +31,8 @@ class TestClassExactInference(unittest.TestCase):
         pasta_solver = past.Pasta(filename, query, evidence, normalize_prob = normalize)
         lp, up = pasta_solver.inference()
 
-        self.assertTrue(t_utils.almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability")
-        self.assertTrue(t_utils.almostEqual(up,expected_up,5), test_name + ": wrong upper probability")
+        self.assertTrue(utils_for_tests.almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability")
+        self.assertTrue(utils_for_tests.almostEqual(up,expected_up,5), test_name + ": wrong upper probability")
 
 
     def test_bird_2_2_fly_1(self):
@@ -73,7 +72,6 @@ class TestClassExactInference(unittest.TestCase):
         self.wrap_test_exact_inference("../examples/inference/smoke_3.lp", "qry", "", "smoke_3", 0.3, 0.3)
 
 
-
     def test_clique_in_1_normalize(self):
         self.wrap_test_exact_inference("../examples/inference/clique.lp", "in(1)", "", "clique_in_1", 0.4666666666666667, 0.9333333333333333, True)
 
@@ -97,11 +95,6 @@ class TestClassExactInference(unittest.TestCase):
 
     def test_smoke_qry(self):
         self.wrap_test_exact_inference("../examples/inference/smoke.lp", "qry", "", "smoke_qry", 0, 0.09)
-
-
-
-    def test_smoke_2_qr_normalize(self):
-        self.wrap_test_exact_inference("../examples/inference/smoke_2.lp", "qr", "", "smoke_2_qr", 0.5, 0.5, True)
 
 
     def test_smoke_2_qr_exit(self):

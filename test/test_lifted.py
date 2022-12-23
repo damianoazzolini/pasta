@@ -1,8 +1,8 @@
 import unittest
 
-import pytest
-
 import importlib.util
+
+import utils_for_tests as t_utils
 
 import sys
 sys.path.append("../pasta/lifted/")
@@ -14,8 +14,6 @@ sys.path.append("../pasta/lifted/")
 # TODO, improve
 
 import lifted
-
-t_utils = __import__('test_utils')
 
 class TestClassLiftedInference(unittest.TestCase):
     

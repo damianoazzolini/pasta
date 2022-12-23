@@ -6,10 +6,10 @@ def almostEqual(a : float, b : float, digits : int) -> bool:
         return abs(a/b - 1) < epsilon
 
 
-def check_if_lists_equal(list_1, list_2):
+def check_if_lists_equal(list_1 : 'list[str]', list_2 : 'list[str]') -> bool:
 
-    new_list_1 = []
-    new_list_2 = []
+    new_list_1 : 'list[str]' = []
+    new_list_2 : 'list[str]' = []
 
     if len(list_1) != len(list_2):
         # print("Error, Lists are not the same length!")
