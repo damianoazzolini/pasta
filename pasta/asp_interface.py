@@ -1,6 +1,7 @@
 """ Module implementing the connection to clingo """
 
 import random
+import math
 
 import utils
 
@@ -105,7 +106,7 @@ class AspInterface:
         self.normalizing_factor : float = 0
         self.xor: bool = xor
         self.decision_atoms_selected : 'list[str]' = []
-        self.utility : float = 0
+        self.utility : 'list[float]' = [-math.inf,-math.inf]
         self.decision_atoms_list: 'list[str]' = decision_atoms_list
         self.utilities_dict : 'dict[str,float]' = utilities_dict
         self.upper : bool = upper
@@ -175,7 +176,10 @@ class AspInterface:
         missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
 
         if len(ks) == 0 and len(self.prob_facts_dict) > 0:
+            self.lower_probability_query = 0
+            self.upper_probability_query = 0
             utils.print_pathological_program()
+            return
 
         ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
         nw = 2**len(self.prob_facts_dict)
@@ -676,16 +680,17 @@ class AspInterface:
             iterations += 1
 
    
-    def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[float,list[str]]':
+    def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[list[float],list[str]]':
         '''
         Loops over the utility list and find the best assignment.
         '''
-        best = -1000
+        best : 'list[float]' = [-math.inf,-math.inf]
         best_comb : 'list[str]' = []
         for el in computed_utilities_list:    
             index = 0 if lower else 1
-            if computed_utilities_list[el][index] > best:
-                best = computed_utilities_list[el][index]
+            if computed_utilities_list[el][index] > best[index] or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0])):
+                best[index] = computed_utilities_list[el][index]
+                best[1 if lower else 0] = computed_utilities_list[el][1 if lower else 0]
                 best_comb = []
                 for c, decision in zip(el,self.decision_atoms_list):
                     if int(c) == 1:
@@ -696,7 +701,7 @@ class AspInterface:
         return best, best_comb
 
 
-    def decision_theory_naive_method(self) -> 'tuple[float,list[str]]':
+    def decision_theory_naive_method(self) -> 'tuple[list[float],list[str]]':
         '''
         Naive implementation of decision theory: enumerates all the possible
         combinations of decision atoms and then ask the queries (i.e., the
@@ -706,9 +711,14 @@ class AspInterface:
         decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
         computed_utilities_list : 'dict[str,list[float]]' = {}
 
+        if len(self.decision_atoms_list) == 0:
+            utils.print_error_and_exit("Specify at least one decision atom.")
+
         original_prg = self.asp_program.copy()
         for el in decision_facts_combinations:
             bin_value = bin(el)[2:].zfill(len(self.decision_atoms_list))
+            if self.verbose:
+                print(f"Combination: {str(bin_value)}")
             # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
             # add the constraints for the truth values of the facts
             constraints : list[str] = []
@@ -750,21 +760,25 @@ class AspInterface:
         return self.extract_best_utility(computed_utilities_list)
 
 
-    def decision_theory(self) -> 'tuple[float,list[str]]':
+    def decision_theory_project(self) -> 'tuple[list[float],list[str]]':
         '''
-        Decision theory naive solver: considers all the possible combinations
-        of utility facts
+        Decision theory by computing the projective solutions.
         '''
         ctl = self.init_clingo_ctl(["0", "--project"])
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
+                # print((str(m)))
                 self.model_handler.add_decision_model(str(m))  # type: ignore
                 self.computed_models = self.computed_models + 1
                 # n_models = n_models + 1
             handle.get()  # type: ignore
 
-        self.lower_probability_query, self.upper_probability_query, self.decision_atoms_selected, self.utility = self.model_handler.compute_utility_atoms()
+        selected_strategy, self.utility = self.model_handler.compute_best_strategy()
+        for i in range(0,len(selected_strategy)):
+            self.decision_atoms_selected.append(self.decision_atoms_list[i] if int(selected_strategy[i]) == 1 else f"not {self.decision_atoms_list[i]}")
+            self.decision_atoms_selected
+        return self.utility, self.decision_atoms_selected
         
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'list[str]':
@@ -884,7 +898,6 @@ class AspInterface:
         '''
         print("--- Asp program ---")
         print(*self.asp_program, sep='\n')
-        if len(self.cautious_consequences) != 0:
-            for c in self.cautious_consequences:
-                print(f":- not {c}.")
+        for c in self.cautious_consequences:
+            print(f":- not {c}.")
         print("---")

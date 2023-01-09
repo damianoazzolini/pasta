@@ -353,20 +353,20 @@ class Pasta:
 
     def decision_theory_naive(self, from_string: str = "") -> 'tuple[float,list[str]]':
         '''
-        Naive implementation of decision theory.
+        Naive implementation of decision theory, i.e., by enumerating
+        all the strategies and by picking the best one.
         '''
         self.setup_interface(from_string)
         return self.interface.decision_theory_naive_method()
 
 
-    def decision_theory_improved(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
+    def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[str],list[float]]':
+        '''
+        Decision theory solver by computing the projected
+        solutions.
+        '''
         self.setup_interface(from_string)
-        self.interface.print_asp_program()
-        print(self.interface.decision_atoms_list)
-        print(self.interface.utilities_dict)
-        self.interface.decision_theory()
-        import sys
-        sys.exit()
+        return self.interface.decision_theory_project()
 
 
     def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
@@ -562,7 +562,7 @@ def main():
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
     command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
-    command_parser.add_argument("-dt","-dti", help="Decision theory (improved)", action="store_true", default=False)
+    command_parser.add_argument("-dt", help="Decision theory (improved)", action="store_true", default=False)
     # command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
@@ -571,7 +571,7 @@ def main():
 
     args = command_parser.parse_args()
 
-    if args.query == "" and (not args.lpmln) and (args.test is None) and (args.uxor is None):
+    if args.query == "" and (not args.lpmln) and (args.test is None) and (args.uxor is None) and (args.dtn is None) and (args.dt is None):
         print_error_and_exit("Missing query")
     elif args.lpmln:
         if args.query == "" and not args.all:
@@ -584,7 +584,7 @@ def main():
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dtn:
-        print_warning("Naive decision theory solver, you should use -dt or -dti.")
+        print_warning("Naive decision theory solver, you should use -dt.")
     if args.map and args.solver:
         print_warning("Computing the upper MPE state, the program is assumed to be consistent.")
         args.upper = True

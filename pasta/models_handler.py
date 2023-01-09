@@ -10,24 +10,37 @@ class DecisionWorld:
     Class for storing the worlds defined by decision facts.
     '''
     def __init__(self,
-        id_decision : str,
+        id_strategy : str,
         id_prob : str,
         prob : float,
         id_utilities : str
         ) -> None:
-        self.id_decision : str = id_decision
+        self.id_strategy : str = id_strategy
+        # each strategy has an associated set of worlds
         self.probabilistic_worlds : 'dict[str,World]' = {}
-        self.probabilistic_worlds_to_utility : 'dict[World,str]' = {}
-        # mi serve anche una struttura che associa ad un mondo quali
-        # utility atoms sono selezionati
-        self.id_utilities : str = id_utilities
-        self.probabilistic_worlds[id_prob] = World(prob)
+        # each world has an associated set of utility atoms true
+        # or false, needed for the computation of the contribution
+        # of the atoms
+        self.probabilistic_worlds_to_utility : 'dict[str,list[str]]' = {}
+        w = World(prob)
+        self.probabilistic_worlds[id_prob] = w
+        self.probabilistic_worlds_to_utility[id_prob] = [id_utilities]
 
     def __str__(self) -> str:
-        s = f"id decision: {self.id_decision}, id utilities: {self.id_utilities}\n"
+        s = f"\nid decision: {self.id_strategy}\n"
 
         for world in self.probabilistic_worlds:
-            s = s + f"\t{world}\t{self.probabilistic_worlds[world].__str__()}\n"
+            # print(world)
+            s += f"\tid world: {world}"
+            s += f" - probability: {self.probabilistic_worlds[world].prob}\n"
+            s += f"\t\tutility atoms: "
+            if world in self.probabilistic_worlds_to_utility:
+                s += f"{str(self.probabilistic_worlds_to_utility[world])}\n"
+            else:
+                s += "\n"
+            # s += f"\t\t{self.probabilistic_worlds_to_utility[self.probabilistic_worlds[world]]}\n"
+        # for e in self.probabilistic_worlds_to_utility:
+        #     s += f"\t\t{str(self.probabilistic_worlds_to_utility[e])}\n"
 
         return s
 
@@ -232,11 +245,12 @@ class ModelsHandler():
         and whether it contributes to the lower and upper probability
         '''
         line_list = line.split(' ')
-        if len(line_list) != len(self.prob_facts_dict) + 1:
+
+        if len(line_list) < len(self.prob_facts_dict):
             # this because with the project statment the result will not
             # be correct: 0.5::a(1). a(X):- c(X). c(1). will provide a 
             # wrong result
-            utils.print_error_and_exit("Error: maybe a probabilitic facts has the same functor of a clause? Or you use not_f where f is a probabilistic fact.")
+            utils.print_error_and_exit("Maybe a probabilistic fact has the same functor of a clause? Or you use not_f where f is a probabilistic fact.")
 
         model_query = False  # model q and e for evidence, q without evidence
         model_evidence = False  # model nq and e for evidence, nq without evidence
@@ -315,10 +329,10 @@ class ModelsHandler():
     def get_ids_decision(self, line: str) -> 'tuple[str,str,float,str]':
         '''
         From an answer set returns:
-        id_decision, id_world, prob_world, id_utilities
+        id_strategy, id_world, prob_world, id_utilities
         '''
         line_list = line.split(' ')
-        id_decision = "0" * len(self.decision_atoms_list)
+        id_strategy = "0" * len(self.decision_atoms_list)
         id_world = "0" * len(self.prob_facts_dict)
         id_utilities = "0" * len(self.utilities_dict)
         prob_world = 1
@@ -327,7 +341,7 @@ class ModelsHandler():
             t1, _ = utils.clean_term(term)
             if term.startswith("decision_"):
                 position, true_or_false = self.extract_pos(term, self.decision_atoms_list)
-                id_decision = id_decision[:position] + str(true_or_false) + id_decision[position + 1:]
+                id_strategy = id_strategy[:position] + str(true_or_false) + id_strategy[position + 1:]
                 # not very clean since clean_term is called both here and in extract_pos
             elif t1 in self.prob_facts_dict:
                 position, true_or_false, prob = self.extract_pos_and_prob(term)
@@ -338,7 +352,7 @@ class ModelsHandler():
                 position, true_or_false = self.extract_pos(term, list(self.utilities_dict.keys()))
                 id_utilities = id_utilities[:position] + str(true_or_false) + id_utilities[position + 1:]
 
-        return id_decision, id_world, prob_world, id_utilities
+        return id_strategy, id_world, prob_world, id_utilities
 
 
     def manage_worlds_dict(self,
@@ -433,7 +447,7 @@ class ModelsHandler():
         
 
     def manage_worlds_dict_decision(self,
-        id_decision: str,
+        id_strategy: str,
         id_world: str,
         prob_world: float,
         id_utilities: str
@@ -442,10 +456,14 @@ class ModelsHandler():
         Checks whether the current id has been already encountered.
         If so, updates it; otherwise add a new element to the dict.
         '''
-        if id_decision in self.decision_worlds_dict:
-            self.manage_worlds_dict(self.decision_worlds_dict[id_decision].probabilistic_worlds, id_world, prob_world, True, False)
+        if id_strategy in self.decision_worlds_dict:
+            self.manage_worlds_dict(self.decision_worlds_dict[id_strategy].probabilistic_worlds, id_world, prob_world, True, False)
+            if id_world in self.decision_worlds_dict[id_strategy].probabilistic_worlds_to_utility:
+                self.decision_worlds_dict[id_strategy].probabilistic_worlds_to_utility[id_world].append(id_utilities)
+            else:
+                self.decision_worlds_dict[id_strategy].probabilistic_worlds_to_utility[id_world] = [id_utilities]
         else:
-            self.decision_worlds_dict[id_decision] = DecisionWorld(id_decision,id_world,prob_world,id_utilities)
+            self.decision_worlds_dict[id_strategy] = DecisionWorld(id_strategy, id_world, prob_world, id_utilities)
 
 
     def add_model_abduction(self, line : str) -> None:
@@ -459,27 +477,59 @@ class ModelsHandler():
     def add_decision_model(self, line : str) -> None:
         '''
         Adds a models for decision theory solving.
-        Two possible options: aggregating the answer sets by worlds and, for each 
-        one, save which utilities are selected or viceversa.
+        Two possible options: aggregating the answer sets by worlds and, 
+        for each one, save which utilities are selected or viceversa.
         Here, the viceversa is used.
         '''
-        id_decision, id_world, prob_world, id_utilities = self.get_ids_decision(line)
-        self.manage_worlds_dict_decision(id_decision, id_world, prob_world, id_utilities)
-        # print(id_decision, id_world, prob_world, id_utilities)
-        # import sys
-        # sys.exit()
-        # devo estrarre:
-        # id_decision_atoms
-        # id_world
-        # probability_world
-        # utility facts true e false (01 string?) e salvare per ognuno il conteggio (lower e upper probability)
+        id_strategy, id_world, prob_world, id_utilities = self.get_ids_decision(line)
+        self.manage_worlds_dict_decision(id_strategy, id_world, prob_world, id_utilities)
 
 
-    def compute_utility_atoms(self) -> None:
-        print(self.decision_worlds_dict)
-        import sys
-        sys.exit()
+    def compute_best_strategy(self, to_maximize : str = "lower") -> 'tuple[str,list[float]]':
+        '''
+        Computes the strategy of utility atoms.
+        '''
+        # utility_best_strategy : 'list[float]' = [-math.inf,-math.inf]
+        decisions_utilities : 'dict[str,list[float]]' = {}
+        best_strategy : str = ""
+        bounds_best_strategy : 'list[float]' = [-math.inf, -math.inf]
 
+        for dw in self.decision_worlds_dict:
+            el = self.decision_worlds_dict[dw]
+            lu_contr = 0
+            uu_contr = 0
+            for w in el.probabilistic_worlds:
+                ual = el.probabilistic_worlds_to_utility[w]
+                contribution = utils.sum_string_list(ual)
+                l_utilities_dict = list(self.utilities_dict.values())
+                current_world_prob = el.probabilistic_worlds[w].prob
+
+                # print(f"world: {w} - probability: {current_world_prob}")
+                for index in range(0,len(contribution)):
+                    if contribution[index] == len(ual):
+                        # print(f"LP + UP: {l_utilities_dict[index] * current_world_prob}")
+                        # conttibution to LP and UP
+                        lu_contr += l_utilities_dict[index] * current_world_prob
+                        uu_contr += l_utilities_dict[index] * current_world_prob
+                    elif contribution[index] != 0:
+                        # print(f"UP: {l_utilities_dict[index] * current_world_prob}")
+                        # contribution to the UP
+                        uu_contr += l_utilities_dict[index] * current_world_prob
+            decisions_utilities[dw] = [lu_contr,uu_contr]
+
+        for ut in decisions_utilities:
+            if to_maximize == "lower":
+                if bounds_best_strategy[0] < decisions_utilities[ut][0] or ((bounds_best_strategy[0] == decisions_utilities[ut][0]) and (bounds_best_strategy[1] < decisions_utilities[ut][1])):
+                    best_strategy = ut
+                    bounds_best_strategy = decisions_utilities[ut]
+            elif to_maximize == "upper":
+                if bounds_best_strategy[1] < decisions_utilities[ut][1] or ((bounds_best_strategy[1] == decisions_utilities[ut][1]) and (bounds_best_strategy[0] < decisions_utilities[ut][0])):
+                    best_strategy = ut
+                    bounds_best_strategy = decisions_utilities[ut]
+        
+        return best_strategy, bounds_best_strategy
+
+        
     def get_abducibles_from_id(self, w_id : str) -> 'list[str]':
         '''
         From a 01 string returns the list of selected abducibles

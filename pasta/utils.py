@@ -28,7 +28,7 @@ def print_pathological_program():
     The program has 0 answer sets
     '''
     message = "This program is UNSAT (no answer sets)."
-    print_error_and_exit(message)
+    print_warning(message)
 
 
 def print_inconsistent_program(stop: bool = False):
@@ -90,6 +90,20 @@ def clean_term(term: str) -> 'tuple[str,bool]':
         term = term.split('utility_')[1]
     
     return term, positive
+
+
+def sum_string_list(bl: list[str]) -> 'list[int]':
+    '''
+    Sums the element of a string.
+    Example: ["01","11"] -> [1,2]
+    '''
+    res: list[int] = [0 for _ in range(0, len(bl[0]))]
+
+    for i in range(0, len(bl)):
+        for ii in range(0, len(bl[i])):
+            res[ii] += int(bl[i][ii])
+
+    return res
 
 
 # progressbar from https://stackoverflow.com/questions/3160699/python-progress-bar
