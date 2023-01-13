@@ -235,6 +235,7 @@ class Pasta:
 
 
     def setup_sampling(self, from_string: str = "") -> None:
+        # TODO, REFACTOR: remove and use setup interface with approx True
         '''
         Setup the variables for sampling
         '''
@@ -300,12 +301,12 @@ class Pasta:
         return lp, up
 
 
-    def setup_interface(self, from_string : str = "") -> None:
+    def setup_interface(self, from_string : str = "", approx : bool = False) -> None:
         '''
         Setup clingo interface
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt, self.lpmln)
-        self.parser.parse(from_string)
+        self.parser.parse(from_string, approx)
 
         if self.minimal is False:
             content_find_minimal_set = []
@@ -314,7 +315,7 @@ class Pasta:
 
         asp_program = self.parser.get_asp_program(self.lpmln)
 
-        if not self.consider_lower_prob:
+        if not self.consider_lower_prob and self.query != "":
             asp_program.append(f":- not {self.query}.")
 
         self.interface = AspInterface(
@@ -351,7 +352,18 @@ class Pasta:
                 print("---")
 
 
-    def decision_theory_naive(self, from_string: str = "") -> 'tuple[float,list[str]]':
+    def decision_theory_approximate(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
+        '''
+        Approximate solver for decision theory.
+        '''
+        # TODO: check the setup of the interface, that must be done
+        # for approximate inference 
+        self.setup_interface(from_string, True)
+        # self.setup_sampling(from_string)
+        return self.interface.decision_theory_approximate()
+
+
+    def decision_theory_naive(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
         '''
         Naive implementation of decision theory, i.e., by enumerating
         all the strategies and by picking the best one.
@@ -360,7 +372,7 @@ class Pasta:
         return self.interface.decision_theory_naive_method()
 
 
-    def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[str],list[float]]':
+    def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
         '''
         Decision theory solver by computing the projected
         solutions.
@@ -583,7 +595,7 @@ def main():
 
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
-    if args.dtn:
+    if args.dtn and not args.approximate:
         print_warning("Naive decision theory solver, you should use -dt.")
     if args.map and args.solver:
         print_warning("Computing the upper MPE state, the program is assumed to be consistent.")
@@ -591,7 +603,7 @@ def main():
         args.minimal = False
         args.stop_if_inconsistent = False
         args.normalize = False
-    if (args.minimal and args.stop_if_inconsistent) or args.upper:
+    if ((args.minimal and args.stop_if_inconsistent) or args.upper) and (not args.dtn and not args.dt):
         print_warning("The program is assumed to be consistent.")
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
@@ -619,7 +631,7 @@ def main():
     elif args.xor:
         lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
         Pasta.print_prob(lower_p, upper_p)
-    elif args.approximate:
+    elif args.approximate and not (args.dt or args.dtn):
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         Pasta.print_prob(lower_p, upper_p)
     elif args.pl:
@@ -631,6 +643,11 @@ def main():
         else:
             max_p, atoms_list_res = pasta_solver.map_inference()
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
+    elif (args.dt or args.dtn) and args.approximate:
+        if args.dt:
+            print_error_and_exit("Approximate must be used with the -dtn flag.")
+        best_util, utility_atoms = pasta_solver.decision_theory_approximate()
+        print(f"Utility: {best_util}\nChoice: {utility_atoms}")        
     elif args.dtn:
         best_util, utility_atoms = pasta_solver.decision_theory_naive()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")

@@ -214,9 +214,8 @@ class AspInterface:
                     i = i + 1
                 self.normalizing_factor = self.normalizing_factor + np
                 self.inconsistent_worlds[n] = np
-            if self.verbose:
-                print(f"n missing {len(missing)}")
             if self.pedantic:
+                print(f"n missing {len(missing)}")
                 print(self.inconsistent_worlds)
 
         if self.pedantic:
@@ -739,8 +738,8 @@ class AspInterface:
                 self.asp_program.append("#show nq/0.")
 
                 self.compute_probabilities()
-                lp = self.lower_probability_query
-                up = self.upper_probability_query
+                # lp = self.lower_probability_query
+                # up = self.upper_probability_query
                 self.model_handler = ModelsHandler(
                     self.prob_facts_dict,
                     self.evidence,
@@ -748,16 +747,17 @@ class AspInterface:
                     self.decision_atoms_list,
                     self.utilities_dict
                 )
-                self.upper_probability_query = 0
-                self.lower_probability_query = 0
-                current_utility_l += lp * self.utilities_dict[query]
-                current_utility_u += up *self.utilities_dict[query]
+                # self.upper_probability_query = 0
+                # self.lower_probability_query = 0
+                current_utility_l += self.lower_probability_query * self.utilities_dict[query]
+                current_utility_u += self.upper_probability_query * self.utilities_dict[query]
                 self.asp_program = original_prg_constr.copy()
-            computed_utilities_list[bin_value] = [
-                current_utility_l, current_utility_u]
+            computed_utilities_list[bin_value] = [current_utility_l, current_utility_u]
+            if self.verbose:
+                print(f"Strategy: {bin_value}, Utility: [{current_utility_l, current_utility_u}]")
             self.asp_program = original_prg.copy()
         
-        return self.extract_best_utility(computed_utilities_list)
+        return self.extract_best_utility(computed_utilities_list, self.upper)
 
 
     def decision_theory_project(self) -> 'tuple[list[float],list[str]]':
@@ -779,7 +779,188 @@ class AspInterface:
             self.decision_atoms_selected.append(self.decision_atoms_list[i] if int(selected_strategy[i]) == 1 else f"not {self.decision_atoms_list[i]}")
             self.decision_atoms_selected
         return self.utility, self.decision_atoms_selected
+
+
+    def decision_theory_approximate(self,
+        initial_population_size : int = 2,
+        mutation_probability : float = 0.05,
+        samples_for_inference : int = 5000,
+        max_iterations_genetic : int = 1000,
+        to_maximize : str = "lower"
+        ) -> 'tuple[list[float],list[str]]':
+        '''
+        Implementation of a genetic algorithm algorithm to compute
+        the best strategy. The utility of every strategy is approximately
+        computed, since we use approximate inference to compute the 
+        probability of every utility atom.
+        https://it.mathworks.com/help/gads/how-the-genetic-algorithm-works.html
+        '''
+        class Individual:
+            '''
+            Individual for the population
+            '''
+            def __init__(self, id : str, score : 'list[float]') -> None:
+                self.id = id
+                self.score_l = score[0]
+                self.score_u = score[1]
+            
+            def __str__(self) -> str:
+                return f"id: {self.id} lower score: {self.score_l} upper score: {self.score_u}"
+
+            def __repr__(self) -> str:
+                return self.__str__()
+    
+    
+        def evaluate_score(id : str) -> 'list[float]':
+            '''
+            Computes the score of an individual by creating the PASP
+            with the specified decision atoms and then by computing the 
+            probability of every utility fact by sampling.
+            '''
+            # call self.sample_query() for every utility atom, but before
+            # set the query
+            # TODO: refactor, copied from decision_theory_naive_method
+            computed_utility : 'list[float]' = []
+            # print(self.utilities_dict)
+            
+            # self.print_asp_program()
+            original_prg = self.asp_program.copy()
+            
+            # TEST
+            # id = "11"
+            
+            if self.verbose:
+                print(f"Combination: {str(id)}")
+            # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
+            # add the constraints for the truth values of the facts
+            # constraints: list[str] = []
+            for index, v in enumerate(id):
+                mode = "" if int(v) == 0 else "not"
+                c = f":- {mode} {self.decision_atoms_list[index]}."
+                # constraints.append(c)
+                self.asp_program.append(c)
+
+            # ask the queries
+            original_prg_constr = self.asp_program.copy()
+            current_utility_l: float = 0
+            current_utility_u: float = 0
+            for query in self.utilities_dict:
+                self.asp_program.append(f"q:- {query}.")
+                self.asp_program.append("#show q/0.")
+                self.asp_program.append(f"nq:- not {query}.")
+                self.asp_program.append("#show nq/0.")
+
+                lp, up = self.sample_query()
+                # print(lp, up)
+                # lp = self.lower_probability_query
+                # up = self.upper_probability_query
+                self.model_handler = ModelsHandler(
+                    self.prob_facts_dict,
+                    self.evidence,
+                    self.abducibles_list,
+                    self.decision_atoms_list,
+                    self.utilities_dict
+                )
+                # self.upper_probability_query = 0
+                # self.lower_probability_query = 0
+                # print(self.utilities_dict[query])
+                current_utility_l += lp * self.utilities_dict[query]
+                current_utility_u += up * self.utilities_dict[query]
+                self.asp_program = original_prg_constr.copy()
+            
+            computed_utility = [current_utility_l, current_utility_u]
+            if self.verbose:
+                print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
+            self.asp_program = original_prg.copy()
+            original_prg_constr = self.asp_program.copy()
+
+            self.asp_program = original_prg.copy()
+            # print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
+
+            
+            # import sys
+            # sys.exit()
+            return computed_utility
+
+
+        def sample_individual() -> 'Individual':
+            '''
+            Samples an individual for the population (i.e, a strategy).
+            '''
+            id : str = ""
+            for _ in self.decision_atoms_list:
+                if random.random() < 0.5:
+                    id += "1"
+                else:
+                    id += "0"
+            return Individual(id, evaluate_score(id))
+
+            
+        def init_population(size : int) -> 'list[Individual]':
+            '''
+            Initializes the population (strategies).
+            '''
+            pop : 'list[Individual]' = []
+            while len(pop) < size:
+                ind = sample_individual()
+                if ind not in pop:
+                    pop.append(ind)
+            return pop
+
+        # self.print_asp_program()
+        # print(self.decision_atoms_list)
+
+        if initial_population_size > 2**(len(self.decision_atoms_list)):
+            utils.print_error_and_exit(f"Initial population size ({initial_population_size}) should be less than the number of possible strategies ({2**len(self.decision_atoms_list)}).")
         
+        population : 'list[Individual]' = init_population(initial_population_size)
+        if to_maximize == "lower":
+            population.sort(key=lambda x : x.score_l)
+        else:
+            population.sort(key=lambda x : x.score_u)
+            
+        self.n_samples = samples_for_inference
+        
+        for it in range(max_iterations_genetic):
+            if it % 100 == 0:
+                print(f"Iteration {it} - best: {population[0]}")
+            best_a = population[0]
+            best_b = population[1]
+            crossover_position = random.randint(0, len(best_a.id) - 1)
+            # combine the two ids
+            l_id = list(best_a.id[:crossover_position] + best_b.id[crossover_position:])
+            
+            # mutation
+            for i in range(0,len(l_id)):
+                if random.random() < mutation_probability:
+                    l_id[i] = '0' if l_id[i] == '1' else '1'
+            new_element_id = ''.join(l_id)
+            
+            score = evaluate_score(new_element_id)
+            # ordered insert
+            i = 0
+            for i in range(0,len(population)):
+                if to_maximize == "lower":
+                    if population[i].score_l < score[0]:
+                        break
+                else:
+                    if population[i].score_u < score[0]:
+                        break
+            population.insert(i,Individual(new_element_id, score))
+            
+            # remove the element with the lowest score 
+            population = population[:-1]
+
+        # print(population)
+        best_comb : 'list[str]' = []
+        for c, decision in zip(population[0].id, self.decision_atoms_list):
+            if int(c) == 1:
+                best_comb.append(decision)
+            else:
+                best_comb.append(f"not {decision}")
+
+        return [population[0].score_l, population[0].score_u], best_comb
+
 
     def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'list[str]':
         '''

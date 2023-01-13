@@ -30,7 +30,6 @@ class DecisionWorld:
         s = f"\nid decision: {self.id_strategy}\n"
 
         for world in self.probabilistic_worlds:
-            # print(world)
             s += f"\tid world: {world}"
             s += f" - probability: {self.probabilistic_worlds[world].prob}\n"
             s += f"\t\tutility atoms: "
@@ -487,12 +486,13 @@ class ModelsHandler():
 
     def compute_best_strategy(self, to_maximize : str = "lower") -> 'tuple[str,list[float]]':
         '''
-        Computes the strategy of utility atoms.
+        Computes the best strategy for decision theory.
         '''
         # utility_best_strategy : 'list[float]' = [-math.inf,-math.inf]
         decisions_utilities : 'dict[str,list[float]]' = {}
         best_strategy : str = ""
         bounds_best_strategy : 'list[float]' = [-math.inf, -math.inf]
+        # print(self.decision_worlds_dict)
 
         for dw in self.decision_worlds_dict:
             el = self.decision_worlds_dict[dw]
@@ -517,6 +517,7 @@ class ModelsHandler():
                         uu_contr += l_utilities_dict[index] * current_world_prob
             decisions_utilities[dw] = [lu_contr,uu_contr]
 
+        # print(decisions_utilities)
         for ut in decisions_utilities:
             if to_maximize == "lower":
                 if bounds_best_strategy[0] < decisions_utilities[ut][0] or ((bounds_best_strategy[0] == decisions_utilities[ut][0]) and (bounds_best_strategy[1] < decisions_utilities[ut][1])):
