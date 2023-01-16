@@ -18,35 +18,41 @@ qr ; nqr:- dd, b.
 '''
 
 # fix prob facts to 2,5,10,15 and increase the nuber of decision atoms
+# and probabilistic facts
 # fix the number of utility atoms to 2.
 
-n_prob_facts = [2,5,10,15]
-n_max_atoms = 5
+# n_max_atoms = 5
+atoms_sizes_max = 4
 
-for n in n_prob_facts:
-    for n_decision_atoms in range(1, n_max_atoms):
-        fp = open(f"dt_{n}_prob_facts_max_{n_decision_atoms}_decision_atoms.lp","w")
+for atoms_size in range(2, atoms_sizes_max):
+    for n_utilities in range(0, atoms_size + 1):
+        fp = open(f"dt_{atoms_size}_prob_facts_{atoms_size}_decision_atoms_{n_utilities}_utilities.lp","w")
         
         # write the probabilistic facts
-        for i in range(0, n):
+        for i in range(0, atoms_size):
             fp.write(f"0.3::a({i}).\n")
             
         fp.write('\n')
         
         # write the decision atoms
-        for i in range(0, n_decision_atoms):
+        for i in range(0, atoms_size):
             fp.write(f"decision da({i}).\n")
             
         fp.write('\n')
 
-        for ii in range(0, max(n, n_decision_atoms)):
+        for ii in range(0, atoms_size):
             if ii % 2 == 0:
-                fp.write(f"qr:- a({ii % n}), da({ii % n_decision_atoms}).\n")
+                fp.write(f"qr:- a({ii}), da({ii}).\n")
             else:
-                fp.write(f"qr ; nqr :- a({ii % n}), da({ii % n_decision_atoms}).\n")
+                fp.write(f"qr ; nqr :- a({ii}), da({ii}).\n")
 
         fp.write('\n')
         
         fp.write('utility(qr,2).\nutility(nqr,-12).\n')
+        
+        fp.write('\n')
+        
+        for u in range(n_utilities):
+            fp.write(f"utility(da({u}),1).\n")
         
         fp.close()

@@ -21,8 +21,8 @@ qr ; nqr:- db, b.
 
 '''
 
-# fix prob facts to 2,5,10,15 and increase the nuber of decision atoms
-# and probabilistic facts
+# fix decision atoms to 2,5,10,15 and increase the nuber of 
+# probabilistic facts
 # fix the number of utility atoms to 2.
 
 n_decision_atoms_max = [2,5,10,15]
@@ -44,11 +44,11 @@ for n_decision_atoms in n_decision_atoms_max:
             
         fp.write('\n')
 
-        for ii in range(0, n_prob_facts):
+        for ii in range(0, max(n_prob_facts,n_decision_atoms)):
             if ii % 2 == 0:
-                fp.write(f"qr:- a({ii}), da({ii % n_decision_atoms}).\n")
+                fp.write(f"qr:- a({ii % n_prob_facts}), da({ii % n_decision_atoms}).\n")
             else:
-                fp.write(f"qr ; nqr :- a({ii}), da({ii % n_decision_atoms}).\n")
+                fp.write(f"qr ; nqr :- a({ii % n_prob_facts}), da({ii % n_decision_atoms}).\n")
 
         fp.write('\n')
         
