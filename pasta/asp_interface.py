@@ -733,6 +733,8 @@ class AspInterface:
             current_utility_l : float = 0
             current_utility_u : float = 0
             for query in self.utilities_dict:
+                if self.verbose:
+                    print(f"Query: {query}")
                 self.asp_program.append(f"q:- {query}.")
                 self.asp_program.append("#show q/0.")
                 self.asp_program.append(f"nq:- not {query}.")
@@ -873,14 +875,11 @@ class AspInterface:
             if self.verbose:
                 print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
             self.asp_program = original_prg.copy()
-            original_prg_constr = self.asp_program.copy()
+            # original_prg_constr = self.asp_program.copy()
 
-            self.asp_program = original_prg.copy()
+            # self.asp_program = original_prg.copy()
             # print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
 
-            
-            # import sys
-            # sys.exit()
             return computed_utility
 
 
@@ -919,7 +918,7 @@ class AspInterface:
             population.sort(key=lambda x : x.score_l)
         else:
             population.sort(key=lambda x : x.score_u)
-
+            
         self.n_samples = samples_for_inference
         
         for it in range(max_iterations_genetic):
@@ -937,20 +936,28 @@ class AspInterface:
                     l_id[i] = '0' if l_id[i] == '1' else '1'
             new_element_id = ''.join(l_id)
             
-            score = evaluate_score(new_element_id)
-            # ordered insert
-            i = 0
-            for i in range(0,len(population)):
-                if to_maximize == "lower":
-                    if population[i].score_l < score[0]:
-                        break
-                else:
-                    if population[i].score_u < score[1]:
-                        break
-            population.insert(i,Individual(new_element_id, score))
-            
-            # remove the element with the lowest score 
-            population = population[:-1]
+            # find whether the current element is in the list
+            found = False
+            for l in population:
+                if l.id == new_element_id:
+                    found = True
+                    break
+
+            if not found:
+                score = evaluate_score(new_element_id)
+                # ordered insert
+                i = 0
+                for i in range(0,len(population)):
+                    if to_maximize == "lower":
+                        if population[i].score_l < score[0]:
+                            break
+                    else:
+                        if population[i].score_u < score[1]:
+                            break
+                population.insert(i,Individual(new_element_id, score))
+                
+                # remove the element with the lowest score 
+                population = population[:-1]
 
         # print(population)
         best_comb : 'list[str]' = []
