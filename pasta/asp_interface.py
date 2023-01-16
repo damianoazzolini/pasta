@@ -217,6 +217,7 @@ class AspInterface:
             if self.pedantic:
                 print(f"n missing {len(missing)}")
                 print(self.inconsistent_worlds)
+                print(f"Normalizing factor: {self.normalizing_factor}")
 
         if self.pedantic:
             print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
@@ -782,11 +783,11 @@ class AspInterface:
 
 
     def decision_theory_approximate(self,
-        initial_population_size : int = 2,
+        initial_population_size : int = 50,
         mutation_probability : float = 0.05,
         samples_for_inference : int = 5000,
         max_iterations_genetic : int = 1000,
-        to_maximize : str = "lower"
+        to_maximize : str = "upper"
         ) -> 'tuple[list[float],list[str]]':
         '''
         Implementation of a genetic algorithm algorithm to compute
@@ -912,13 +913,13 @@ class AspInterface:
 
         if initial_population_size > 2**(len(self.decision_atoms_list)):
             utils.print_error_and_exit(f"Initial population size ({initial_population_size}) should be less than the number of possible strategies ({2**len(self.decision_atoms_list)}).")
-        
+
         population : 'list[Individual]' = init_population(initial_population_size)
         if to_maximize == "lower":
             population.sort(key=lambda x : x.score_l)
         else:
             population.sort(key=lambda x : x.score_u)
-            
+
         self.n_samples = samples_for_inference
         
         for it in range(max_iterations_genetic):
@@ -944,7 +945,7 @@ class AspInterface:
                     if population[i].score_l < score[0]:
                         break
                 else:
-                    if population[i].score_u < score[0]:
+                    if population[i].score_u < score[1]:
                         break
             population.insert(i,Individual(new_element_id, score))
             

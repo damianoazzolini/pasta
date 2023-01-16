@@ -352,7 +352,13 @@ class Pasta:
                 print("---")
 
 
-    def decision_theory_approximate(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
+    def decision_theory_approximate(self, 
+        from_string: str = "",
+        samples : int = 1000,
+        popsize : int = 50,
+        mutation_probability : float = 0.05,
+        iterations : int = 1000,
+        to_maximize : str = "upper") -> 'tuple[list[float],list[str]]':
         '''
         Approximate solver for decision theory.
         '''
@@ -360,7 +366,12 @@ class Pasta:
         # for approximate inference 
         self.setup_interface(from_string, True)
         # self.setup_sampling(from_string)
-        return self.interface.decision_theory_approximate()
+        return self.interface.decision_theory_approximate(
+            initial_population_size=popsize,
+            mutation_probability=mutation_probability,
+            samples_for_inference=samples,
+            max_iterations_genetic=iterations,
+            to_maximize=to_maximize)
 
 
     def decision_theory_naive(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
@@ -564,7 +575,7 @@ def main():
     command_parser.add_argument("--pl", help="Parameter learning", action="store_true", default=False)
     command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
     command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
-    command_parser.add_argument("--upper", help="Select upper probability for MAP and abduction", action="store_true", default=False)
+    command_parser.add_argument("--upper", help="Select upper probability as target", action="store_true", default=False)
     command_parser.add_argument("--minimal", "-nm", help="Compute the minimal set of probabilistic facts", action="store_true", default=False)
     command_parser.add_argument("--normalize", help="Normalize the probability if some worlds have no answer sets", action="store_true", default=False)
     command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action=argparse.BooleanOptionalAction, default=True)
@@ -580,6 +591,11 @@ def main():
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
     command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
     command_parser.add_argument("--uxor", help="Check the consistency by XOR sampling.", action="store_true", default=False)
+
+    # for det approximate with genetic algorithm
+    command_parser.add_argument("--popsize", help="Population size, default 50", type=int, default=50)
+    command_parser.add_argument("--mutation", help="Mutation probability, default 0.05", type=float, default=0.05)
+    command_parser.add_argument("--iterations", help="Iterations for the genetic algorithm", type=int, default=1000)
 
     args = command_parser.parse_args()
 
@@ -646,7 +662,11 @@ def main():
     elif (args.dt or args.dtn) and args.approximate:
         if args.dt:
             print_error_and_exit("Approximate must be used with the -dtn flag.")
-        best_util, utility_atoms = pasta_solver.decision_theory_approximate()
+        best_util, utility_atoms = pasta_solver.decision_theory_approximate(
+            samples=args.samples,
+            popsize=args.popsize,
+            mutation_probability=args.mutation,
+            iterations=args.iterations)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")        
     elif args.dtn:
         best_util, utility_atoms = pasta_solver.decision_theory_naive()
