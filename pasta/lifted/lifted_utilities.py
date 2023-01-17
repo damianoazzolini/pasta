@@ -115,15 +115,15 @@ def count_overlaps(a: str, b: str) -> int:
 def number_of_comb_overlaps(n_vars: int, k: int, i: int) -> 'tuple[int,list[str]]':
     '''
     Computes the number of combinations such that the number 
-    of 1s in correspondent positions in a string of length n_pairs/2 
+    of 1s in correspondent positions in a string of length n_vars 
     of the representation of a world (we call this value overlap)
-    equals k and there are i 1s in the string. Naive enumeration
-    but currently i do not have a better method
+    equals k and there are i 1s in the string. Naive enumeration.
     '''
-    upper_b = 2**n_vars  # since 2^n -1 = 11...11
+    upper_b = 2**n_vars  # since 2^n - 1 = 11...11
     count = 0
     lv: 'list[str]' = []
     for id in range(0, upper_b):
+        # print(f'id: {id}')
         s = format(id, f'0{n_vars}b')
         a = s[0:int(len(s)/2)]
         b = s[int(len(s)/2):]
@@ -131,7 +131,60 @@ def number_of_comb_overlaps(n_vars: int, k: int, i: int) -> 'tuple[int,list[str]
         if count_variables(s) == i and count_overlaps(a, b) == k:
             count += 1
             lv.append(s)
+        # print(f'id: {id}, s: {s}, a: {a}, b: {b}')
+        
     return count, lv
+
+
+def number_of_comb_overlaps_formula(n : int, k : int, i : int) -> tuple[int,str]:
+    '''
+    Computes the number of combinations such that the number 
+    of 1s in correspondent positions in a string of length n/2 
+    of the representation of a world (we call this value overlap)
+    equals k and there are i 1s in the string. Naive enumeration.
+    rho(n,k,i) = sum_{n_a = k}^{min(n/2,i-k)} binom{n/2}{n_a} * binom{n_a}{k} * binom{n/2 - n_a}{i - n_a - k}
+    '''
+    s = 0
+    n2 = int(n / 2)
+
+    for na in range(k, min(n2, i - k) + 1):
+        in_a = math.comb(n2, na)
+        # in_b = math.comb(i - na - k, n2 - k)
+        ways_to_place_overlaps = math.comb(na, k)
+        ways_to_place_remaining = math.comb(n2 - na, i - na - k) # if i - na - k >= 0 else 0
+        v = in_a * ways_to_place_overlaps * ways_to_place_remaining
+        # print(f"Iteration {na}: {in_a} * {ways_to_place_overlaps} * {ways_to_place_remaining} = {v}")
+        s += v
+
+    # print(n,k,i,s)
+    # print('---')
+    # generate a string
+    la = [0] * n2
+    lb = [0] * n2
+    
+    if s > 0:
+        for pos in range(0,len(la)):
+            # place the overlap
+            inserted = False
+            if k > 0:
+                la[pos] = 1
+                lb[pos] = 1
+                k = k - 1
+                i = i - 2
+                inserted = True
+
+            if k == 0 and i > 0:
+                j = pos + 1 if inserted else pos
+                while i > 0:
+                    la[j] = 1
+                    j += 1
+                    i -=1
+                break       
+            
+            if i <= 0:
+                break
+    
+    return s, ''.join(str(x) for x in la + lb)
 
 
 def number_of_comb_overlaps_cxy_ax_bxy(n_vars: int, n_pairs: int, i: int) -> 'tuple[int,list[str]]':

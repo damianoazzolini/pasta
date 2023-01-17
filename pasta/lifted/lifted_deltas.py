@@ -64,13 +64,12 @@ def delta_cx_axbxy(mode: int, lw: 'str', lb: int, ub: int, query: str):
 
     ctl.add('base', [], "a(1).")
     ctl.add('base', [], "b(1,1).")
-    ctl.add('base', [
-    ], ":- #count{X,Y: a(X),b(X,Y)} = H, #count{X,Y:c(X),a(X),b(X,Y)} = FH, 100*FH < " + str(lb) + "*H.")
     ctl.add('base', [], "0{ c(X) }1 :-  a(X), b(X,Y).")
 
+    if lb != 0:
+        ctl.add('base', [], ":- #count{X,Y: a(X),b(X,Y)} = H, #count{X,Y:c(X),a(X),b(X,Y)} = FH, 100*FH < " + str(lb) + "*H.")
     if ub != 100:
-        ctl.add('base', [
-        ], ":- #count{X,Y: a(X),b(X,Y)} = H, #count{X,Y:c(X),a(X),b(X,Y)} = FH, 100*FH > " + str(ub) + "*H.")
+        ctl.add('base', [], ":- #count{X,Y: a(X),b(X,Y)} = H, #count{X,Y:c(X),a(X),b(X,Y)} = FH, 100*FH > " + str(ub) + "*H.")
 
     for i in range(0, int(len(lw) / 2)):
         if int(lw[i]) == 1:

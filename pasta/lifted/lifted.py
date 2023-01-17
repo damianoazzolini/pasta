@@ -135,27 +135,44 @@ def cxy_ax_bxy_multiple_bi(prob: float, n_vars_clusters: 'list[int]', lower: int
     return lp, up, n_unique_worlds, n_worlds
 
 
-def cx_ax_bxy_single_pair(prob : float, n_pairs : int, lower : int = 60, upper : int = 100) -> 'tuple[float,float]':
+def cx_ax_bxy_single_pair(prob: float, n_vars: int, lower: int = 60, upper: int = 100, formula: bool = True) -> 'tuple[float,float]':
     '''
     Conditionals c(X) | a(X), b(X,Y) with all the facts
     with the same probability and 1 b(X,Y) for every a(X)
     and viceversa
     upperprob(q) = p_k sum_{i=0}^{n} sum_{k = 0} ^ {n/2} overline{delta}_{ik}(q) cdot rho(n,k,i) cdot p^i cdot (1-p)^{n-i}
     '''
-    n_pairs = n_pairs - 2 # remove the c(i)
+    if n_vars % 2 != 0:
+        print("The number of variables must be even")
+        # import sys
+        # sys.exit()
+    
+    n_vars = n_vars - 2  # remove the c(i) -> a(i) b(i,_)
     pk = prob * prob
     up = 0
     lp = 0
-    for i in range(0, n_pairs + 1):
-        for k in range(0, int(n_pairs / 2) + 1):
-            rho, lw = lifted_utilities.number_of_comb_overlaps(n_pairs, k, i)
-            if len(lw) > 0:
-                du = lifted_deltas.delta_cx_axbxy(1, lw[0], lower, upper, "c(1)")
+    for i in range(0, n_vars + 1):
+        for k in range(0, int(n_vars / 2) + 1):
+            # print(f"n_vars: {n_vars}, k: {k}, i: {i}")
+            if formula:
+                rho, lw = lifted_utilities.number_of_comb_overlaps_formula(n_vars, k, i)
+                # print(f"rho, lw: {rho}, {lw}")
+            else:
+                rho, lw = lifted_utilities.number_of_comb_overlaps(n_vars, k, i)
+                # print(f"rho, lw: {rho}, {lw}")
+                lw = lw[0] if len(lw) > 0 else ''
+            # print(rho, lw)
+
+            # if len(lw) > 0:
+            if rho > 0:
+                du = lifted_deltas.delta_cx_axbxy(1, lw, lower, upper, "c(1)")
                 if du != 0:
-                    up += rho * (prob**i) * ((1 - prob)**(n_pairs - i)) * du
-                    lp += rho * (prob**i) * ((1 - prob)**(n_pairs - i)) * \
-                        lifted_deltas.delta_cx_axbxy(
-                            0, lw[0], lower, upper, "c(1)")
+                    up += rho * (prob**i) * ((1 - prob)**(n_vars - i)) * du
+                    lp += rho * (prob**i) * ((1 - prob)**(n_vars - i)) * \
+                        lifted_deltas.delta_cx_axbxy(0, lw, lower, upper, "c(1)")
+                        # lifted_deltas.delta_cx_axbxy(
+                            # 0, lw, lower, upper, "c(1)")
+                        
     
     return lp * pk, up * pk
 
@@ -241,7 +258,8 @@ if __name__ == "__main__":
     # print(c)
     # print(number_of_comb_overlaps(10, 1, 6))
     # test_cx_ax_bxy_single_pair()
-    # print(cx_ax_bxy_single_pair(0.3,6,lower=20))
+    print(cx_ax_bxy_single_pair(0.3, 6, lower=40))
+    print(cx_ax_bxy_single_pair(0.3, 6, lower=40, formula=False))
     # print(cx_ax_bxy_multiple_pairs(0.4, [1,3], lower=40))
     # print(cxy_ax_bxy_multiple_bi(0.4,[1,1,2,2],lower=40))
-    print(cxy_ax_bxy_multiple_bi(0.4,[1,1,1,1,1, 3,2,2,1,1],lower=0, upper=80))
+    # print(cxy_ax_bxy_multiple_bi(0.4,[1,1,1,1,1, 3,2,2,1,1],lower=0, upper=80))
