@@ -22,7 +22,9 @@ def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[floa
         r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
     else:
         r = r"0\.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
-        
+    
+    # TODO: this is marked as incorrect
+    # Error: Probabilistic fact ->0.3::shops(a(0)).<- ill formed
     x = re.match(r, line_in.strip())
     if x is None:
         utils.print_error_and_exit(
@@ -115,6 +117,9 @@ class PastaParser:
         f = self.get_file_handler(from_string)
         lines = f.readlines()
         f.close()
+        # hack since a line not terminated with \n is not considered
+        # so ignored by the next loop. IMPROVE.
+        lines[-1] = lines[-1] + '\n' 
 
         # https://stackoverflow.com/questions/68652859/how-to-exclude-floating-numbers-from-pythonss-regular-expressions-that-splits-o
         for l in lines:
