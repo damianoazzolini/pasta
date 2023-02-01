@@ -484,7 +484,7 @@ class ModelsHandler():
         self.manage_worlds_dict_decision(id_strategy, id_world, prob_world, id_utilities)
 
 
-    def compute_best_strategy(self, to_maximize : str = "lower") -> 'tuple[str,list[float]]':
+    def compute_best_strategy(self, to_maximize : str = "upper") -> 'tuple[str,list[float]]':
         '''
         Computes the best strategy for decision theory.
         '''
