@@ -1,6 +1,14 @@
 # PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
 This software allows to perform inference in probabilistic answer set programs under the credal semantics and with statistical statements.
+Currentyl supports:
+- exact inference
+- approximate inference via sampling
+- abduction
+- map inference
+- parameter learning
+- lifted inference
+- decision theory
 
 ## Installation
 Requirements: `clingo`, see [install clingo](https://potassco.org/clingo/).
@@ -21,13 +29,13 @@ python3 pasta_solver.py --help
 
 See below for some example programs.
 
-You can also use Docker ([image on Dockerhub](https://hub.docker.com/repository/docker/damianodamianodamiano/pasta)) to test the application:
+You can also use Docker ([image on Dockerhub](https://hub.docker.com/r/damianodamianodamiano/pasta)) to test the application:
 ```
 docker pull damianodamianodamiano/pasta
 docker container run -it pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
-However, the image is *rarely updated*.
+However, the image is *rarely updated* (almost never), and currently contains an old version (where some bugs are not fixed).
 
 <!-- You can also install the package via `pip`.
 Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
@@ -35,7 +43,7 @@ Note that there already exists a package called [`pasta`](https://github.com/goo
 python3 -m pip install git+https://github.com/damianoazzolini/pasta
 ``` -->
 
-## Usage
+## How to Use
 Use
 ```
 cd pasta
@@ -124,7 +132,6 @@ For example, you should not write:
 ```
 0.4::c(1).
 c(X):- a(X).
-...
 ```
 In other words, probabilistic facts cannot appear as head atoms of any rule.
 
@@ -147,6 +154,10 @@ Note: be super careful when using rules with disjunction in the head.
 You should replace them with choice rules.
 
 ## Description and How to Cite
-The system is currently described in:
-- Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
+The system and the various types of inferences are currently described in:
 - Exact inference and statistical staments: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`
+- Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
+- MAP inference: in press
+- Approximate inference: in press
+- Lifted inference: under review
+- Parameter learning: in press
