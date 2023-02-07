@@ -65,7 +65,8 @@ class Pasta:
         xor : bool = False,
         k : int = 100,
         naive_dt : bool = False,
-        lpmln : bool = False
+        lpmln : bool = False,
+        processes : int = 1
         ) -> None:
         self.filename = filename
         self.query = query
@@ -86,6 +87,7 @@ class Pasta:
         self.k_credal : int = k
         self.naive_dt : bool = naive_dt
         self.lpmln : bool = lpmln
+        self.processes : int = processes
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -283,7 +285,19 @@ class Pasta:
         self.setup_sampling(from_string)
 
         if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
-            lp, up = self.interface.sample_query()
+            if self.processes == 1:
+                lp, up = self.interface.sample_query()
+            else:
+                
+                # imposto i campioni per ciascun processo
+                self.interface.n_samples = int(self.samples / self.processes)
+                # lancio i processi
+                
+                # estraggo i valori
+                
+                # combino i risultati
+                lp = 0
+                up = 0
         elif self.evidence != "":
             if arguments.rejection is True:
                 lp, up = self.interface.rejection_sampling()
@@ -568,6 +582,7 @@ def main():
     command_parser.add_argument("--pedantic", help="Pedantic mode (prints the converted program and all the worlds), default: false", action="store_true")
     command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
     command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
+    command_parser.add_argument("--processes", help="Number of processes", type=int, default=1)
     command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
     command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
     command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
@@ -591,7 +606,7 @@ def main():
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
     command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
     command_parser.add_argument("--uxor", help="Check the consistency by XOR sampling.", action="store_true", default=False)
-
+    
     # for det approximate with genetic algorithm
     command_parser.add_argument("--popsize", help="Population size, default 50", type=int, default=50)
     command_parser.add_argument("--mutation", help="Mutation probability, default 0.05", type=float, default=0.05)
@@ -639,7 +654,8 @@ def main():
                          args.xor, 
                          100,
                          args.dtn,
-                         args.lpmln)
+                         args.lpmln,
+                         args.processes)
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
