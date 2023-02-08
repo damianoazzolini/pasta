@@ -3,6 +3,8 @@
 import argparse
 import math
 import statistics
+import multiprocessing
+import statistics
 
 # from pasta.pasta_parser import PastaParser
 from pasta_parser import PastaParser
@@ -288,16 +290,24 @@ class Pasta:
             if self.processes == 1:
                 lp, up = self.interface.sample_query()
             else:
-                
-                # imposto i campioni per ciascun processo
+                print(f'Multithreading with {self.processes} processes')
+                processes_list = []
+                timeout_seconds = 1000
+                results : 'list[tuple[float,float]]' = []
+                # set the number of samples per process
                 self.interface.n_samples = int(self.samples / self.processes)
-                # lancio i processi
+                # start the processes
+                pool = multiprocessing.Pool(processes = self.processes)
+                for _ in range(0 , self.processes):
+                    processes_list.append(pool.apply_async(self.interface.sample_query))
                 
-                # estraggo i valori
+                # get the results
+                for res in processes_list:
+                    results.append(res.get(timeout=timeout_seconds))
                 
-                # combino i risultati
-                lp = 0
-                up = 0
+                # combine the results
+                lp = statistics.mean([result[0] for result in results])
+                up = statistics.mean([result[1] for result in results])
         elif self.evidence != "":
             if arguments.rejection is True:
                 lp, up = self.interface.rejection_sampling()
