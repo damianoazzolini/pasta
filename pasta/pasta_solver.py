@@ -4,7 +4,6 @@ import argparse
 import math
 import statistics
 import multiprocessing
-import statistics
 
 # from pasta.pasta_parser import PastaParser
 from pasta_parser import PastaParser
@@ -286,43 +285,36 @@ class Pasta:
         '''
         self.setup_sampling(from_string)
 
+        if self.processes > 16:
+            print_error_and_exit("Too many processes, max 16 for safety.")
+
+        processes_list = []
+        timeout_seconds : int = 1000
+        results : 'list[tuple[float,float]]' = []
+        # set the number of samples per process
+        self.interface.n_samples = int(self.samples / self.processes)
+        # start the processes
+        pool = multiprocessing.Pool(processes = self.processes)
+
         if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
-            if self.processes == 1:
-                lp, up = self.interface.sample_query()
-            else:
-                print(f'Multithreading with {self.processes} processes')
-                processes_list = []
-                timeout_seconds = 1000
-                results : 'list[tuple[float,float]]' = []
-                # set the number of samples per process
-                self.interface.n_samples = int(self.samples / self.processes)
-                # start the processes
-                pool = multiprocessing.Pool(processes = self.processes)
-                for _ in range(0 , self.processes):
-                    processes_list.append(pool.apply_async(self.interface.sample_query))
-                
-                # get the results
-                for res in processes_list:
-                    results.append(res.get(timeout=timeout_seconds))
-                
-                # combine the results
-                lp = statistics.mean([result[0] for result in results])
-                up = statistics.mean([result[1] for result in results])
+            for _ in range(0, self.processes):
+                processes_list.append(pool.apply_async(self.interface.sample_query))
         elif self.evidence != "":
-            if arguments.rejection is True:
-                lp, up = self.interface.rejection_sampling()
-            elif arguments.mh is True:
-                lp, up = self.interface.mh_sampling()
-            elif arguments.gibbs is True:
-                lp, up = self.interface.gibbs_sampling(arguments.block)
+            if arguments.rejection:
+                processes_list.append(pool.apply_async(self.interface.rejection_sampling))
+            elif arguments.mh:
+                processes_list.append(pool.apply_async(self.interface.mh_sampling))
+            elif arguments.gibbs:
+                processes_list.append(pool.apply_async(self.interface.gibbs_sampling, (arguments.block, )))
             else:
-                lp = 0
-                up = 0
-                print_error_and_exit("Specify a sampling method: Gibbs, MH, or Rejection.")
+                print_error_and_exit("Specify a sampling method")
         else:
             print_error_and_exit("Missing evidence")
 
-        return lp, up
+        for res in processes_list:
+            results.append(res.get(timeout=timeout_seconds))
+
+        return statistics.mean([result[0] for result in results]), statistics.mean([result[1] for result in results])
 
 
     def setup_interface(self, from_string : str = "", approx : bool = False) -> None:
