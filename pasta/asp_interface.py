@@ -508,7 +508,7 @@ class AspInterface:
             while ev is False:
                 w_assignments, w_id = self.sample_world()
                 if w_id in sampled_evidence:
-                    ev = sampled_evidence[id]
+                    ev = sampled_evidence[w_id]
                 else:
                     ev = AspInterface.assign_T_F_and_check_if_evidence(ctl, w_assignments)
                     sampled_evidence[w_id] = ev
