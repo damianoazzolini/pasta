@@ -47,7 +47,7 @@ def print_inconsistent_program_approx(stop: bool = False, world: str = ""):
     '''
     message = f"Found inconsistent world {world}.\nUse the --normalize flag (only for unconditional sampling)."
     if stop:
-        print_error_and_exit(message)
+        raise Exception(message)
     print_warning(message)
 
 
