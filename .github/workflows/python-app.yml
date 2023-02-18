@@ -55,15 +55,11 @@ jobs:
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
   
     - name: Get tag
-      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      run: echo "RELEASE_VERSION=1.0.0"
 
     - name: Build docker image and push
       uses: docker/build-push-action@v2
       with:
-        context: ./
-        file: ./Dockerfile
-        builder: ${{ steps.buildx.outputs.name }}
+        context: .
         push: true
         tags: ${{ secrets.DOCKER_HUB_USERNAME }}/pasta:${{ env.RELEASE_VERSION }}
-        cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/pasta:buildcache
-        cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/pasta:buildcache,mode=max
