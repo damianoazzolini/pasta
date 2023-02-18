@@ -43,7 +43,7 @@ jobs:
         cd test && sh test_all.sh
   
   publish:
-    if: github.event_name != 'pull_request' && (contains(github.ref, 'tag'))
+    if: github.event_name != 'pull_request' # && (contains(github.ref, 'tag'))
     
     runs-on: ubuntu-latest
     
