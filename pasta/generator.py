@@ -1,12 +1,35 @@
 import sys
 import math
 import random
+import copy
 
 from utils import print_error_and_exit
-
+import continuous_cdfs
 
 def flip():
     return random.randint(0,1) == 1
+
+
+class ComparisonPredicate:
+    '''
+    Class representing an interval.
+    '''
+
+    def __init__(self, comparison_type: str, bound1: float, bound2: float = -math.inf) -> None:
+        # comparison_type in ["above","below","between","outside"]
+        self.comparison_type: str = comparison_type
+        self.bound1: float = bound1
+        self.bound2: float = bound2
+
+    def __str__(self) -> str:
+        if self.bound2 == -math.inf:
+            return f"{self.comparison_type}: [{self.bound1}]"
+        else:
+            return f"{self.comparison_type}: [{self.bound1}, {self.bound2}]"
+
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 '''
@@ -222,3 +245,115 @@ class Generator:
                 new_facts.append(f"{prob/cp}::{name}{index}.")
             prob_list.append(prob)
         return new_facts, new_clauses
+    
+    
+    @staticmethod
+    def create_intersections(intervals : 'dict[str,list[ComparisonPredicate]]') -> 'list[list[float]]':
+        '''
+        Creates the intervals for every continuous variable by
+        joining the ranges.
+        '''
+        all_bounds : 'list[list[float]]' = [] 
+        for el in intervals:
+            bounds : 'list[float]' = []
+            for comparison_pred in intervals[el]:
+                bounds.append(comparison_pred.bound1)
+                if comparison_pred.bound2 != -math.inf:
+                    bounds.append(comparison_pred.bound2)
+            all_bounds.append(copy.deepcopy(sorted(bounds)))
+        return all_bounds
+
+
+    @staticmethod
+    def generate_annotated_disjunctive_clauses(
+        bounds: 'list[list[float]]', 
+        continuous_facts: 'dict[str, tuple[str,float,float]]'
+    ) -> 'tuple[list[list[str]],list[list[str]]]':
+        '''
+        Generates the annotated disjunctive clauses for the ranges.
+        bound[0] = [0.5,0.7]
+        continuous_facts[a] = gaussian(0,1)
+        result:
+        __h_a_0__ :- __fa0__.
+        __h_a_1__ :- not __fa0__, __fa1__.
+        __h_a_2__ :- not __fa0__, not __fa1__.
+        0.6915::__fa0__. # P(X < 0.5).
+        0.2139::__fa1__. # P(0.5 < X < 0.7) / (1 - P(X < 0.5))
+        '''
+
+        # names = list(continuous_facts.keys())
+        # print(continuous_facts)
+        prob_facts_list : 'list[list[str]]' = []
+        aux_facts_clauses : 'list[list[str]]' = []
+        # bounds = [-math.inf] + bounds + [math.inf]
+        for i, current_fact in zip(range(0, len(bounds)), continuous_facts):
+            cb = [-math.inf] + bounds[i] + [math.inf]
+            # print(cb)
+            vals : 'list[float]' = []   
+            for ii in range(0, len(cb) - 1):
+                if continuous_facts[current_fact][0] == "gaussian":
+                    vals.append(
+                        continuous_cdfs.evaluate_gaussian(
+                            continuous_facts[current_fact][1], 
+                            continuous_facts[current_fact][2], 
+                            cb[ii], 
+                            cb[ii + 1]
+                        )
+                    )
+                elif continuous_facts[current_fact][0] == "uniform":
+                    vals.append(
+                        continuous_cdfs.evaluate_uniform(
+                            continuous_facts[current_fact][1], 
+                            continuous_facts[current_fact][2], 
+                            cb[ii], 
+                            cb[ii + 1]
+                        )
+                    )
+                elif continuous_facts[current_fact][0] == "gamma":
+                    vals.append(
+                        continuous_cdfs.evaluate_gamma(
+                            continuous_facts[current_fact][1], 
+                            continuous_facts[current_fact][2], 
+                            cb[ii], 
+                            cb[ii + 1]
+                        )
+                    )
+                elif continuous_facts[current_fact][0] == "exponential":
+                    vals.append(
+                        continuous_cdfs.evaluate_exponential(
+                            continuous_facts[current_fact][1], 
+                            cb[ii], 
+                            cb[ii+1]
+                        )
+                    )
+
+            # print(vals)
+            # generate the probabilistic facts
+            t_prob_facts_list : 'list[str]' = []
+            t_aux_facts_clauses : 'list[str]' = []
+            name_pf = f"__{current_fact}{0}__"
+            t_prob_facts_list.append(f"{vals[0]}::{name_pf}.")
+            t_aux_facts_clauses.append(f"__int0_{current_fact}__:- {name_pf}.")
+            for ii in range(1, len(vals)):
+                ts = ""
+                tp = 0
+                for iii in range(0, ii):
+                    tp += 1 - vals[iii]
+                    ts += f"not __{current_fact}{iii}__,"
+                # print(tp)
+                tp = vals[ii] / tp
+                name_pf = f"__{current_fact}{ii}__"
+                if ii != len(vals) - 1:
+                    t_prob_facts_list.append(f"{tp}::{name_pf}.")
+                    t_aux_facts_clauses.append(f"__int{ii}_{current_fact}__:- {ts[:-1]}, {name_pf}.")
+                else:
+                    # the last one is not all the previous
+                    t_aux_facts_clauses.append(
+                        f"__int{ii}_{current_fact}__:- {ts[:-1]}.")
+
+            prob_facts_list.append(copy.deepcopy(t_prob_facts_list))
+            aux_facts_clauses.append(copy.deepcopy(t_aux_facts_clauses))
+
+        # print(prob_facts_list,sep='\n')
+        # print(aux_facts_clauses, sep='\n')
+        return prob_facts_list, aux_facts_clauses

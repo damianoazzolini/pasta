@@ -4,9 +4,12 @@ Class defining a parser for a PASTA program.
 from io import TextIOWrapper
 import os
 import re
+import copy
+import math
 
 import utils
 from generator import Generator
+from generator import ComparisonPredicate
 
 
 def symbol_endline_or_space(char1: str) -> bool:
@@ -59,6 +62,36 @@ def get_fact_and_utility(term: str) -> 'tuple[str,float]':
     return t[0:i], float(t[i+1:])
 
 
+def extract_arguments_comparison_predicates(line : str) -> 'list[list[str]]':
+    '''
+    From a line extracts all the arguments of the comparison predicates.
+    Es: line = "above(a,4), r, above(gs, 9), below(g,7), between(a,1,4)."
+    Return: [['a,4', 'gs, 9'], ['g,7'], ['a,1,4'], []]
+    Order = ["above", "below", "between", "outside"]
+    '''
+    comparison = ["above", "below", "between", "outside"]
+    preds_bound : 'list[list[str]]'= []
+    for cp in comparison:
+        indexes = [m.start() for m in re.finditer(cp, line)]
+        tl : 'list[str]' = []
+        for i in indexes:
+            pos = i + len(cp) + 1
+            init = pos
+            end = -1
+            pars = 1
+            while pars > 0 and pos < len(line):
+                if line[pos] == ')':
+                    pars -= 1
+                elif line[pos] == '(':
+                    pars += 1
+                pos += 1
+            end = pos - 1
+            tl.append(line[init:end])
+        preds_bound.append(copy.deepcopy(tl))
+
+    return preds_bound
+
+
 class PastaParser:
     '''
     Parameters:
@@ -92,11 +125,61 @@ class PastaParser:
         self.map_id_list : 'list[int]' = []
         self.fact_utility : 'dict[str,float]' = {}
         self.decision_facts : 'list[str]' = []
+        self.continuous_facts : 'dict[str,tuple[str,float,float]]' = {}
+        self.intervals : 'dict[str,list[ComparisonPredicate]]' = {}
         self.lpmln : bool = lpmln
         self.for_asp_solver : bool = for_asp_solver
         self.naive_dt : bool = naive_dt
 
 
+    def insert_comparison(self, args_list : 'list[list[str]]') -> None:
+        '''
+        Insert a comparison predicate in the list.
+        '''
+        names = ["above","below","between","outside"]
+        for i, name in zip(range(0, len(args_list)), names):
+            for el in args_list[i]:
+                el = el.split(',')
+                cp = ComparisonPredicate(name, float(el[1]), float(el[2]) if len(el) == 3 else -math.inf)
+                if el[0] in self.intervals:
+                    self.intervals[el[0]].append(cp)
+                else:
+                    self.intervals[el[0]] = [cp]
+
+
+    def convert_comparison_predicates(self, gen : Generator, below : bool) -> None:
+        '''
+        Explodes the comparison predicates and generates the
+        new clauses.
+        '''
+        for el, interval in zip(self.intervals, gen.create_intersections(self.intervals)):
+            to_remove : 'list[int]' = [] # lines to remove (with comparison predicates)
+            new_lines : 'list[str]' = [] # lines to insert
+            if below is False:
+                interval.reverse() # above: reversed
+            # print(interval)
+            for interval_index in range(0, len(interval)):
+                cp = "below" if below else "above"
+                current_comparison_predicate = f'{cp}({el},{interval[interval_index]})'
+                # print(current_comparison_predicate)
+                for line_index in range(0, len(self.lines_prob)):
+                    if current_comparison_predicate in self.lines_prob[line_index]:
+                        to_remove.append(line_index)
+                        # loop through all the indexes <= current interval_index
+                        # and for each one insert a new line with the predicate
+                        # replaced with the correct interval
+                        # if below:
+                        for sub_interval in range(0, interval_index + 1):
+                            pos = sub_interval if below else (len(interval) - sub_interval)
+                            new_lines.append(self.lines_prob[line_index].replace(
+                                current_comparison_predicate, f"__int{pos}_{el}__"))
+
+            # remove the old lines and insert the new ones
+            for index in sorted(to_remove, reverse=True):
+                del self.lines_prob[index]
+            self.lines_prob.extend(new_lines)
+
+    
     def get_file_handler(self, from_string : str = "") -> TextIOWrapper:
         if not from_string:
             if not os.path.isfile(self.filename):
@@ -180,7 +263,7 @@ class PastaParser:
         Second layer of program parsing: generates the ASP encoding
         for the probabilistic, abducible, map, ... facts
         '''
-        n_probabilistic_facts = 0
+        # n_probabilistic_facts = 0
         gen = Generator()
         for line in self.lines_original:
             if "::" in line and not line.startswith("map"):
@@ -192,11 +275,50 @@ class PastaParser:
                     for f in new_facts:
                         probability, fact = check_consistent_prob_fact(f, self.lpmln)
                         self.add_probabilistic_fact(fact, probability)
-                        n_probabilistic_facts = n_probabilistic_facts + 1
+                        # n_probabilistic_facts = n_probabilistic_facts + 1
                 else:
                     probability, fact = check_consistent_prob_fact(line.replace(' ',''), self.lpmln)
                     self.add_probabilistic_fact(fact,probability)
-                    n_probabilistic_facts = n_probabilistic_facts + 1
+                    # n_probabilistic_facts = n_probabilistic_facts + 1
+            elif ':' in line and ((":gaussian(" in line) or (":exponential(" in line) or (":uniform(" in line) or (":gamma(" in line)):
+                # continuous fact with 2 arguments
+                if ("gaussian(" in line) or ("uniform(" in line) or (":gamma(" in line):
+                    distr_type = ""
+                    if "gaussian(" in line:
+                        line = line.split(":gaussian(")
+                        distr_type = "gaussian"
+                    elif "uniform(" in line:
+                        line = line.split(":uniform(")
+                        distr_type = "uniform"
+                    elif "gamma(" in line:
+                        line = line.split(":gamma(")
+                        distr_type = "gamma"
+
+                    name = line[0]
+                    parameters = line[1][:-2].split(',') # remove ).
+                    if len(parameters) != 2:
+                        utils.print_error_and_exit(f"The distribution of {name} requires two parameters.")
+                    try:
+                        p0 = float(parameters[0])
+                        p1 = float(parameters[1])
+                    except:
+                        utils.print_error_and_exit(f"Error in parameters {parameters}.")
+                    # i need to store also the type of distribution
+                    self.continuous_facts[name] = (distr_type, p0, p1)
+                elif "exponential(" in line:
+                    line = line.split(":exponential(")
+                    name = line[0]
+                    parameters = line[1][:-2].split(',')  # remove ).
+                    if len(parameters) != 1:
+                        utils.print_error_and_exit(
+                            "Exponential distribution requires one parameter.")
+                    try:
+                        rate = float(parameters[0])
+                    except:
+                        utils.print_error_and_exit(
+                            f"Error in parameters {parameters}.")
+                    self.continuous_facts[name] = ("exponential", rate, -1)
+            
             elif line.startswith("query("):
                 # remove the "query" functor and handles whether the line
                 # does not terminate with .
@@ -242,7 +364,6 @@ class PastaParser:
                 clauses = gen.generate_clauses_for_dt(fact, "utility", self.naive_dt)
                 # self.decision_facts.append(fact)
                 self.lines_prob.extend(clauses)
-
             elif utils.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")
@@ -260,11 +381,59 @@ class PastaParser:
                 self.lines_prob.append(new_ic_1)
 
                 self.n_probabilistic_ics = self.n_probabilistic_ics + 1
-                
+            elif ("above(" in line) or ("below(" in line) or ("between(" in line) or ("outside(" in line):
+                # comparison predicates
+                # for simplicity, suppose that the variables are atoms and
+                # not compound
+                line = line.replace(' ','') # remove the spaces
+                args_cp = extract_arguments_comparison_predicates(line)
+                # print(args_cp)
+                # replace between(a,L,U) with below(a,U) and above(a,L)
+                # and outside(a,L,U) with below(a,L) and above(a,U)
+                # [above, below, between, outside]
+                for el in args_cp[2]:
+                    # between
+                    el = el.split(',')
+                    converted = f"above({el[0]},{el[1]}), below({el[0]},{el[2]})"
+                    line = line.replace(f"between({el[0]},{el[1]},{el[2]})",converted)
+                for el in args_cp[3]:
+                    # outside: it must be substituted with two clauses
+                    el = el.split(',')
+                    converted_above = f"above({el[0]},{el[2]})"
+                    converted_below = f"below({el[0]},{el[1]})"
+                    # print("--- Converted: ---")
+                    # print(line)
+                    # print(f"outside({el[0]},{el[1]},{el[2]})")
+                    line_above = line.replace(f"outside({el[0]},{el[1]},{el[2]})", converted_above)
+                    line_below = line.replace(f"outside({el[0]},{el[1]},{el[2]})", converted_below)
+                    # print(line_above)
+                    # print(line_below)
+                    line = line_above + "\n" + line_below
+                    # print(line)
+                # print(args_cp)
+                # print(args_cp)
+                self.insert_comparison(args_cp)
+                self.lines_prob.append(line)
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append(line)
-        
+
+        if len(self.continuous_facts) > 0:
+            inter = gen.create_intersections(self.intervals)
+            # print(inter)
+            
+            prob_facts_converted, aux_facts_clauses = gen.generate_annotated_disjunctive_clauses(inter, self.continuous_facts)
+            for lf in prob_facts_converted:
+                for f in lf:
+                    probability, fact = check_consistent_prob_fact(f, self.lpmln)
+                    self.add_probabilistic_fact(fact, probability)
+            for aux in aux_facts_clauses:
+                self.lines_prob.extend(aux)
+            # print(prob_facts_converted)
+            # print(prob_facts_converted,sep='\n')
+            # print(aux_facts_clauses, sep='\n')
+
+
         if not self.query and len(self.decision_facts) == 0:
             utils.print_error_and_exit("Missing query")
 
@@ -287,7 +456,16 @@ class PastaParser:
             i = i + 1
             self.lines_prob.extend(clauses)
 
+        if len(self.continuous_facts) > 0:
+            self.convert_comparison_predicates(gen, True)
+            self.convert_comparison_predicates(gen, False)
 
+        # print('-----')
+        # for l in self.lines_prob:
+        #     print(l)
+        # import sys
+        # sys.exit()
+    
     def inference_to_mpe(self, from_string: str = "") -> 'tuple[str,int]':
         '''
         Adds 'map' before probabilistic facts.
