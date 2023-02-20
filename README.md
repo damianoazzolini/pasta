@@ -117,6 +117,13 @@ cd pasta
 python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 
+## Parameter Learning
+```
+cd pasta
+python3 pasta_solver.py ../examples/learning/background_bayesian_network.lp --pl
+```
+
+
 ### Handling Inconsistent Programs
 The credal semantics requires that every world has at least one answer set.
 These programs are called *consistent*.
