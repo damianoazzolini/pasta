@@ -46,3 +46,8 @@ flake8 ../pasta/pasta_parser.py --show-source --statistics --ignore=E203,E231,E1
 
 # echo "-- test with pytest ---"
 # cd .. && cd tests && pytest
+
+echo '--- prospector ---'
+prospector ../pasta/ -s verylow
+
+# p3 -m black <file> : refactor automatico

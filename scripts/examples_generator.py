@@ -1,10 +1,5 @@
-from fileinput import filename
-
-
 def gen_fly():
     import random
-
-    from torch import rand
 
     n_examples = 100
 
