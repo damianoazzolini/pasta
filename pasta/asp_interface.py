@@ -575,6 +575,8 @@ class AspInterface:
     def sample_query(self) -> 'tuple[float, float]':
         '''
         Samples the query self.n_samples times.
+        dummy is a dummy argument for imap_unordered, that requires
+        an iterator as argument.
         '''
         # sampled worlds
         # each element is a list [lower, upper]
@@ -588,6 +590,8 @@ class AspInterface:
         n_inconsistent : int = 0
         
         inc_sampled : 'dict[str,int]' = {}
+        if self.pedantic:
+            print(f"I take {self.n_samples} samples")
 
         # for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
         for _ in range(self.n_samples):

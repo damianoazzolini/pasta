@@ -288,32 +288,33 @@ class Pasta:
         if self.processes > 16:
             print_error_and_exit("Too many processes, max 16 for safety.")
 
-        processes_list = []
-        timeout_seconds : int = 1000
         results : 'list[tuple[float,float]]' = []
         # set the number of samples per process
         self.interface.n_samples = int(self.samples / self.processes)
-        # start the processes
-        pool = multiprocessing.Pool(processes = self.processes)
 
-        if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
-            for _ in range(0, self.processes):
-                processes_list.append(pool.apply_async(self.interface.sample_query))
-        elif self.evidence != "":
-            if arguments.rejection:
-                processes_list.append(pool.apply_async(self.interface.rejection_sampling))
-            elif arguments.mh:
-                processes_list.append(pool.apply_async(self.interface.mh_sampling))
-            elif arguments.gibbs:
-                processes_list.append(pool.apply_async(self.interface.gibbs_sampling, (arguments.block, )))
+        if self.pedantic:
+            print(f"Spawning {self.processes} processes")
+        with multiprocessing.Pool(processes=self.processes) as pool:
+            if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
+                for i in pool.imap_unordered(self.interface.sample_query, [1]*self.processes):
+                    results.append(i)
+            elif self.evidence != "":
+                if arguments.rejection:
+                    for i in pool.imap_unordered(self.interface.rejection_sampling, [1]*self.processes):
+                        results.append(i)
+                elif arguments.mh:
+                    for i in pool.imap_unordered(self.interface.mh_sampling, [1]*self.processes):
+                        results.append(i)
+                elif arguments.gibbs:
+                    for i in pool.imap_unordered(self.interface.mh_sampling, [arguments.block]*self.processes):
+                        results.append(i)
+                else:
+                    print_error_and_exit("Specify a sampling method")
             else:
-                print_error_and_exit("Specify a sampling method")
-        else:
-            print_error_and_exit("Missing evidence")
+                print_error_and_exit("Missing evidence")
 
-        for res in processes_list:
-            results.append(res.get(timeout=timeout_seconds))
-
+        if self.pedantic:
+            print(f"Results: {results}")
         return statistics.mean([result[0] for result in results]), statistics.mean([result[1] for result in results])
 
 
