@@ -572,7 +572,7 @@ class AspInterface:
         return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
 
 
-    def sample_query(self) -> 'tuple[float, float]':
+    def sample_query(self, dummy : bool = True) -> 'tuple[float, float]':
         '''
         Samples the query self.n_samples times.
         dummy is a dummy argument for imap_unordered, that requires
