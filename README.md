@@ -116,6 +116,9 @@ Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis ha
 cd pasta
 python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
+Use the flag `--samples` to set the number of samples (1000 by default), for example `--samples=2000`.
+
+Use the flag `--processes` to set the number of processes (1 by default), for example `--processes=8`. The maximum number is 16.
 
 ## Parameter Learning
 ```
