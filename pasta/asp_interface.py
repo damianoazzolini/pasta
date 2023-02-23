@@ -401,10 +401,10 @@ class AspInterface:
 
         return ctl
 
-
-    def mh_sampling(self) -> 'tuple[float, float]':
+    def mh_sampling(self, dummy: bool = True) -> 'tuple[float, float]':
         '''
-        MH sampling
+        MH sampling.
+        The argument dummy is for multiprocessing, to use imap
         '''
         # each element has the structure
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, T_count]
@@ -542,9 +542,10 @@ class AspInterface:
         return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
-    def rejection_sampling(self) -> 'tuple[float, float]':
+    def rejection_sampling(self, dummy : bool = True) -> 'tuple[float, float]':
         '''
-        Rejection Sampling
+        Rejection Sampling.
+        The argument dummy is for multiprocessing, for imap.
         '''
         # each element has the structure
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]

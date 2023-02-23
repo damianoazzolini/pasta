@@ -306,7 +306,7 @@ class Pasta:
                     for i in pool.imap_unordered(self.interface.mh_sampling, [1]*self.processes):
                         results.append(i)
                 elif arguments.gibbs:
-                    for i in pool.imap_unordered(self.interface.mh_sampling, [arguments.block]*self.processes):
+                    for i in pool.imap_unordered(self.interface.gibbs_sampling, [arguments.block]*self.processes):
                         results.append(i)
                 else:
                     print_error_and_exit("Specify a sampling method")
