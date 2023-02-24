@@ -18,4 +18,4 @@ person(mary).
 
 query(calls(mary)).
 
-% Expected: lp == up == 0.7
+% Expected: lp == up == 0.196
