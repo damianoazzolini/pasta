@@ -1,10 +1,26 @@
 import sys
 
+'''
+0.4::b.
+a:gaussian(0,1).
+q0 ; q1:- below(a,0.5).
+q0:- below(a,0.7), b.
+
+Every instance of size $n$ is characterized by $n/2$ discrete 
+probabilistic facts $df_i$, $n/2$ continuos probabilistic 
+facts $cf_i$ with gaussian distribution, $n/2$ rules \texttt
+{q0 ; q1:- below(cfi, 0.5).}, one for each continuos fact 
+$cf_i$, and $n/2$ rules \texttt{q0:- below(cfi, 0.7), dfi.}, 
+one for each discrete fact $df_i$. 
+
+Query: q0.
+'''
+
 if len(sys.argv) != 2:
-    print("Usage: pytohn3 generate_programs.py <max_size>")
+    print("Usage: pytohn3 generate_programs_t1.py <max_size>")
     sys.exit()
     
-prefix = "inst"
+prefix = "t1_inst"
 
 
 for i in range(2, int(sys.argv[1]), 2):
