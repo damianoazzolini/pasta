@@ -260,25 +260,28 @@ class Generator:
                 bounds.append(comparison_pred.bound1)
                 if comparison_pred.bound2 != -math.inf:
                     bounds.append(comparison_pred.bound2)
-            all_bounds.append(copy.deepcopy(list(set(bounds))))
+            all_bounds.append(copy.deepcopy(sorted(list(set(bounds)))))
         return all_bounds
 
 
     @staticmethod
-    def generate_annotated_disjunctive_clauses(
+    def generate_switch_clauses(
         bounds: 'list[list[float]]', 
         continuous_facts: 'dict[str, tuple[str,float,float]]'
     ) -> 'tuple[list[list[str]],list[list[str]]]':
         '''
-        Generates the annotated disjunctive clauses for the ranges.
-        bound[0] = [0.5,0.7]
+        Generates the clauses for the ranges.
+        bound[0] = [0.4,0.5,0.7]
         continuous_facts[a] = gaussian(0,1)
         result:
         __h_a_0__ :- __fa0__.
         __h_a_1__ :- not __fa0__, __fa1__.
         __h_a_2__ :- not __fa0__, not __fa1__.
-        0.6915::__fa0__. # P(X < 0.5).
-        0.2139::__fa1__. # P(0.5 < X < 0.7) / (1 - P(X < 0.5))
+        # P(X < 0.4).
+        0.6554::__fa0__. 
+        # P(0.4 < X < 0.5) / (1 - P(X < 0.4)) = 0.036 / (1 - 0.6554) = 0.10459
+        0.10446::__fa1__.
+        # P(0.5 < X < 0.7) / (1 - P(X < 0.5)) = 0.066 / (1 - 0.6915) = 0.2157724
         '''
 
         # names = list(continuous_facts.keys())
@@ -339,10 +342,10 @@ class Generator:
                 ts = ""
                 tp = 0
                 for iii in range(0, ii):
-                    tp += 1 - vals[iii]
+                    tp += vals[iii]
                     ts += f"not __{current_fact}{iii}__,"
-                # print(tp)
-                tp = vals[ii] / tp
+                # print(1 - tp)
+                tp = vals[ii] / (1-tp)
                 name_pf = f"__{current_fact}{ii}__"
                 if ii != len(vals) - 1:
                     t_prob_facts_list.append(f"{tp}::{name_pf}.")

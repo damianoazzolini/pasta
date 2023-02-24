@@ -385,6 +385,8 @@ class PastaParser:
                 # comparison predicates
                 # for simplicity, suppose that the variables are atoms and
                 # not compound
+                # TODO: below(a,0.5), not w. became below(a,0.5),notw,
+                # so the not disapears: FIX, due to the next line
                 line = line.replace(' ','') # remove the spaces
                 args_cp = extract_arguments_comparison_predicates(line)
                 # print(args_cp)
@@ -422,7 +424,8 @@ class PastaParser:
             inter = gen.create_intersections(self.intervals)
             # print(inter)
             
-            prob_facts_converted, aux_facts_clauses = gen.generate_annotated_disjunctive_clauses(inter, self.continuous_facts)
+            prob_facts_converted, aux_facts_clauses = gen.generate_switch_clauses(
+                inter, self.continuous_facts)
             for lf in prob_facts_converted:
                 for f in lf:
                     probability, fact = check_consistent_prob_fact(f, self.lpmln)
