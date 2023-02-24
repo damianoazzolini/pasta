@@ -282,8 +282,8 @@ class Generator:
         '''
 
         # names = list(continuous_facts.keys())
-        print(continuous_facts)
-        print(bounds)
+        # print(continuous_facts)
+        # print(bounds)
         prob_facts_list : 'list[list[str]]' = []
         aux_facts_clauses : 'list[list[str]]' = []
         # bounds = [-math.inf] + bounds + [math.inf]
@@ -328,7 +328,7 @@ class Generator:
                         )
                     )
 
-            print(vals)
+            # print(vals)
             # generate the probabilistic facts
             t_prob_facts_list : 'list[str]' = []
             t_aux_facts_clauses : 'list[str]' = []
@@ -355,6 +355,6 @@ class Generator:
             prob_facts_list.append(copy.deepcopy(t_prob_facts_list))
             aux_facts_clauses.append(copy.deepcopy(t_aux_facts_clauses))
 
-        print(prob_facts_list,sep='\n')
+        # print(prob_facts_list,sep='\n')
         # print(aux_facts_clauses, sep='\n')
         return prob_facts_list, aux_facts_clauses
