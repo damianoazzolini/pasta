@@ -1,7 +1,6 @@
 import sys
 import argparse
 import importlib.util
-import pytest
 import unittest
 
 import utils_for_tests
