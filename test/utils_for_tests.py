@@ -1,9 +1,5 @@
-def almostEqual(a : float, b : float, digits : int) -> bool:
-    epsilon = 10 ** -digits
-    if b == 0:
-        return a == b
-    else:
-        return abs(a/b - 1) < epsilon
+def almostEqual(target : float, computed : float, tolerance : float = 0.015) -> bool:
+    return (abs(target - computed) <= tolerance) and (computed >= 0) and (computed <= 1)
 
 
 def check_if_lists_equal(list_1 : 'list[str]', list_2 : 'list[str]') -> bool:
@@ -39,4 +35,30 @@ def check_if_lists_equal(list_1 : 'list[str]', list_2 : 'list[str]') -> bool:
     else:
         # print("Error, Lists are not equal")
         return False
+
+class TestArguments:
+    def __init__(self,
+        test_name : str,
+        filename : str,
+        query : str,
+        expected_lp : float,
+        expected_up : float,
+        evidence : str = "",
+        samples : int = 5000,
+        mh : bool = False,
+        gibbs : bool = False,
+        rejection : bool = False,
+        normalize : bool = False) -> None:
+        self.test_name = test_name
+        self.filename = filename
+        self.query = query
+        self.expected_lp = expected_lp
+        self.expected_up = expected_up
+        self.evidence = evidence
+        self.samples = samples
+        self.mh = mh
+        self.gibbs = gibbs
+        self.rejection = rejection
+        self.normalize = normalize
         
+# print(almostEqual(0.5,0.484,0.015))
