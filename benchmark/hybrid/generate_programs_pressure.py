@@ -24,7 +24,7 @@ high_number_strokes:-
 '''
 
 if len(sys.argv) != 2:
-    print("Usage: pytohn3 generate_programs_pressure.py <max_size>")
+    print("Usage: python3 generate_programs_pressure.py <max_size>")
     sys.exit()
 
 prefix = "pressure_inst"

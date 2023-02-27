@@ -24,7 +24,6 @@ if len(sys.argv) != 2:
 
 prefix = "t2_inst"
 
-sys.argv[1] = '6'
 for i in range(5, int(sys.argv[1])):
     c1 : 'str' = ""
     c2 : 'str' = ""

@@ -17,7 +17,7 @@ Query: q0.
 '''
 
 if len(sys.argv) != 2:
-    print("Usage: pytohn3 generate_programs_t1.py <max_size>")
+    print("Usage: python3 generate_programs_t1.py <max_size>")
     sys.exit()
     
 prefix = "t1_inst"
