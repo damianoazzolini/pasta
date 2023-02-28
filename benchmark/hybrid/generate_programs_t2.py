@@ -29,8 +29,8 @@ for i in range(1, int(sys.argv[1])):
     c2 : 'str' = ""
     fc1 : 'list[str]' = []
     fc2 : 'list[str]' = []
-    prev0 = 0
-    prev1 = -27
+    prev0 = -30
+    prev1 = random.uniform(-30, -29)
     
     for ii in range(0, i):
         if ii == 0:
@@ -40,8 +40,8 @@ for i in range(1, int(sys.argv[1])):
         fc1.append(f"between(a, {round(prev0,3)}, {round(current,3)})")    
         prev0 = current
     
-    prev0 = 0
-    prev1 = -27
+    prev0 = -30
+    prev1 = random.uniform(-30, -29)
     for ii in range(0, i):
         if ii == 0:
             current = prev1
