@@ -3,7 +3,7 @@ import random
 
 '''
 0.4::b.
-a:gaussian(0,10).
+a:gaussian(0,30).
 q0 ; q1:- below(a,0.5).
 q0:- below(a,0.7), b.
 
@@ -24,7 +24,7 @@ if len(sys.argv) != 2:
 
 prefix = "t2_inst"
 
-for i in range(5, int(sys.argv[1])):
+for i in range(1, int(sys.argv[1])):
     c1 : 'str' = ""
     c2 : 'str' = ""
     fc1 : 'list[str]' = []
@@ -54,9 +54,11 @@ for i in range(5, int(sys.argv[1])):
 
     fp.write("0.4::b.\na:gaussian(0,10).\n")
 
-    fp.write(f"q0;q1:- {','.join(fc1)}.")
+    for el in fc1:
+        fp.write(f"q0;q1:- {el}.\n")
     fp.write('\n')
-    fp.write(f"q0:- {','.join(fc2)}.")
+    for el in fc2:
+        fp.write(f"q0:- {el}.\n")
     fp.write('\n')
 
     fp.close()
