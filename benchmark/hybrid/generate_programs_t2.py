@@ -30,23 +30,23 @@ for i in range(1, int(sys.argv[1])):
     fc1 : 'list[str]' = []
     fc2 : 'list[str]' = []
     prev0 = -30
-    prev1 = random.uniform(-30, -29)
+    prev1 = random.uniform(-30, -20)
     
     for ii in range(0, i):
         if ii == 0:
             current = prev1
         else:
-            current = random.uniform(prev0, 30)
+            current = random.uniform(prev0, prev0 + float(60/i))
         fc1.append(f"between(a, {round(prev0,3)}, {round(current,3)})")    
         prev0 = current
     
     prev0 = -30
-    prev1 = random.uniform(-30, -29)
+    prev1 = random.uniform(-30, -20)
     for ii in range(0, i):
         if ii == 0:
             current = prev1
         else:
-            current = random.uniform(prev0, 30)
+            current = random.uniform(prev0, prev0 + float(60/i))
         fc2.append(f"between(a, {round(prev0,3)}, {round(current,3)})")    
         prev0 = current
 
