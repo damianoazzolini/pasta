@@ -165,10 +165,6 @@ class PastaParser:
                 for line_index in range(0, len(self.lines_prob)):
                     if current_comparison_predicate in self.lines_prob[line_index]:
                         to_remove.append(line_index)
-                        # loop through all the indexes <= current interval_index
-                        # and for each one insert a new line with the predicate
-                        # replaced with the correct interval
-                        # if below:
                         for sub_interval in range(0, interval_index + 1):
                             pos = sub_interval if below else (len(interval) - sub_interval)
                             new_lines.append(self.lines_prob[line_index].replace(
@@ -396,13 +392,21 @@ class PastaParser:
                 for el in args_cp[2]:
                     # between
                     el = el.split(',')
-                    converted = f"above({el[0]},{el[1]}), below({el[0]},{el[2]})"
+                    lb = float(el[1])
+                    ub = float(el[2])
+                    if lb > ub:
+                        utils.print_error_and_exit(f"Error: {lb} > {ub}")
+                    converted = f"above({el[0]},{lb}), below({el[0]},{ub})"
                     line = line.replace(f"between({el[0]},{el[1]},{el[2]})",converted)
                 for el in args_cp[3]:
                     # outside: it must be substituted with two clauses
                     el = el.split(',')
-                    converted_above = f"above({el[0]},{el[2]})"
-                    converted_below = f"below({el[0]},{el[1]})"
+                    lb = float(el[1])
+                    ub = float(el[2])
+                    if lb > ub:
+                        utils.print_error_and_exit(f"Error: {lb} > {ub}")
+                    converted_above = f"above({el[0]},{ub})"
+                    converted_below = f"below({el[0]},{lb})"
                     # print("--- Converted: ---")
                     # print(line)
                     # print(f"outside({el[0]},{el[1]},{el[2]})")
