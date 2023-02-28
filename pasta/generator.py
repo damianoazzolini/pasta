@@ -336,7 +336,8 @@ class Generator:
             t_prob_facts_list : 'list[str]' = []
             t_aux_facts_clauses : 'list[str]' = []
             name_pf = f"__{current_fact}{0}__"
-            t_prob_facts_list.append(f"{vals[0]}::{name_pf}.")
+            v0 = "{:.10f}".format(vals[0])
+            t_prob_facts_list.append(f"{v0}::{name_pf}.")
             t_aux_facts_clauses.append(f"__int0_{current_fact}__:- {name_pf}.")
             for ii in range(1, len(vals)):
                 ts = ""
@@ -345,7 +346,7 @@ class Generator:
                     tp += vals[iii]
                     ts += f"not __{current_fact}{iii}__,"
                 # print(1 - tp)
-                tp = vals[ii] / (1-tp)
+                tp = "{:.10f}".format(vals[ii] / (1-tp))
                 name_pf = f"__{current_fact}{ii}__"
                 if ii != len(vals) - 1:
                     t_prob_facts_list.append(f"{tp}::{name_pf}.")
