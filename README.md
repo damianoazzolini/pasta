@@ -167,7 +167,7 @@ You should replace them with choice rules.
 The system and the various types of inferences are currently described in:
 - Exact inference and statistical staments: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`
 - Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
-- MAP inference: in press
-- Approximate inference: in press
+- MAP inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Map inference in probabilistic answer set programs. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 413--426, Cham, 2023. Springer International Publishing.`
+- Approximate inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Approximate inference in probabilistic answer set programming for statistical probabilities. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 33--46, Cham, 2023. Springer International Publishing.` 
 - Lifted inference: under review
 - Parameter learning: in press
