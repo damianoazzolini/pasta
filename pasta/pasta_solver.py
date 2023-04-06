@@ -432,14 +432,6 @@ class Pasta:
         self.interface.compute_probabilities()
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
-        if self.interface.normalizing_factor >= 1:
-            lp = 1
-            up = 1
-            print_warning("No worlds have > 1 answer sets")
-
-        if self.normalize_prob and self.interface.normalizing_factor != 0:
-            lp = lp / (1 - self.interface.normalizing_factor)
-            up = up / (1 - self.interface.normalizing_factor)
 
         check_lp_up(lp, up)
 
@@ -642,6 +634,8 @@ def main():
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
         args.minimal = False
+    if args.pedantic:
+        args.verbose = True
 
     pasta_solver = Pasta(args.filename, 
                          args.query, 
@@ -680,7 +674,7 @@ def main():
         Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
     elif (args.dt or args.dtn) and args.approximate:
         if args.dt:
-            print_error_and_exit("Approximate must be used with the -dtn flag.")
+            print_error_and_exit("Approximate should be used with the -dtn flag.")
         best_util, utility_atoms = pasta_solver.decision_theory_approximate(
             samples=args.samples,
             popsize=args.popsize,
@@ -691,6 +685,8 @@ def main():
         best_util, utility_atoms = pasta_solver.decision_theory_naive()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dt:
+        if args.normalize:
+            print_error_and_exit("Normalization should be used with the -dtn flag.")
         best_util, utility_atoms = pasta_solver.decision_theory_improved()
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.test is not None:

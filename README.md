@@ -122,10 +122,16 @@ Use the flag `--processes` to set the number of processes (1 by default), for ex
 
 ## Parameter Learning
 ```
-cd pasta
+cd pasta/
 python3 pasta_solver.py ../examples/learning/background_bayesian_network.lp --pl
 ```
 
+## Decision Theory
+```
+cd pasta/
+python3 pasta_solver.py ../examples/decision_theory/dummy.lp -dt
+```
+For normalization, you should use `-dtn` insted of `-dt`.
 
 ### Handling Inconsistent Programs
 The credal semantics requires that every world has at least one answer set.
@@ -171,3 +177,4 @@ The system and the various types of inferences are currently described in:
 - Approximate inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Approximate inference in probabilistic answer set programming for statistical probabilities. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 33--46, Cham, 2023. Springer International Publishing.` 
 - Lifted inference: under review
 - Parameter learning: in press
+- Decision theory: in press

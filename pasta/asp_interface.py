@@ -103,7 +103,7 @@ class AspInterface:
         self.prob_facts_dict : 'dict[str,float]' = probabilistic_facts
         self.stop_if_inconsistent : bool = stop_if_inconsistent
         self.normalize_prob : bool = normalize_prob
-        self.normalizing_factor : float = 0
+        self.normalizing_factor : float = 1
         self.xor: bool = xor
         self.decision_atoms_selected : 'list[str]' = []
         self.utility : 'list[float]' = [-math.inf,-math.inf]
@@ -166,57 +166,68 @@ class AspInterface:
                 self.model_handler.add_value(str(m))  # type: ignore
                 self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
+    
+        if len(self.model_handler.worlds_dict) != 2**len(self.prob_facts_dict):
+            if len(self.model_handler.worlds_dict) == 0 and len(self.prob_facts_dict) > 0:
+                self.lower_probability_query = 0
+                self.upper_probability_query = 0
+                utils.print_pathological_program()
+                return
 
-        ks = sorted(self.model_handler.worlds_dict.keys())
-        l : 'list[int]' = []
-        for el in ks:
-            if el != '':
-                l.append(int(el,2))
-
-        missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
-
-        if len(ks) == 0 and len(self.prob_facts_dict) > 0:
-            self.lower_probability_query = 0
-            self.upper_probability_query = 0
-            utils.print_pathological_program()
-            return
-
-        ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
-        nw = 2**len(self.prob_facts_dict)
-
-        if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
-            utils.print_inconsistent_program(self.stop_if_inconsistent)
-            
-        if self.stop_if_inconsistent and len(missing) > 0 and not self.normalize_prob and len(self.prob_facts_dict) > 0:
-            res = ""
-            for el in missing:
-                s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
-                i = 0
-                res = res + s + "{ "
-                for el in self.prob_facts_dict:
-                    if s[i] == '1':
-                        res += el + " "
-                    i = i + 1
-                res += "}\n"
-            utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
-
-        if self.normalize_prob:
-            for el in missing:
-                n = str(bin(el))[2:]
-                n = str(n).zfill(len(ks[0]))
-                i = 0
-                np = 1
-                for pf in self.prob_facts_dict:
-                    if n[i] == '0':
-                        np = np * (1 - self.prob_facts_dict[pf])
-                    else:
-                        np = np * self.prob_facts_dict[pf]
-                    i = i + 1
-                self.normalizing_factor = self.normalizing_factor + np
-                self.inconsistent_worlds[n] = np
+            missing = []
             if self.pedantic:
-                print(f"n missing {len(missing)}")
-                print(self.inconsistent_worlds)
+                ks = sorted(self.model_handler.worlds_dict.keys())
+                l : 'list[int]' = []
+                for el in ks:
+                    if el != '':
+                        l.append(int(el,2))
+                missing = sorted(set(range(0, 2**len(self.prob_facts_dict))).difference(l), key=lambda x: bin(x)[2:].count('1'))
+
+                ntw = len(self.model_handler.worlds_dict) + 2**(len(self.prob_facts_dict) - len(self.cautious_consequences))
+                nw = 2**len(self.prob_facts_dict)
+
+                # TODO: check this case
+                if len(self.cautious_consequences) > 0 and (ntw != nw) and not self.xor and not self.upper:
+                    utils.print_inconsistent_program(self.stop_if_inconsistent)
+            
+            if self.stop_if_inconsistent and not self.normalize_prob and len(self.prob_facts_dict) > 0:
+                res = ""
+                for el in missing:
+                    s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
+                    i = 0
+                    res = res + s + "{ "
+                    for el in self.prob_facts_dict:
+                        if s[i] == '1':
+                            res += el + " "
+                        i = i + 1
+                    res += "}\n"
+                if self.pedantic:
+                    utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
+                else:
+                    utils.print_error_and_exit(f"found worlds without answer sets")
+
+        self.normalizing_factor = 1
+        if self.normalize_prob:
+            # old version as 1 - sum of the inconsistent
+            # for el in missing:
+            #     n = str(bin(el))[2:]
+            #     n = str(n).zfill(len(ks[0]))
+            #     i = 0
+            #     np = 1
+            #     for pf in self.prob_facts_dict:
+            #         if n[i] == '0':
+            #             np = np * (1 - self.prob_facts_dict[pf])
+            #         else:
+            #             np = np * self.prob_facts_dict[pf]
+            #         i = i + 1
+            #     self.normalizing_factor = self.normalizing_factor + np
+            #     self.inconsistent_worlds[n] = np
+            # self.normalizing_factor = 1 - self.normalizing_factor
+            # new version as sum of the consistent worlds
+            self.normalizing_factor = sum([x.prob for x in self.model_handler.worlds_dict.values()])
+            if self.pedantic:
+                # print(f"n missing {len(missing)}")
+                # print(self.inconsistent_worlds)
                 print(f"Normalizing factor: {self.normalizing_factor}")
 
         if self.pedantic:
@@ -244,7 +255,15 @@ class AspInterface:
                     print("")
             print(f"Total number of worlds that contribute to the probability: {lp_count + up_count}")
             print(f"Only LP: {lp_count}, Only UP: {up_count}")
+        
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
+        if self.normalizing_factor == 0:
+            self.lower_probability_query = 1
+            self.upper_probability_query = 1
+            utils.print_warning("No worlds have > 1 answer sets")
+        else:
+            self.lower_probability_query = self.lower_probability_query / self.normalizing_factor
+            self.upper_probability_query = self.upper_probability_query / self.normalizing_factor
 
 
     def compute_mpe_asp_solver(self, one : bool = False) -> 'tuple[str,bool]':
@@ -765,6 +784,10 @@ class AspInterface:
                 print(f"Strategy: {bin_value}, Utility: [{current_utility_l, current_utility_u}]")
             self.asp_program = original_prg.copy()
         
+        if self.pedantic:
+            print("Utilities")
+            for ut in computed_utilities_list:
+                print(f"{ut}: {computed_utilities_list[ut]}")
         return self.extract_best_utility(computed_utilities_list, self.upper)
 
 
