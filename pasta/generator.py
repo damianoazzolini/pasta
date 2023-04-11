@@ -220,7 +220,7 @@ class Generator:
         prob_list : 'list[float]' = []
         name : str = "__aux_fact__"
         acc_prob : float = 0
-        line = line.split(';')
+        line = line.split(';')  # type: ignore
         for index, el in enumerate(line):
             head = el.split('::')[1].replace(' ','')
             if head.endswith('.'):
@@ -345,7 +345,6 @@ class Generator:
                 for iii in range(0, ii):
                     tp += vals[iii]
                     ts += f"not __{current_fact}{iii}__,"
-                # print(1 - tp)
                 tp = "{:.10f}".format(vals[ii] / (1-tp))
                 name_pf = f"__{current_fact}{ii}__"
                 if ii != len(vals) - 1:
