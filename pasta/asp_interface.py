@@ -939,14 +939,16 @@ class AspInterface:
         # print(self.decision_atoms_list)
 
         if initial_population_size > 2**(len(self.decision_atoms_list)):
-            utils.print_error_and_exit(f"Initial population size ({initial_population_size}) should be less than the number of possible strategies ({2**len(self.decision_atoms_list)}).")
+            utils.print_warning(f"Initial population size ({initial_population_size}) should be less than the number of possible strategies ({2**len(self.decision_atoms_list)}).")
+            utils.print_warning("Setting initial population size to number of possible strategies.")
+            initial_population_size = 2**(len(self.decision_atoms_list))
 
         population : 'list[Individual]' = init_population(initial_population_size)
         if to_maximize == "lower":
-            population.sort(key=lambda x : x.score_l)
+            population.sort(key=lambda x : x.score_l, reverse=True)
         else:
-            population.sort(key=lambda x : x.score_u)
-            
+            population.sort(key=lambda x: x.score_u, reverse=True)
+         
         self.n_samples = samples_for_inference
         
         for it in range(max_iterations_genetic):
