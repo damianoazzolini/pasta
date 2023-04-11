@@ -356,7 +356,7 @@ class ModelsHandler():
 
     def manage_worlds_dict(self,
         current_dict : 'dict[str,World]',
-        id : str,
+        id_w : str,
         prob : float,
         model_query : bool,
         model_evidence : bool
@@ -369,19 +369,19 @@ class ModelsHandler():
         model_evidence = True -> e in line
         model_evidence = False -> ne in line
         '''
-        if id in current_dict:
+        if id_w in current_dict:
             if self.evidence == "":
                 if model_query is True:
-                    current_dict[id].increment_model_query_count()
+                    current_dict[id_w].increment_model_query_count()
                 else:
-                    current_dict[id].increment_model_not_query_count()
-                current_dict[id].increment_model_count()
+                    current_dict[id_w].increment_model_not_query_count()
+                current_dict[id_w].increment_model_count()
             else:
-                current_dict[id].increment_model_count()
+                current_dict[id_w].increment_model_count()
                 if (model_query is True) and (model_evidence is True):
-                    current_dict[id].increment_model_query_count()  # q e
+                    current_dict[id_w].increment_model_query_count()  # q e
                 elif (model_query is False) and (model_evidence is True):
-                    current_dict[id].increment_model_not_query_count()  # nq e
+                    current_dict[id_w].increment_model_not_query_count()  # nq e
             return
 
         # element not found -> add a new world
@@ -399,7 +399,7 @@ class ModelsHandler():
             elif (model_query is False) and (model_evidence is True):
                 w.increment_model_not_query_count()  # nq e
 
-        current_dict[id] = w
+        current_dict[id_w] = w
 
 
     def add_value(self, line : str) -> None:

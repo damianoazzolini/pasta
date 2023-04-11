@@ -202,9 +202,9 @@ class AspInterface:
                         i = i + 1
                     res += "}\n"
                 if self.pedantic:
-                    utils.print_error_and_exit(f"found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
+                    utils.print_error_and_exit(f"Found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
                 else:
-                    utils.print_error_and_exit(f"found worlds without answer sets")
+                    utils.print_error_and_exit("Found worlds without answer sets")
 
         self.normalizing_factor = 1
         if self.normalize_prob:
@@ -830,19 +830,19 @@ class AspInterface:
             '''
             Individual for the population
             '''
-            def __init__(self, id : str, score : 'list[float]') -> None:
-                self.id = id
+            def __init__(self, id_individual : str, score : 'list[float]') -> None:
+                self.id_individual = id_individual
                 self.score_l = score[0]
                 self.score_u = score[1]
             
             def __str__(self) -> str:
-                return f"id: {self.id} lower score: {self.score_l} upper score: {self.score_u}"
+                return f"id: {self.id_individual} lower score: {self.score_l} upper score: {self.score_u}"
 
             def __repr__(self) -> str:
                 return self.__str__()
+ 
     
-    
-        def evaluate_score(id : str) -> 'list[float]':
+        def evaluate_score(id_individual: str) -> 'list[float]':
             '''
             Computes the score of an individual by creating the PASP
             with the specified decision atoms and then by computing the 
@@ -861,11 +861,11 @@ class AspInterface:
             # id = "11"
             
             if self.verbose:
-                print(f"Combination: {str(id)}")
+                print(f"Combination: {str(id_individual)}")
             # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
             # add the constraints for the truth values of the facts
             # constraints: list[str] = []
-            for index, v in enumerate(id):
+            for index, v in enumerate(id_individual):
                 mode = "" if int(v) == 0 else "not"
                 c = f":- {mode} {self.decision_atoms_list[index]}."
                 # constraints.append(c)
@@ -901,12 +901,8 @@ class AspInterface:
             
             computed_utility = [current_utility_l, current_utility_u]
             if self.verbose:
-                print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
+                print(f"Strategy: {id_individual}, Utility: [{current_utility_l, current_utility_u}]")
             self.asp_program = original_prg.copy()
-            # original_prg_constr = self.asp_program.copy()
-
-            # self.asp_program = original_prg.copy()
-            # print(f"Strategy: {id}, Utility: [{current_utility_l, current_utility_u}]")
 
             return computed_utility
 
@@ -915,13 +911,13 @@ class AspInterface:
             '''
             Samples an individual for the population (i.e, a strategy).
             '''
-            id : str = ""
+            id_individual : str = ""
             for _ in self.decision_atoms_list:
                 if random.random() < 0.5:
-                    id += "1"
+                    id_individual += "1"
                 else:
-                    id += "0"
-            return Individual(id, evaluate_score(id))
+                    id_individual += "0"
+            return Individual(id_individual, evaluate_score(id_individual))
 
             
         def init_population(size : int) -> 'list[Individual]':
@@ -956,9 +952,9 @@ class AspInterface:
                 print(f"Iteration {it} - best: {population[0]}")
             best_a = population[0]
             best_b = population[1]
-            crossover_position = random.randint(0, len(best_a.id) - 1)
+            crossover_position = random.randint(0, len(best_a.id_individual) - 1)
             # combine the two ids
-            l_id = list(best_a.id[:crossover_position] + best_b.id[crossover_position:])
+            l_id = list(best_a.id_individual[:crossover_position] + best_b.id_individual[crossover_position:])
             
             # mutation
             for i in range(0,len(l_id)):
@@ -969,7 +965,7 @@ class AspInterface:
             # find whether the current element is in the list
             found = False
             for l in population:
-                if l.id == new_element_id:
+                if l.id_individual == new_element_id:
                     found = True
                     break
 
@@ -991,7 +987,7 @@ class AspInterface:
 
         # print(population)
         best_comb : 'list[str]' = []
-        for c, decision in zip(population[0].id, self.decision_atoms_list):
+        for c, decision in zip(population[0].id_individual, self.decision_atoms_list):
             if int(c) == 1:
                 best_comb.append(decision)
             else:
