@@ -48,6 +48,17 @@ class TestClassExactInference(unittest.TestCase):
             0.7180920158751786
         )
         self.wrap_test_hybrid(parameters)
+        
+    def test_dummy_normalize(self):
+        parameters = utils_for_tests.TestArguments(
+            "dummy_below_normalize",
+            "../examples/hybrid/dummy_normalize.lp",
+            "q0",
+            0.09307694498958728,
+            0.6330737873228345,
+            normalize=True
+        )
+        self.wrap_test_hybrid(parameters)
 
     def test_cold(self):
         parameters = utils_for_tests.TestArguments(
