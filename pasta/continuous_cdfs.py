@@ -1,5 +1,5 @@
 import math
-import scipy.stats
+import scipy.stats  # type: ignore
 
 import utils
 
@@ -10,11 +10,11 @@ def evaluate_gaussian(mean : float, stddev : float, lb : float, ub : float) -> f
     '''
     distr = scipy.stats.norm(mean, stddev)
     if lb == -math.inf and ub != math.inf:
-        return distr.cdf(ub)
+        return distr.cdf(ub) # type: ignore
     elif lb != -math.inf and ub == math.inf:
-        return 1 - distr.cdf(lb)
+        return 1 - distr.cdf(lb) # type: ignore
     elif lb != -math.inf and ub != math.inf:
-        return distr.cdf(ub) - distr.cdf(lb)
+        return distr.cdf(ub) - distr.cdf(lb)  # type: ignore
 
 
 def evaluate_uniform(a : float, b : float, lb : float, ub : float) -> float:
@@ -24,11 +24,11 @@ def evaluate_uniform(a : float, b : float, lb : float, ub : float) -> float:
     '''
     distr = scipy.stats.uniform(loc=a, scale=b)
     if lb == -math.inf and ub != math.inf:
-        return distr.cdf(ub)
+        return distr.cdf(ub) # type: ignore
     elif lb != -math.inf and ub == math.inf:
-        return 1 - distr.cdf(lb)
+        return 1 - distr.cdf(lb) # type: ignore
     elif lb != -math.inf and ub != math.inf:
-        return distr.cdf(ub) - distr.cdf(lb)
+        return distr.cdf(ub) - distr.cdf(lb) # type: ignore
     else:
         utils.print_error_and_exit("Both lb and ub are -inf")
 
@@ -40,11 +40,11 @@ def evaluate_exponential(lambda_rate : float, lb : float, ub : float) -> float:
     '''
     distr = scipy.stats.expon(scale = 1/ lambda_rate)
     if lb == -math.inf and ub != math.inf:
-        return distr.cdf(ub)
+        return distr.cdf(ub) # type: ignore
     elif lb != -math.inf and ub == math.inf:
-        return 1 - distr.cdf(lb)
+        return 1 - distr.cdf(lb) # type: ignore
     elif lb != -math.inf and ub != math.inf:
-        return distr.cdf(ub) - distr.cdf(lb)
+        return distr.cdf(ub) - distr.cdf(lb)  # type: ignore
     else:
         utils.print_error_and_exit("Both lb and ub are -inf")
 
@@ -56,11 +56,11 @@ def evaluate_gamma(alpha_shape : float, beta_rate : float, lb : float, ub : floa
     '''
     distr = scipy.stats.gamma(alpha_shape, scale = 1 / beta_rate)
     if lb == -math.inf and ub != math.inf:
-        return distr.cdf(ub)
+        return distr.cdf(ub) # type: ignore
     elif lb != -math.inf and ub == math.inf:
-        return 1 - distr.cdf(lb)
+        return 1 - distr.cdf(lb) # type: ignore
     elif lb != -math.inf and ub != math.inf:
-        return distr.cdf(ub) - distr.cdf(lb)
+        return distr.cdf(ub) - distr.cdf(lb) # type: ignore
     else:
         utils.print_error_and_exit("Both lb and ub are -inf")
     
