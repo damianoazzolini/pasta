@@ -314,7 +314,6 @@ class PastaParser:
                         utils.print_error_and_exit(
                             f"Error in parameters {parameters}.")
                     self.continuous_facts[name] = ("exponential", rate, -1)
-            
             elif line.startswith("query("):
                 # remove the "query" functor and handles whether the line
                 # does not terminate with .
@@ -395,7 +394,7 @@ class PastaParser:
                     lb = float(el[1])
                     ub = float(el[2])
                     if lb > ub:
-                        utils.print_error_and_exit(f"Error: {lb} > {ub}")
+                        utils.print_error_and_exit(f"{lb} > {ub}")
                     converted = f"above({el[0]},{lb}), below({el[0]},{ub})"
                     line = line.replace(f"between({el[0]},{el[1]},{el[2]})",converted)
                 for el in args_cp[3]:
@@ -404,7 +403,7 @@ class PastaParser:
                     lb = float(el[1])
                     ub = float(el[2])
                     if lb > ub:
-                        utils.print_error_and_exit(f"Error: {lb} > {ub}")
+                        utils.print_error_and_exit(f"{lb} > {ub}")
                     converted_above = f"above({el[0]},{ub})"
                     converted_below = f"below({el[0]},{lb})"
                     # print("--- Converted: ---")
@@ -431,6 +430,8 @@ class PastaParser:
             prob_facts_converted, aux_facts_clauses = gen.generate_switch_clauses(
                 inter, self.continuous_facts)
             for lf in prob_facts_converted:
+                # print("Probabilistic facts converted")
+                # print(lf)
                 for f in lf:
                     probability, fact = check_consistent_prob_fact(f, self.lpmln)
                     self.add_probabilistic_fact(fact, probability)
