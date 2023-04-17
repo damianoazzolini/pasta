@@ -1,6 +1,6 @@
 import math
 
-import pasta_solver
+from . import pasta_solver
 
 interpretation_string = "interpretation"
 LOGZERO = 0.001

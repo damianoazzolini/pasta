@@ -3,8 +3,8 @@ import math
 import random
 import copy
 
-from utils import print_error_and_exit
-import continuous_cdfs
+from .utils import print_error_and_exit
+from . import continuous_cdfs
 
 def flip():
     return random.randint(0,1) == 1

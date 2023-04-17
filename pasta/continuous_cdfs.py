@@ -1,7 +1,7 @@
 import math
 import scipy.stats  # type: ignore
 
-import utils
+from . import utils
 
 def evaluate_gaussian(mean : float, stddev : float, lb : float, ub : float) -> float:
     '''

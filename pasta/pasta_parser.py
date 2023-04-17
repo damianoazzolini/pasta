@@ -7,9 +7,9 @@ import re
 import copy
 import math
 
-import utils
-from generator import Generator
-from generator import ComparisonPredicate
+from . import utils
+from .generator import Generator
+from .generator import ComparisonPredicate
 
 
 def symbol_endline_or_space(char1: str) -> bool:

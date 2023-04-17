@@ -6,15 +6,15 @@ import statistics
 import multiprocessing
 
 # from pasta.pasta_parser import PastaParser
-from pasta_parser import PastaParser
+from .pasta_parser import PastaParser
 # import pasta_parser
-from asp_interface import AspInterface
+from .asp_interface import AspInterface
 # import asp_interface
-from utils import print_error_and_exit, print_warning
+from .utils import print_error_and_exit, print_warning
 
-import generator
+from . import generator
 
-import learning_utilities
+from . import learning_utilities
 
 examples_string_exact = "python3 pasta_solver.py \
     ../examples/bird_4.lp \

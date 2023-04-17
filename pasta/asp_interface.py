@@ -3,14 +3,14 @@
 import random
 import math
 
-import utils
+from . import utils
 
 try:
     import clingo
 except:
     utils.print_error_and_exit('Install clingo')
 
-from models_handler import ModelsHandler
+from .models_handler import ModelsHandler
 
 
 def reconstruct_atom(atm) -> str:  # type: ignore

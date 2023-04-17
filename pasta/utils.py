@@ -92,12 +92,12 @@ def clean_term(term: str) -> 'tuple[str,bool]':
     return term, positive
 
 
-def sum_string_list(bl: list[str]) -> 'list[int]':
+def sum_string_list(bl: 'list[str]') -> 'list[int]':
     '''
     Sums the element of a string.
     Example: ["01","11"] -> [1,2]
     '''
-    res: list[int] = [0 for _ in range(0, len(bl[0]))]
+    res: 'list[int]' = [0 for _ in range(0, len(bl[0]))]
 
     for i in range(0, len(bl)):
         for ii in range(0, len(bl[i])):

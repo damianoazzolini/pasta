@@ -2,7 +2,7 @@
 Class to identify a world.
 '''
 
-import utils
+from . import utils
 import math
 
 class DecisionWorld:
