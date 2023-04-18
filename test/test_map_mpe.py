@@ -6,13 +6,7 @@ import importlib.util
 
 import utils_for_tests
 
-import sys
-sys.path.append("../pasta/")
-
-spec = importlib.util.spec_from_file_location("pasta", "../pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec) 
-spec.loader.exec_module(past)
-
+from pasta.pasta_solver import Pasta
 
 # t_utils = __import__('test_utils')
 
@@ -30,7 +24,7 @@ class TestClassMapMpe(unittest.TestCase):
         expected_atoms_list : 'list[list[str]]',
         upper : bool = False):
 
-        pasta_solver = past.Pasta(filename, query, evidence)
+        pasta_solver = Pasta(filename, query, evidence)
         max_p, atoms_list = pasta_solver.map_inference()
 
         if upper is True:

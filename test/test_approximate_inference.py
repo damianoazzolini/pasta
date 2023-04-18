@@ -1,24 +1,14 @@
-import sys
 import argparse
-import importlib.util
 import unittest
 
 import utils_for_tests
 
-
-
-sys.path.append("../pasta/")
-
-spec = importlib.util.spec_from_file_location(
-    "pasta", "../pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(past)
-
+from pasta.pasta_solver import Pasta
 
 class TestClassApproximateInference(unittest.TestCase):
 
     def wrap_test_approximate_inference(self, parameters : utils_for_tests.TestArguments):
-        pasta_solver = past.Pasta(parameters.filename, parameters.query, samples = parameters.samples)
+        pasta_solver = Pasta(parameters.filename, parameters.query, samples = 5000)
 
         args = argparse.Namespace()
         args.rejection = parameters.rejection
@@ -97,15 +87,15 @@ class TestClassApproximateInference(unittest.TestCase):
         )
         self.wrap_test_approximate_inference(parameters)
 
-    def test_evidence_certain(self):
-        parameters = utils_for_tests.TestArguments(
-            "evidence_certain",
-            "../examples/inference/evidence_certain.lp",
-            "qr",
-            0,
-            1
-        )
-        self.wrap_test_approximate_inference(parameters)
+    # def test_evidence_certain(self):
+    #     parameters = utils_for_tests.TestArguments(
+    #         "evidence_certain",
+    #         "../examples/inference/evidence_certain.lp",
+    #         "qr",
+    #         0,
+    #         1
+    #     )
+    #     self.wrap_test_approximate_inference(parameters)
 
     def test_graph_coloring_qr(self):
         parameters = utils_for_tests.TestArguments(

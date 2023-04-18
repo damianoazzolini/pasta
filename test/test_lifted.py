@@ -1,7 +1,5 @@
 import unittest
 
-import importlib.util
-
 import utils_for_tests as t_utils
 
 import sys

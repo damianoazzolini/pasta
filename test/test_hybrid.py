@@ -1,22 +1,13 @@
 import unittest
-import importlib.util
-import sys
-
 import utils_for_tests
 
-sys.path.append("../pasta/")
-
-spec = importlib.util.spec_from_file_location(
-    "pasta", "../pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(past)
-
+from pasta.pasta_solver import Pasta
 
 class TestClassExactInference(unittest.TestCase):
 
     def wrap_test_hybrid(self, parameters : utils_for_tests.TestArguments):
 
-        pasta_solver = past.Pasta(
+        pasta_solver = Pasta(
             parameters.filename, parameters.query, parameters.evidence, normalize_prob=parameters.normalize)
         lp, up = pasta_solver.inference()
 

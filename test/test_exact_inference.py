@@ -2,17 +2,9 @@ import unittest
 
 import pytest
 
-import importlib.util
-
 import utils_for_tests
 
-import sys
-sys.path.append("../pasta/")
-
-spec = importlib.util.spec_from_file_location("pasta", "../pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec) 
-spec.loader.exec_module(past)
-
+from pasta.pasta_solver import Pasta
 
 class TestClassExactInference(unittest.TestCase):
  
@@ -28,7 +20,7 @@ class TestClassExactInference(unittest.TestCase):
         if evidence is None:
             evidence = ""
         
-        pasta_solver = past.Pasta(filename, query, evidence, normalize_prob = normalize)
+        pasta_solver = Pasta(filename, query, evidence, normalize_prob = normalize)
         lp, up = pasta_solver.inference()
 
         self.assertTrue(utils_for_tests.almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability")

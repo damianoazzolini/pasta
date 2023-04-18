@@ -1,17 +1,8 @@
 import unittest
 
-import importlib.util
-
 import utils_for_tests
 
-import sys
-sys.path.append("../pasta/")
-
-spec = importlib.util.spec_from_file_location(
-    "pasta", "../pasta/pasta_solver.py")
-past = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(past)
-
+from pasta.pasta_solver import Pasta
 
 class TestClassAbduction(unittest.TestCase):
 
@@ -24,7 +15,7 @@ class TestClassAbduction(unittest.TestCase):
                             expected_up: float,
                             expected_abd: 'list[list[str]]'):
 
-        pasta_solver = past.Pasta(filename, query, evidence)
+        pasta_solver = Pasta(filename, query, evidence)
         lp, up, abd = pasta_solver.abduction()
 
         if lp is not None and up is not None and abd is not None:
