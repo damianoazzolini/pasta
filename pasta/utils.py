@@ -94,16 +94,10 @@ def clean_term(term: str) -> 'tuple[str,bool]':
 
 def sum_string_list(bl: 'list[str]') -> 'list[int]':
     '''
-    Sums the element of a string.
-    Example: ["01","11"] -> [1,2]
+    Sums the elements in the same position of a list of 01-strings.
+    Example: ["011","111"] -> [1,2,2]
     '''
-    res: 'list[int]' = [0 for _ in range(0, len(bl[0]))]
-
-    for i in range(0, len(bl)):
-        for ii in range(0, len(bl[i])):
-            res[ii] += int(bl[i][ii])
-
-    return res
+    return list(map(lambda n : sum(int(x) for x in n), zip(*bl)))
 
 
 # progressbar from https://stackoverflow.com/questions/3160699/python-progress-bar
