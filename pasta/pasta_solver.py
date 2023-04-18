@@ -5,15 +5,10 @@ import math
 import statistics
 import multiprocessing
 
-# from pasta.pasta_parser import PastaParser
 from .pasta_parser import PastaParser
-# import pasta_parser
 from .asp_interface import AspInterface
-# import asp_interface
 from .utils import print_error_and_exit, print_warning
-
 from . import generator
-
 from . import learning_utilities
 
 examples_string_exact = "python3 pasta_solver.py \
