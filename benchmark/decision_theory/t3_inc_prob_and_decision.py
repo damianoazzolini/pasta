@@ -1,25 +1,40 @@
 '''
-Generates this type of programs with an increasing number
-of probabilistic facts and decision atoms.
+# Generates programs with an increasing number
+# of decision atoms and probabilistic facts.
+# Experiment t3.
 
-0.3::a. 0.4::b.
-decision da. decision db.
-utility(qr,2). utility(nqr,-12).
+# With n = d = 4 we get:
 
-qr :- da, a.
-qr ; nqr:- db, b.
+0.3::a(0).
+0.3::a(1).
+0.3::a(2).
+0.3::a(3).
+
+decision da(0).
+decision da(1).
+decision da(2).
+decision da(3).
+
+qr:- a(0), da(0).
+qr ; nqr :- a(1), da(1).
+qr:- a(2), da(2).
+qr ; nqr :- a(3), da(3).
+
+utility(qr,2).
+utility(nqr,-12).
 '''
 
-# fix prob facts to 2,5,10,15 and increase the nuber of decision atoms
-# and probabilistic facts
-# fix the number of utility atoms to 2.
+import sys
 
-n_utilities = [2,5,10,15]
-n_max_atoms = 4
+if len(sys.argv) == 1:
+    print("Specify the maximum number of decision atoms as argument")
+    sys.exit()
+
+n_max_atoms = int(sys.argv[1])
 
 for s in range(2, n_max_atoms):
     # for n_decision_atoms in range(1,30):
-    fp = open(f"dt_{s}_prob_facts_{s}_decision_atoms.lp","w")
+    fp = open(f"t3_{s}_pf_{s}_dt.lp","w")
     
     # write the probabilistic facts
     for i in range(0, s):
