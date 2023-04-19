@@ -22,6 +22,8 @@ qr ; nqr:- dd, b.
 # fix the number of utility atoms to 2.
 
 # n_max_atoms = 5
+import random
+
 atoms_sizes_max = 4
 
 for atoms_size in range(2, atoms_sizes_max):
@@ -53,6 +55,6 @@ for atoms_size in range(2, atoms_sizes_max):
         fp.write('\n')
         
         for u in range(n_utilities):
-            fp.write(f"utility(da({u}),1).\n")
+            fp.write(f"utility(da({u}),{random.randint(-10,10)}).\n")
         
         fp.close()
