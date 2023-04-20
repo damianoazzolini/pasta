@@ -45,6 +45,5 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./light.Dockerfile
         push: true
         tags: damianodamianodamiano/pasta:latest
