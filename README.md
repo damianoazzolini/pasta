@@ -11,53 +11,38 @@ Currentyl supports:
 - decision theory
 
 ## Installation
-Requirements: `clingo`, see [install clingo](https://potassco.org/clingo/).
 ```
-python3 -m pip install clingo
-```
-
-Then, clone this repository
-```
-git clone git@github.com:damianoazzolini/pasta.git
-```
-
-Finally, move into the `pasta` folder and you are ready to go
-```
+git clone https://github.com/damianoazzolini/pasta
 cd pasta
-python3 pasta_solver.py --help
+pip install .
 ```
-
-See below for some example programs.
+or
+```
+pip install git+https://github.com/damianoazzolini/pasta
+```
 
 You can also use Docker ([image on Dockerhub](https://hub.docker.com/r/damianodamianodamiano/pasta)) to test the application:
 ```
-docker pull damianodamianodamiano/pasta
-docker container run -it pasta bash
+docker container run -it damianodamianodamiano/pasta bash
 ```
 then you are ready to go (follows the nex instructions to run an example).
-However, the image is *rarely updated* (almost never), and currently contains an old version (where some bugs are not fixed).
 
-<!-- You can also install the package via `pip`.
-Note that there already exists a package called [`pasta`](https://github.com/google/pasta), so this will probably conflict with it if is installed (this happens if you run this in google colab).
-```
-python3 -m pip install git+https://github.com/damianoazzolini/pasta
-``` -->
 
 ## How to Use
 Use
 ```
 cd pasta
-python3 pasta_solver.py --help
+pasta --help
 ```
 to see the various available options.
 
 You can also use it as a library
 ```
-import pasta_solver
+from pasta.pasta_solver import Pasta
 
-filename = "../examples/inference/bird_4.lp"
+filename = "examples/inference/bird_4.lp"
 query = "fly(1)"
-solver = pasta_solver.Pasta(filename, query)
+solver = Pasta(filename, query)
 lp, up = solver.inference()
 
 print("Lower probability for the query " + query + ": " + str(lp))
@@ -76,20 +61,18 @@ print("Upper probability for the query " + query + ": " + str(up))
 ```
 where `program` is a string containing your program.
 
-You can find more information about the API documentation in the `html/pasta` folder.
-
 ### Options
 To see the available options, use:
 ```
-python3 pasta_solver.py --help
+pasta --help
 ```
 
 ### Exact inference
 ```
 cd pasta
-python3 pasta_solver.py ../examples/conditionals/bird_4_cond.lp --query="fly"
+pasta examples/conditionals/bird_4_cond.lp --query="fly"
 ```
-Asks the query `fly` for the program stored in `../examples/conditionals/bird_4_cond.lp`.
+Asks the query `fly` for the program stored in `examples/conditionals/bird_4_cond.lp`.
 Expected result:
 ```
 Lower probability for the query: 0.7
@@ -101,35 +84,35 @@ You can specify evidence with `--evidence`.
 This is still experimental and some features might not work as expected.
 ```
 cd pasta
-python3 pasta_solver.py ../examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
+pasta examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
 ```
 
 ### MAP/MPE inference
 ```
 cd pasta
-python3 pasta_solver.py ../examples/map/color_map.lp --query="win" --map
+pasta examples/map/color_map.lp --query="win" --map
 ```
 
 ### Approximate inference
 Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis hastings sampling (`--mh`), rejection sampling (`--rejection`).
 ```
 cd pasta
-python3 pasta_solver.py ../examples/inference/bird_4.lp --query="fly(1)" --approximate
+pasta examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 Use the flag `--samples` to set the number of samples (1000 by default), for example `--samples=2000`.
 
 Use the flag `--processes` to set the number of processes (1 by default), for example `--processes=8`. The maximum number is 16.
 
-## Parameter Learning
+### Parameter Learning
 ```
 cd pasta/
-python3 pasta_solver.py ../examples/learning/background_bayesian_network.lp --pl
+pasta examples/learning/background_bayesian_network.lp --pl
 ```
 
-## Decision Theory
+### Decision Theory
 ```
 cd pasta/
-python3 pasta_solver.py ../examples/decision_theory/dummy.lp -dt
+pasta examples/decision_theory/dummy.lp -dt
 ```
 For normalization, you should use `-dtn` insted of `-dt`.
 
@@ -137,8 +120,7 @@ For normalization, you should use `-dtn` insted of `-dt`.
 The credal semantics requires that every world has at least one answer set.
 These programs are called *consistent*.
 Here, we make the same assumption.
-<!-- Note that the minimal set of probabilistic facts is correct only if the program satisfies this requirement. -->
-<!-- If you don't want to compute this set, use the flag `--no-minimal` or `-nm`. -->
+
 If you ask a query on a program that is not consistent, you should get an error.
 You can normalize the probability with the flag `--normalize`.
 
