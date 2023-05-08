@@ -3,13 +3,9 @@
 import random
 import math
 
+import clingo
+
 from . import utils
-
-try:
-    import clingo
-except:
-    utils.print_error_and_exit('Install clingo')
-
 from .models_handler import ModelsHandler
 
 
@@ -234,16 +230,20 @@ class AspInterface:
             print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
             for el in self.prob_facts_dict:
                 print(el, end="\t")
+            print("#pf", end="\t")
             print("LP/UP\tProbability")
             lp_count = 0
             up_count = 0
-            for el in self.model_handler.worlds_dict:
-                for i in range(0,len(el)):
-                    print(f"{el[i]}", end="\t")
-                if self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count == 0:
+            for el in sorted(self.model_handler.worlds_dict, key= lambda x: x.count('1')):
+                for val in el:
+                    print(f"{val}", end="\t")
+                print(f"{el.count('1')}", end="\t")
+                if self.model_handler.worlds_dict[el].model_query_count > 0 and \
+                    self.model_handler.worlds_dict[el].model_not_query_count == 0:
                     print(utils.RED + "LP\t", end = "")
                     lp_count = lp_count + 1
-                elif self.model_handler.worlds_dict[el].model_query_count > 0 and self.model_handler.worlds_dict[el].model_not_query_count > 0:
+                elif self.model_handler.worlds_dict[el].model_query_count > 0 and \
+                    self.model_handler.worlds_dict[el].model_not_query_count > 0:
                     print(utils.YELLOW + "UP\t", end="")
                     up_count = up_count + 1
                 else:
@@ -427,7 +427,7 @@ class AspInterface:
         '''
         # each element has the structure
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, T_count]
-        sampled = {}
+        sampled : 'dict[str,list[int]]' = {}
 
         ctl = self.init_clingo_ctl(["0", "--project"])
 
