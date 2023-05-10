@@ -1,4 +1,3 @@
-import sys
 import math
 import random
 import copy
@@ -109,12 +108,12 @@ class Generator:
     @staticmethod
     def generate_clauses_for_conditionals(conditional : str) -> 'list[str]':
         if "|" not in conditional:
-            sys.exit("Syntax error in conditional: " + conditional)
+            print_error_and_exit(f"Syntax error in conditional {conditional}")
         if "[" not in conditional or "]" not in conditional:
-            sys.exit("Missing range in conditional: " + conditional)
+            print_error_and_exit(f"Missing range in conditional {conditional}")
         if not conditional.endswith("."):
-            sys.exit("Missing final . in " + conditional)
-        
+            print_error_and_exit(f"Missing final . in {conditional}")
+
         conditional = conditional[:-1]
         i = 1
         par_count = 1
@@ -126,15 +125,15 @@ class Generator:
             i = i + 1
 
         if i == len(conditional):
-            sys.exit("Syntax error in conditional: " + conditional)
+            print_error_and_exit(f"Syntax error in conditional {conditional}")
 
         cond, prob_range = conditional[1:i-1], conditional[i:]
 
         cond = cond.split("|")
         if len(cond) != 2:
-            sys.exit("Too many | in " + conditional)
-        
-        vars = Generator.extract_vars(cond[0])
+            print_error_and_exit(f"Too many | in {conditional}")
+
+        variables = Generator.extract_vars(cond[0])
         body_atoms : "list[str]" = []
         init_pos = 0
         body = cond[1]
@@ -144,22 +143,26 @@ class Generator:
                 init_pos = i + 1
 
         for el in body_atoms:
-            vars = vars + Generator.extract_vars(el)
+            variables = variables + Generator.extract_vars(el)
         # remove duplicates
-        vars = list(set(vars)) 
+        variables = list(set(variables)) 
 
         # disjunctive rules are not ok, I need to use choice rules
         # disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
         disjunct = f"0{{ {cond[0]} }}1 :- {cond[1]}."
         # here I consider only one term in the left part
         # f(a,b) | ... not f(a,b), f(b,c) | ...
-        constr = ":- #count{" + ','.join(vars) + ":" + cond[1] + "} = H, #count{" + ','.join(vars) + ":" + cond[0] + "," + cond[1] + "} = FH"
+        constr = ":- #count{" + ','.join(variables) + ":" + cond[1] + "} = H, #count{"+\
+            ','.join(variables) + ":" + cond[0] + "," + cond[1] + "} = FH"
 
         prob_range = prob_range.split(",")
         if len(prob_range) != 2:
-            sys.exit("Unbalanced range in conditional: " + conditional)
+            print_error_and_exit("Unbalanced range in conditional: " + conditional)
         lower = float(prob_range[0][1:])
         upper = float(prob_range[1][:-1])
+
+        if lower > upper:
+            print_error_and_exit(f"LB cannot be greater than UB in {conditional}")
 
         cu = ""
         cl = ""
