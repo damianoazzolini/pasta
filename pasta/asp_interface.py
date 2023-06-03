@@ -116,11 +116,6 @@ class AspInterface:
                 self.decision_atoms_list,
                 self.utilities_dict
             )
-            
-    
-    def admits_inconsistency(self) -> bool:
-        # Currently not used
-        return True in {not self.stop_if_inconsistent, self.xor, self.normalize_prob, self.upper, len(self.cautious_consequences) > 0}
 
 
     def compute_minimal_set_facts(self) -> None:
@@ -163,6 +158,8 @@ class AspInterface:
                 self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
     
+        self.normalizing_factor = 1
+
         if len(self.model_handler.worlds_dict) != 2**len(self.prob_facts_dict):
             if len(self.model_handler.worlds_dict) == 0 and len(self.prob_facts_dict) > 0:
                 self.lower_probability_query = 0
@@ -202,29 +199,18 @@ class AspInterface:
                 else:
                     utils.print_error_and_exit("Found worlds without answer sets")
 
-        self.normalizing_factor = 1
-        if self.normalize_prob:
-            # old version as 1 - sum of the inconsistent
-            # for el in missing:
-            #     n = str(bin(el))[2:]
-            #     n = str(n).zfill(len(ks[0]))
-            #     i = 0
-            #     np = 1
-            #     for pf in self.prob_facts_dict:
-            #         if n[i] == '0':
-            #             np = np * (1 - self.prob_facts_dict[pf])
-            #         else:
-            #             np = np * self.prob_facts_dict[pf]
-            #         i = i + 1
-            #     self.normalizing_factor = self.normalizing_factor + np
-            #     self.inconsistent_worlds[n] = np
-            # self.normalizing_factor = 1 - self.normalizing_factor
-            # new version as sum of the consistent worlds
-            self.normalizing_factor = sum([x.prob for x in self.model_handler.worlds_dict.values()])
+            norm_fact = sum([x.prob for x in self.model_handler.worlds_dict.values()])
+            
+            if self.normalize_prob:
+                self.normalizing_factor = norm_fact
+
             if self.pedantic:
                 # print(f"n missing {len(missing)}")
                 # print(self.inconsistent_worlds)
-                print(f"Normalizing factor: {self.normalizing_factor}")
+                if self.normalize_prob:
+                    print(f"Normalizing factor: {self.normalizing_factor}")
+                elif not self.stop_if_inconsistent:
+                    print(f"P(inc) = {1 - norm_fact}")
 
         if self.pedantic:
             print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
@@ -496,11 +482,11 @@ class AspInterface:
         '''
         # list of samples for the evidence
         # correspondence str -> bool
-        sampled_evidence = {}
+        sampled_evidence : 'dict[str,bool]' = {}
         # list of samples for the query
         # each element has the structure
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
-        sampled_query = {}
+        sampled_query: 'dict[str,list[int]]' = {}
 
         ctl = self.init_clingo_ctl(["0", "--project"])
 
@@ -600,7 +586,7 @@ class AspInterface:
         '''
         # sampled worlds
         # each element is a list [lower, upper]
-        sampled = {}
+        sampled : 'dict[str,list[int]]' = {}
 
         ctl = self.init_clingo_ctl(["0", "--project"])
 
@@ -731,6 +717,11 @@ class AspInterface:
         combinations of decision atoms and then ask the queries (i.e., the
         probability of all the utility atoms) at every iteration.
         Mainly used for reference: easy to implement but not optimal.
+        Returns the pair [lower utility, upper utility] for the best strategy.
+        The lower utility is: 
+        sum_{(a,r) in U, r > 0} r * LP{sigma}(a) + sum_{(a,r) in U, r < 0} r * UP{sigma}(a)
+        The upper utility is:
+        sum_{(a,r) in U, r > 0} r * UP{sigma}(a) + sum_{(a,r) in U, r < 0} r * LP{sigma}(a)
         '''
         decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
         computed_utilities_list : 'dict[str,list[float]]' = {}
@@ -742,7 +733,7 @@ class AspInterface:
         for el in decision_facts_combinations:
             bin_value = bin(el)[2:].zfill(len(self.decision_atoms_list))
             if self.verbose:
-                print(f"Combination: {str(bin_value)}")
+                print(f"----- Strategy: {str(bin_value)} -----")
             # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
             # add the constraints for the truth values of the facts
             constraints : list[str] = []
@@ -776,8 +767,18 @@ class AspInterface:
                 )
                 # self.upper_probability_query = 0
                 # self.lower_probability_query = 0
-                current_utility_l += self.lower_probability_query * self.utilities_dict[query]
-                current_utility_u += self.upper_probability_query * self.utilities_dict[query]
+                current_reward = self.utilities_dict[query]
+                if current_reward > 0:
+                    # lower util -> lower prob * reward
+                    # upper util -> upper prob * reward
+                    current_utility_l += self.lower_probability_query * current_reward
+                    current_utility_u += self.upper_probability_query * current_reward
+                else:
+                    # lower util -> upper prob * reward
+                    # upper util -> lower prob * reward
+                    current_utility_l += self.upper_probability_query * current_reward
+                    current_utility_u += self.lower_probability_query * current_reward
+                    
                 self.asp_program = original_prg_constr.copy()
             computed_utilities_list[bin_value] = [current_utility_l, current_utility_u]
             if self.verbose:
@@ -882,9 +883,7 @@ class AspInterface:
                 self.asp_program.append("#show nq/0.")
 
                 lp, up = self.sample_query()
-                # print(lp, up)
-                # lp = self.lower_probability_query
-                # up = self.upper_probability_query
+
                 self.model_handler = ModelsHandler(
                     self.prob_facts_dict,
                     self.evidence,
@@ -892,11 +891,15 @@ class AspInterface:
                     self.decision_atoms_list,
                     self.utilities_dict
                 )
-                # self.upper_probability_query = 0
-                # self.lower_probability_query = 0
-                # print(self.utilities_dict[query])
-                current_utility_l += lp * self.utilities_dict[query]
-                current_utility_u += up * self.utilities_dict[query]
+
+                current_reward = self.utilities_dict[query]
+                if current_reward > 0:
+                    current_utility_l += lp * current_reward
+                    current_utility_u += up * current_reward
+                else:
+                    current_utility_l += up * current_reward
+                    current_utility_u += lp * current_reward
+                    
                 self.asp_program = original_prg_constr.copy()
             
             computed_utility = [current_utility_l, current_utility_u]

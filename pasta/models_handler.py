@@ -494,8 +494,8 @@ class ModelsHandler():
         bounds_best_strategy : 'list[float]' = [-math.inf, -math.inf]
         # print(self.decision_worlds_dict)
 
-        for dw in self.decision_worlds_dict:
-            el = self.decision_worlds_dict[dw]
+        for dw, el in self.decision_worlds_dict.items():
+            # el = self.decision_worlds_dict[dw]
             lu_contr = 0
             uu_contr = 0
             for w in el.probabilistic_worlds:
@@ -505,16 +505,16 @@ class ModelsHandler():
                 current_world_prob = el.probabilistic_worlds[w].prob
 
                 # print(f"world: {w} - probability: {current_world_prob}")
-                for index in range(0,len(contribution)):
-                    if contribution[index] == len(ual):
-                        # print(f"LP + UP: {l_utilities_dict[index] * current_world_prob}")
-                        # conttibution to LP and UP
-                        lu_contr += l_utilities_dict[index] * current_world_prob
-                        uu_contr += l_utilities_dict[index] * current_world_prob
-                    elif contribution[index] != 0:
-                        # print(f"UP: {l_utilities_dict[index] * current_world_prob}")
-                        # contribution to the UP
-                        uu_contr += l_utilities_dict[index] * current_world_prob
+                for index, contr in enumerate(contribution):
+                    if contr != 0:
+                        current_reward = l_utilities_dict[index]
+                        if current_reward > 0:
+                            uu_contr += current_reward * current_world_prob
+                            if contr == len(ual):
+                                lu_contr += current_reward * current_world_prob
+                        else:
+                            print("---- TODO: to implement ----")
+                            
             decisions_utilities[dw] = [lu_contr,uu_contr]
 
         # print(decisions_utilities)

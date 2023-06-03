@@ -1,12 +1,12 @@
 % monty hall problem. From https://cplint.eu/example/inference/monty.swinb
 
-% these prebabilistic facts encode the probability that the prize is
-% behind door 1, 2, or 3. It encodes an annotated disjunctive clause.
+% these probabilistic facts encode the probability that the prize is
+% behind door 1, 2, or 3. They encode an annotated disjunctive clause.
 0.333::prizef(1).
 0.5::prizef(2).
 prize(1):- prizef(1).
 prize(2):- not prizef(1), prizef(2).
-prize(2):- not prizef(1), not prizef(2).
+prize(3):- not prizef(1), not prizef(2).
 % the prize is behind each door with probability 1/3
 
 % Monty opens door 2 or door 3 if the prize is behind door 1.
@@ -34,8 +34,8 @@ win_switch:-
 % selected by the player, then the probability of winning by 
 % switching remains the same
 
-% query: win_switch"
+% query: win_switch
 % Lower probability == upper probability for the query: 0.6666666666666667
 
-% query: win_keep"
+% query: win_keep
 % Lower probability == upper probability for the query: 0.3333333333333333

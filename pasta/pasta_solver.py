@@ -7,7 +7,7 @@ import multiprocessing
 
 from .pasta_parser import PastaParser
 from .asp_interface import AspInterface
-from .utils import print_error_and_exit, print_warning
+from .utils import print_error_and_exit, print_warning, print_result_abduction, print_prob, print_map_state
 from . import generator
 from . import learning_utilities
 
@@ -431,8 +431,8 @@ class Pasta:
         check_lp_up(lp, up)
 
         return lp, up
-    
-    
+
+
     def inference_lpmln(self, from_string : str = "") -> 'float':
         '''
         Inference under the LPMLN semantics
@@ -487,82 +487,6 @@ class Pasta:
         return probability, map_state_parsed
 
 
-    @staticmethod
-    def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int) -> None:
-        '''
-        Prints the MAP/MPE state.
-        '''
-        map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
-        map_or_mpe = "MPE" if map_op else "MAP"
-        print(f"{map_or_mpe}: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
-        for i, el in enumerate(atoms_list):
-            print(f"State {i}: {el}")
-
-
-    @staticmethod
-    def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
-        '''
-        Prints the probability values.
-        '''
-        if not lpmln:
-            if lp == up:
-                print(f"Lower probability == upper probability for the query: {lp}")
-            else:
-                print(f"Lower probability for the query: {lp}")
-                print(f"Upper probability for the query: {up}")
-        else:
-            print(f"Probability for the query: {lp}")
-
-
-    @staticmethod
-    def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
-        '''
-        Removes the dominated explanations, used in abduction.
-        '''
-        ls : 'list[set[str]]' = []
-        for exp in abd_exp:
-            e : 'set[str]' = set()
-            for el in exp:
-                if not el.startswith('not') and el != 'q':
-                    if el.startswith('abd_'):
-                        e.add(el[4:])
-                    else:
-                        e.add(el)
-            ls.append(e)
-
-        for i, el in enumerate(ls):
-            for j in range(i + 1, len(ls)):
-                if len(el) > 0:
-                    if el.issubset(ls[j]):
-                        ls[j] = set()  # type: ignore
-
-        return ls
-
-
-    @staticmethod
-    def print_result_abduction(lp: float, up: float, abd_exp: 'list[list[str]]', upper : bool = False) -> None:
-        '''
-        Prints the result for abduction.
-        '''
-        abd_exp_no_dup = Pasta.remove_dominated_explanations(abd_exp)
-        # abd_exp_no_dup = abd_exp
-        if len(abd_exp_no_dup) > 0 and up != 0:
-            if upper:
-                print(f"Upper probability for the query: {up}")
-            else:
-                Pasta.print_prob(lp, up)
-
-        n_exp = sum(1 for ex in abd_exp_no_dup if len(ex) > 0)
-        print(f"Abductive explanations: {n_exp}")
-
-        index = 0
-        for el in abd_exp_no_dup:
-            if len(el) > 0:
-                print(f"Explanation {index}")
-                index = index + 1
-                print(sorted(el))
-
-
 def main():
     command_parser = argparse.ArgumentParser(description=pasta_description, epilog=examples_strings)
     command_parser.add_argument("filename", help="Program to analyse", type=str)
@@ -596,6 +520,7 @@ def main():
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
     command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
     command_parser.add_argument("--uxor", help="Check the consistency by XOR sampling.", action="store_true", default=False)
+    command_parser.add_argument("--profile", help="Use code profiling (cProfile)", action="store_true", default=False)
     
     # for det approximate with genetic algorithm
     command_parser.add_argument("--popsize", help="Population size, default 50", type=int, default=50)
@@ -603,6 +528,12 @@ def main():
     command_parser.add_argument("--iterations", help="Iterations for the genetic algorithm", type=int, default=1000)
 
     args = command_parser.parse_args()
+    
+    if args.profile:
+        import cProfile, pstats, io
+        from pstats import SortKey
+        pr = cProfile.Profile()
+        pr.enable()
 
     if args.query == "" and (not args.lpmln) and (args.test is None) and (args.uxor is None) and (args.dtn is None) and (args.dt is None):
         print_error_and_exit("Missing query")
@@ -651,13 +582,13 @@ def main():
 
     if args.abduction:
         lower_p, upper_p, abd_explanations = pasta_solver.abduction()
-        Pasta.print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
+        print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
     elif args.xor:
         lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
-        Pasta.print_prob(lower_p, upper_p)
+        print_prob(lower_p, upper_p)
     elif args.approximate and not (args.dt or args.dtn):
         lower_p, upper_p = pasta_solver.approximate_solve(args)
-        Pasta.print_prob(lower_p, upper_p)
+        print_prob(lower_p, upper_p)
     elif args.pl:
         pasta_solver.parameter_learning()
     elif args.map:
@@ -666,7 +597,7 @@ def main():
             max_p, atoms_list_res = pasta_solver.upper_mpe_inference()
         else:
             max_p, atoms_list_res = pasta_solver.map_inference()
-        Pasta.print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
+        print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
     elif (args.dt or args.dtn) and args.approximate:
         if args.dt:
             print_error_and_exit("Approximate should be used with the -dtn flag.")
@@ -699,7 +630,16 @@ def main():
             for w in pasta_solver.interface.model_handler.worlds_dict:
                 print(f"{w}: {pasta_solver.interface.model_handler.worlds_dict[w].prob}")
         else:
-            Pasta.print_prob(lower_p, upper_p, args.lpmln)
+            print_prob(lower_p, upper_p, args.lpmln)
+    
+    if args.profile:
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+
 
 
 if __name__ == "__main__":

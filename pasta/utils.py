@@ -66,6 +66,9 @@ def error_prob_fact_twice(
 
 
 def is_number(n: 'int|float|str') -> bool:
+    '''
+    Returns true if the argument is a number, false otherwise.
+    '''
     try:
         float(n)
     except ValueError:
@@ -100,17 +103,76 @@ def sum_string_list(bl: 'list[str]') -> 'list[int]':
     return list(map(lambda n : sum(int(x) for x in n), zip(*bl)))
 
 
-# progressbar from https://stackoverflow.com/questions/3160699/python-progress-bar
-def progressbar(it: range, prefix: str = "", size: int = 60):
-    count = len(it)
+def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int) -> None:
+    '''
+    Prints the MAP/MPE state.
+    '''
+    map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
+    map_or_mpe = "MPE" if map_op else "MAP"
+    print(f"{map_or_mpe}: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
+    for i, el in enumerate(atoms_list):
+        print(f"State {i}: {el}")
 
-    def show(j: int):
-        x = int(size*j/count)
-        print(f"{prefix}[{u'█'*x}{('.'*(size-x))}] {j}/{count}",
-              end='\r', file=sys.stdout, flush=True)
 
-    show(0)
-    for i, item in enumerate(it):
-        yield item
-        show(i+1)
-    print("\n", flush=True, file=sys.stdout)
+def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
+    '''
+    Prints the probability values.
+    '''
+    if not lpmln:
+        if lp == up:
+            print(f"Lower probability == upper probability for the query: {lp}")
+        else:
+            print(f"Lower probability for the query: {lp}")
+            print(f"Upper probability for the query: {up}")
+    else:
+        print(f"Probability for the query: {lp}")
+
+
+def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
+    '''
+    Removes the dominated explanations, used in abduction.
+    '''
+    ls : 'list[set[str]]' = []
+    for exp in abd_exp:
+        e : 'set[str]' = set()
+        for el in exp:
+            if not el.startswith('not') and el != 'q':
+                if el.startswith('abd_'):
+                    e.add(el[4:])
+                else:
+                    e.add(el)
+        ls.append(e)
+
+    for i, el in enumerate(ls):
+        for j in range(i + 1, len(ls)):
+            if len(el) > 0:
+                if el.issubset(ls[j]):
+                    ls[j] = set()  # type: ignore
+
+    return ls
+
+def print_result_abduction(
+    lp : float,
+    up : float,
+    abd_exp : 'list[list[str]]',
+    upper : bool = False) -> None:
+    '''
+    Prints the result for abduction.
+    '''
+    abd_exp_no_dup = remove_dominated_explanations(abd_exp)
+    # abd_exp_no_dup = abd_exp
+    if len(abd_exp_no_dup) > 0 and up != 0:
+        if upper:
+            print(f"Upper probability for the query: {up}")
+        else:
+            print_prob(lp, up)
+
+    n_exp = sum(1 for ex in abd_exp_no_dup if len(ex) > 0)
+    print(f"Abductive explanations: {n_exp}")
+
+    index = 0
+    for el in abd_exp_no_dup:
+        if len(el) > 0:
+            print(f"Explanation {index}")
+            index = index + 1
+            print(sorted(el))
