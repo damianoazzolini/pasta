@@ -386,13 +386,16 @@ class Pasta:
             to_maximize=to_maximize)
 
 
-    def decision_theory_naive(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
+    def decision_theory_naive(self,
+        from_string: str = "",
+        no_mix : bool = False,
+        opt : bool = False) -> 'tuple[list[float],list[str]]':
         '''
         Naive implementation of decision theory, i.e., by enumerating
         all the strategies and by picking the best one.
         '''
         self.setup_interface(from_string)
-        return self.interface.decision_theory_naive_method()
+        return self.interface.decision_theory_naive_method(no_mix, opt)
 
 
     def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
@@ -513,8 +516,13 @@ def main():
     command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
     command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
     command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
+    
     command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
+    command_parser.add_argument("-dtopt", help="Decision theory with optimization", action="store_true", default=False)
     command_parser.add_argument("-dt", help="Decision theory (improved)", action="store_true", default=False)
+    command_parser.add_argument("--no-mix", help="Compute the utility of a strategy by considering only the lower probability and upper probability for the lower and upper utility bounds respectively.", action="store_true", default=False)
+    # TODO: flag discard to dscard the worlds where the lower util > upper util?
+    
     # command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
     command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
     command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
@@ -562,6 +570,10 @@ def main():
         args.minimal = False
     if args.pedantic:
         args.verbose = True
+        
+    if args.no_mix and (args.dt or args.dtn):
+        print_warning("The lower utility may be greater than the upper utility for some strategies.")
+
 
     pasta_solver = Pasta(args.filename, 
                          args.query, 
@@ -607,8 +619,8 @@ def main():
             mutation_probability=args.mutation,
             iterations=args.iterations)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")        
-    elif args.dtn:
-        best_util, utility_atoms = pasta_solver.decision_theory_naive()
+    elif args.dtn or args.dtopt:
+        best_util, utility_atoms = pasta_solver.decision_theory_naive(no_mix=args.no_mix, opt=args.dtopt)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dt:
         if args.normalize:
