@@ -1,12 +1,13 @@
 """ Module implementing the connection to clingo """
 
-import random
-import math
-
 import clingo
+import math
+import random
+import time
 
 from . import utils
 from .models_handler import ModelsHandler
+from .optimization import compute_optimal_probability
 
 def reconstruct_atom(atm) -> str:  # type: ignore
     '''
@@ -78,7 +79,10 @@ class AspInterface:
         utilities_dict : 'dict[str,float]' = {},
         upper : bool = False,
         n_probabilistic_ics : int = 0,
-        k_credal: int = 100
+        k_credal: int = 100,
+        # constraints : 'list[str]' = [], # for the optimizable task
+        # objective_function : str = "", # for the optimizable task
+        optimizable_facts : 'dict[str,tuple[float,float]]' = {} # for the optimizable task
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -107,6 +111,12 @@ class AspInterface:
         self.upper : bool = upper
         self.n_probabilistic_ics : int = n_probabilistic_ics
         self.k_credal : int = k_credal
+
+        # for the optimizable task
+        # self.constraints : 'list[str]' = constraints
+        # self.objective_function : str = objective_function
+        self.optimizable_facts : 'dict[str,tuple[float,float]]' = optimizable_facts
+
         self.model_handler : ModelsHandler = \
             ModelsHandler(
                 self.prob_facts_dict,
@@ -159,7 +169,7 @@ class AspInterface:
     
         self.normalizing_factor = 1
         
-        print(self.model_handler.worlds_dict)
+        # print(self.model_handler.worlds_dict)
 
         if len(self.model_handler.worlds_dict) != 2**len(self.prob_facts_dict):
             if len(self.model_handler.worlds_dict) == 0 and len(self.prob_facts_dict) > 0:
@@ -1195,6 +1205,86 @@ class AspInterface:
         self.model_handler.normalize_weights_as(nf)
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
 
+
+    def optimize_prob(self,
+            target : str,
+            threshold: float,
+            epsilon : float,
+            method : str
+        ):
+        '''
+        Solves the optimization task.
+        '''
+        if len(self.optimizable_facts) == 0:
+            utils.print_error_and_exit("Specify at least one optimizable fact")
+        
+        start_time = time.time()
+        if self.verbose:
+            print("Computing answer sets")
+        self.compute_probabilities()
+        elapsed_time = time.time() - start_time
+        
+        if self.verbose:
+            print(f"Answer set generation time: {elapsed_time} s")
+        # print(self.model_handler.worlds_dict)
+        # print(self.prob_facts_dict)
+        # print(self.optimizable_facts)
+        pf_as_list = self.prob_facts_dict.items()
+
+        eq = ""
+        for k, w in self.model_handler.worlds_dict.items():
+            if (target == "upper" and w.model_query_count > 0) or \
+                (target == "lower" and w.model_query_count > 0 and w.model_not_query_count == 0):
+                for pf_0_1, pf_data in zip(k,pf_as_list):
+                    # replace these elements since they are not supported in the
+                    # optimization task
+                    cleaned_fact = pf_data[0].replace('(','_').replace(')','_').replace(',','_')
+                    if cleaned_fact in self.optimizable_facts:
+                        if pf_0_1 == '0':
+                            eq += "(1-" + cleaned_fact + ")"
+                        else:
+                            eq += cleaned_fact
+                    else:
+                        if pf_0_1 == '0':
+                            eq += str(1 - pf_data[1])[:6]
+                        else:
+                            eq += str(pf_data[1])[:6]
+                    eq += " * "
+                eq = eq[:-3] # remove the last *
+                eq += " + "
+
+        eq = eq[:-2] # remove the last +
+        if eq == "":
+            utils.print_error_and_exit("Error in gathering the query equation.")
+        
+        if self.pedantic:
+            print(f"Equation: {eq}")
+        # bu now I assume that there is only one constraint
+        # of the form 'query > value'
+        # if len(self.constraints) == 0:
+        #     utils.print_error_and_exit("Specify at least one constraint.")
+        # constraint_on_probability = float(self.constraints[0].split('>')[1])
+        start_time = time.time()
+        if self.verbose:
+            print("Starting optimization")
+
+        res = compute_optimal_probability(
+            eq,
+            self.optimizable_facts,
+            threshold,
+            epsilon,
+            method
+        )
+        elapsed_time = time.time() - start_time
+        if self.verbose:
+            print(f"Optimization time: {elapsed_time} s")
+        
+        for el, val in zip(self.optimizable_facts.keys(), res.x):
+            eq = eq.replace(el, str(val))
+
+        print(f"Target equation: {eval(eq)}")
+
+        return res
 
     def print_asp_program(self) -> None:
         '''

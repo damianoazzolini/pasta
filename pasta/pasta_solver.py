@@ -7,29 +7,10 @@ import multiprocessing
 
 from .pasta_parser import PastaParser
 from .asp_interface import AspInterface
-from .utils import print_error_and_exit, print_warning, print_result_abduction, print_prob, print_map_state
+from .utils import print_error_and_exit, print_warning, print_result_abduction, print_prob, print_map_state, is_number
 from . import generator
 from . import learning_utilities
-
-examples_string_exact = "python3 pasta_solver.py \
-    ../examples/bird_4.lp \
-    --query=\"fly(1)\""
-examples_string_exact_evidence = "python3 pasta_solver.py \
-    ../examples/bird_4.lp \
-    --query=\"fly(1)\" \
-    --evidence=\"bird(1)\""
-examples_string_approximate = "python3 pasta_solver.py \
-    ../examples/bird_4.lp \
-    --query=\"fly(1)\" \
-    --approximate"
-examples_string_approximate_rej = "python3 pasta_solver.py \
-    ../examples/bird_4.lp \
-    --query=\"fly(1)\" \
-    --evidence=\"bird(1)\" --rejection"
-examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + \
-    "\n\n" + examples_string_approximate + "\n\n" + examples_string_approximate_rej
-
-pasta_description = "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
+from .arguments import parse_args_wrapper
 
 
 def check_lp_up(lp : float, up : float) -> None:
@@ -345,7 +326,10 @@ class Pasta:
             utilities_dict=self.parser.fact_utility,
             upper=not self.consider_lower_prob,
             n_probabilistic_ics= self.parser.n_probabilistic_ics,
-            k_credal = self.k_credal
+            k_credal = self.k_credal,
+            # constraints=self.parser.constraints_list,
+            # objective_function=self.parser.objective_function,
+            optimizable_facts=self.parser.optimizable_facts
         )
 
         if self.minimal:
@@ -471,6 +455,25 @@ class Pasta:
         return max_prob, map_state
 
 
+    def optimize_probability(
+        self,
+        target : str,
+        threshold : float,
+        epsilon : float,
+        method : str,
+        from_string : str = ""
+        ):
+        '''
+        Optimize the probability of the optimizable facts subject to the constraints.
+        Returns the result of scipy.minimize.
+        '''
+        self.setup_interface(from_string)
+        # print(self.parser.constraints_list)
+        # print(self.parser.objective_function)
+        # print(self.parser.optimizable_facts)
+        return self.interface.optimize_prob(target, threshold, epsilon, method)
+
+
     def upper_mpe_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
         '''
         MPE inference considering the upper probability.
@@ -491,51 +494,7 @@ class Pasta:
 
 
 def main():
-    command_parser = argparse.ArgumentParser(description=pasta_description, epilog=examples_strings)
-    command_parser.add_argument("filename", help="Program to analyse", type=str)
-    command_parser.add_argument("-q", "--query", help="Query", type=str, default="")
-    command_parser.add_argument("-e", "--evidence", help="Evidence", type=str, default="")
-    command_parser.add_argument("-v", "--verbose", help="Verbose mode, default: false", action="store_true")
-    command_parser.add_argument("--pedantic", help="Pedantic mode (prints the converted program and all the worlds), default: false", action="store_true")
-    command_parser.add_argument("--approximate", help="Compute approximate probability", action="store_true")
-    command_parser.add_argument("--samples", help="Number of samples, default 1000", type=int, default=1000)
-    command_parser.add_argument("--processes", help="Number of processes", type=int, default=1)
-    command_parser.add_argument("--mh", help="Use Metropolis Hastings sampling", action="store_true", default=False)
-    command_parser.add_argument("--gibbs", help="Use Gibbs Sampling sampling", action="store_true", default=False)
-    command_parser.add_argument("--block", help="Set the block value for Gibbs sampling", type=int, default=1)
-    command_parser.add_argument("--rejection", help="Use rejection Sampling sampling", action="store_true", default=False)
-    command_parser.add_argument("--pl", help="Parameter learning", action="store_true", default=False)
-    command_parser.add_argument("--abduction", help="Abduction", action="store_true", default=False)
-    command_parser.add_argument("--map", help="MAP (MPE) inference", action="store_true", default=False)
-    command_parser.add_argument("--upper", help="Select upper probability as target", action="store_true", default=False)
-    command_parser.add_argument("--minimal", "-nm", help="Compute the minimal set of probabilistic facts", action="store_true", default=False)
-    command_parser.add_argument("--normalize", help="Normalize the probability if some worlds have no answer sets", action="store_true", default=False)
-    command_parser.add_argument("--stop-if-inconsistent", "-sif", help="Raise an error if some worlds have no answer sets (and lists them)", action=argparse.BooleanOptionalAction, default=True)
-    command_parser.add_argument("--solver", help="Uses an ASP solver for the task", action="store_true", default=False)
-    command_parser.add_argument("--one", help="Compute only 1 solution for MAP. Currently has no effects", action="store_true", default=False)
-    command_parser.add_argument("--xor", help="Uses XOR constraints for approximate inference", action="store_true", default=False)
-    command_parser.add_argument("--alpha", help="Constant for approximate inferece with XOR constraints. Default = 0.004", type=float, default=0.004)
-    command_parser.add_argument("--delta", help="Accuracy for approximate inferece with XOR constraints. Default = 2", type=float, default=2)
-    
-    command_parser.add_argument("-dtn", help="Decision theory (naive)", action="store_true", default=False)
-    command_parser.add_argument("-dtopt", help="Decision theory with optimization", action="store_true", default=False)
-    command_parser.add_argument("-dt", help="Decision theory (improved)", action="store_true", default=False)
-    command_parser.add_argument("--no-mix", help="Compute the utility of a strategy by considering only the lower probability and upper probability for the lower and upper utility bounds respectively.", action="store_true", default=False)
-    # TODO: flag discard to dscard the worlds where the lower util > upper util?
-    
-    # command_parser.add_argument("-k", help="k-credal semantics", type=int, choices=range(1,100), default=100)
-    command_parser.add_argument("--lpmln", help="Use the lpmnl semantics", action="store_true", default=False)
-    command_parser.add_argument("--all", help="Computes the weights for all the answer sets", action="store_true", default=False)
-    command_parser.add_argument("--test", help="Check the consistency by sampling: 1 stops when an inconsistent world is found, 0 keeps sampling.", type = int, choices=range(0,2))
-    command_parser.add_argument("--uxor", help="Check the consistency by XOR sampling.", action="store_true", default=False)
-    command_parser.add_argument("--profile", help="Use code profiling (cProfile)", action="store_true", default=False)
-    
-    # for det approximate with genetic algorithm
-    command_parser.add_argument("--popsize", help="Population size, default 50", type=int, default=50)
-    command_parser.add_argument("--mutation", help="Mutation probability, default 0.05", type=float, default=0.05)
-    command_parser.add_argument("--iterations", help="Iterations for the genetic algorithm", type=int, default=1000)
-
-    args = command_parser.parse_args()
+    args = parse_args_wrapper()
     
     if args.profile:
         import cProfile, pstats, io
@@ -575,18 +534,18 @@ def main():
         print_warning("The lower utility may be greater than the upper utility for some strategies.")
 
 
-    pasta_solver = Pasta(args.filename, 
-                         args.query, 
-                         args.evidence, 
-                         args.verbose, 
+    pasta_solver = Pasta(args.filename,
+                         args.query,
+                         args.evidence,
+                         args.verbose,
                          args.pedantic,
-                         args.samples, 
-                         not args.upper, 
-                         args.minimal, 
-                         args.normalize, 
-                         args.stop_if_inconsistent, 
-                         args.one, 
-                         args.xor, 
+                         args.samples,
+                         not args.upper,
+                         args.minimal,
+                         args.normalize,
+                         args.stop_if_inconsistent,
+                         args.one,
+                         args.xor,
                          100,
                          args.dtn,
                          args.lpmln,
@@ -631,6 +590,19 @@ def main():
         pasta_solver.test_consistency(args.test == 1)
     elif args.uxor:
         pasta_solver.test_unsat_xor(args)
+    elif args.optimize:
+        res = pasta_solver.optimize_probability(args.target, args.threshold, args.epsilon, args.method)
+        if is_number(res):
+            print(f"No optimization needed: {res}")
+        else:
+            if res.success:
+                print(f"Sum of optimizable facts = {res.fun}")
+                print("Optimal probabilities")
+                print(res.x)
+            else:
+                print_warning("Unable to solve the optimization problem.")
+            if args.pedantic:
+                print(res)
     else:
         if args.lpmln:
             prob = pasta_solver.inference_lpmln()
@@ -643,7 +615,7 @@ def main():
                 print(f"{w}: {pasta_solver.interface.model_handler.worlds_dict[w].prob}")
         else:
             print_prob(lower_p, upper_p, args.lpmln)
-    
+
     if args.profile:
         pr.disable()
         s = io.StringIO()

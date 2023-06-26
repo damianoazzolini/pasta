@@ -105,9 +105,9 @@ class PastaParser:
     '''
 
     def __init__(
-        self, 
-        filename : str, 
-        query : str = "", 
+        self,
+        filename : str,
+        query : str = "",
         evidence : str = "",
         for_asp_solver : bool = False,
         naive_dt : bool = False,
@@ -130,6 +130,9 @@ class PastaParser:
         self.lpmln : bool = lpmln
         self.for_asp_solver : bool = for_asp_solver
         self.naive_dt : bool = naive_dt
+        self.optimizable_facts : 'dict[str,tuple[float,float]]' = {}
+        self.objective_function : str = ""
+        self.constraints_list : 'list[str]' = []
 
 
     def insert_comparison(self, args_list : 'list[list[str]]') -> None:
@@ -262,7 +265,7 @@ class PastaParser:
         # n_probabilistic_facts = 0
         gen = Generator()
         for line in self.lines_original:
-            if "::" in line and not line.startswith("map"):
+            if "::" in line and not line.startswith("map") and not line.startswith("optimizable"):
                 if ':-' in line:
                     utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
@@ -354,11 +357,28 @@ class PastaParser:
                 self.fact_utility[fact] = utility
                 # print(f"utility({fact},{int(utility)}):- {fact}.")
                 # keep it to possibly impose ASP constraints
-                # on the utilites (e.g. on weights?) 
+                # on the utilites (e.g. on weights?)
                 self.lines_prob.append(line)
                 clauses = gen.generate_clauses_for_dt(fact, "utility", self.naive_dt)
                 # self.decision_facts.append(fact)
                 self.lines_prob.extend(clauses)
+            elif line.startswith("optimizable"):
+                fact_and_range = line.split('optimizable')[1].replace(' ','')
+                prob_range = fact_and_range.split('::')[0].replace('[','').replace(']','')
+                fact = fact_and_range.split('::')[1].replace('.','')
+                lower_bound_prob = float(prob_range.split(',')[0])
+                upper_bound_prob = float(prob_range.split(',')[1])
+                self.optimizable_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = (lower_bound_prob,upper_bound_prob)
+                # to_add : 'list[str]' = []
+                self.add_probabilistic_fact(fact, 1)
+                # to_add.append(f"_opt_sel_{fact}_:- {fact}.\n")
+                # to_add.append(f"_opt_not_sel_{fact}_ :- not _opt_sel_{fact}_.\n")
+                # to_add.append(f"#show _opt_not_sel_{fact}_/0.\n#show _opt_sel_{fact}_/0.\n")
+                # self.lines_prob.extend(to_add)
+            # elif line.startswith("objective"):
+            #     self.objective_function = line.split('objective(')[1][:-2]
+            # elif line.startswith("constraint"):
+            #     self.constraints_list.append(line.split('constraint(')[1][:-2])
             elif utils.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
                 # print("prob ic")

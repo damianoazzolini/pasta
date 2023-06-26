@@ -513,8 +513,8 @@ class ModelsHandler():
                             if contr == len(ual):
                                 lu_contr += current_reward * current_world_prob
                         else:
-                            print("---- TODO: to implement ----")
-                            
+                            utils.print_error_and_exit("Still to implement negative rewards with projected algorithm")
+
             decisions_utilities[dw] = [lu_contr,uu_contr]
 
         # print(decisions_utilities)

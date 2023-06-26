@@ -71,7 +71,7 @@ def is_number(n: 'int|float|str') -> bool:
     '''
     try:
         float(n)
-    except ValueError:
+    except:
         return False
     return True
 
