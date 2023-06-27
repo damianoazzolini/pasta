@@ -9,7 +9,7 @@ import sys
 
 from .utils import is_number
 
-def simplify_chunk(eq: str, chunk_size = 100):
+def simplify_chunk(eq: str, chunk_size : int = 100):
     # simplify 100 sums at the time
     span = int(eq.count('+') / chunk_size)
     if span == 0:
@@ -78,7 +78,8 @@ def compute_optimal_probability(
     optimizable_facts: 'dict[str, tuple[float, float]]',
     probability_threshold : float, # p(q) > probability_threshold
     epsilon : float = -1,
-    method : str = "SLSQP"
+    method : str = "SLSQP",
+    chunk_size : int = 100
     ):
     '''
     Compute the optimal value to associate to probabilistic facts.
@@ -90,7 +91,7 @@ def compute_optimal_probability(
     # print(initial_equation)
     # sys.exit()
     # symplified = sympify(initial_equation)
-    symplified = simplify_chunk(initial_equation)
+    symplified = simplify_chunk(initial_equation, chunk_size)
     # print(symplified)
     
     # 1.1: if is a number, return it

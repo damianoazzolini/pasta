@@ -461,6 +461,7 @@ class Pasta:
         threshold : float,
         epsilon : float,
         method : str,
+        chunk : int = 100,
         from_string : str = ""
         ):
         '''
@@ -471,7 +472,7 @@ class Pasta:
         # print(self.parser.constraints_list)
         # print(self.parser.objective_function)
         # print(self.parser.optimizable_facts)
-        return self.interface.optimize_prob(target, threshold, epsilon, method)
+        return self.interface.optimize_prob(target, threshold, epsilon, method, chunk)
 
 
     def upper_mpe_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
@@ -591,7 +592,13 @@ def main():
     elif args.uxor:
         pasta_solver.test_unsat_xor(args)
     elif args.optimize:
-        res = pasta_solver.optimize_probability(args.target, args.threshold, args.epsilon, args.method)
+        res = pasta_solver.optimize_probability(
+            args.target,
+            args.threshold,
+            args.epsilon,
+            args.method,
+            args.chunk
+            )
         if is_number(res):
             print(f"No optimization needed: {res}")
         else:

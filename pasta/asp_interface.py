@@ -1210,7 +1210,8 @@ class AspInterface:
             target : str,
             threshold: float,
             epsilon : float,
-            method : str
+            method : str,
+            chunk : int
         ):
         '''
         Solves the optimization task.
@@ -1273,7 +1274,8 @@ class AspInterface:
             self.optimizable_facts,
             threshold,
             epsilon,
-            method
+            method,
+            chunk
         )
         elapsed_time = time.time() - start_time
         if self.verbose:

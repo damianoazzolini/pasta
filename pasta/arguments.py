@@ -1,18 +1,18 @@
 import argparse
 
 
-examples_string_exact = "python3 pasta_solver.py \
+examples_string_exact = "pasta \
     ../examples/bird_4.lp \
     --query=\"fly(1)\""
-examples_string_exact_evidence = "python3 pasta_solver.py \
+examples_string_exact_evidence = "pasta \
     ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\""
-examples_string_approximate = "python3 pasta_solver.py \
+examples_string_approximate = "pasta \
     ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --approximate"
-examples_string_approximate_rej = "python3 pasta_solver.py \
+examples_string_approximate_rej = "pasta \
     ../examples/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\" --rejection"
@@ -77,7 +77,7 @@ def parse_args_wrapper():
     )
     command_parser.add_argument(
         "--iterations",
-        help="Iterations for the genetic algorithm (default 1000)", 
+        help="Iterations for the genetic algorithm (default 1000)",
         type=int,
         default=1000
     )
@@ -112,5 +112,12 @@ def parse_args_wrapper():
         default="SLSQP",
         choices=["SLSQP","COBYLA"]
     )
+    command_parser.add_argument(
+        "--chunk",
+        help="Split the symbolic equation in chunks with this size (default 100).",
+        type = int,
+        default=100
+    )
+
 
     return command_parser.parse_args()
