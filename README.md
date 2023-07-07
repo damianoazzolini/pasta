@@ -36,18 +36,10 @@ pasta --help
 to see the available options.
 
 ### Exact inference
-The probability of a query in a PASP is given by a range $P(q) = [\underline{P}(q),\overline{P}(q)]$ where
-$
-\underline{P}(q) = \sum_{w_i \mid |AS(w_i)| > 0 \ \land \ m \in AS(w_i), \ m \models q} P(w_i)
-$
+The probability of a query in a PASP is given by a range $P(q) = [\underline{P}(q),\overline{P}(q)]$ where $\underline{P}(q) = \sum_{w_i \mid |AS(w_i)| > 0 \ \land \ m \in AS(w_i), \ m \models q} P(w_i)$
 and
-$
-\overline{P}(q) = \sum_{w_i \mid \exists m \in AS(w_i), \ m \models q} P(w_i)
-$
-where $P(w)$ is the probability of the world $w$ computed as
-$
-P(w) = \prod_{i \mid f_i = \top} \Pi_i \cdot \prod_{i \mid f_i = \bot} (1 - \Pi_i)
-$
+$\overline{P}(q) = \sum_{w_i \mid \exists m \in AS(w_i), \ m \models q} P(w_i)$
+where $P(w)$ is the probability of the world $w$ computed as $P(w) = \prod_{i \mid f_i = \top} \Pi_i \cdot \prod_{i \mid f_i = \bot} (1 - \Pi_i)$
 and $AS(w)$ is the set of answer sets for a world $w$.
 The current algorithm adopts projected answer set enumeration to solve the task.
 
