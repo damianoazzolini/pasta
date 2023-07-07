@@ -1,6 +1,6 @@
 # PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
-This software allows to perform inference in probabilistic answer set programs under the credal semantics and with statistical statements.
+This software allows to perform inference in probabilistic answer set programs under the credal semantics (PASPs) and with statistical statements.
 Currentyl supports:
 - exact inference
 - approximate inference via sampling
@@ -25,51 +25,34 @@ You can also use Docker ([image on Dockerhub](https://hub.docker.com/r/damianoda
 ```
 docker container run -it damianodamianodamiano/pasta bash
 ```
-then you are ready to go (follows the nex instructions to run an example).
+then you are ready to go (follows the next instructions to run an example).
 
 
 ## How to Use
-Use
-```
-cd pasta
-pasta --help
-```
-to see the various available options.
-
-You can also use it as a library
-```
-from pasta.pasta_solver import Pasta
-
-filename = "examples/inference/bird_4.lp"
-query = "fly(1)"
-solver = Pasta(filename, query)
-lp, up = solver.inference()
-
-print("Lower probability for the query " + query + ": " + str(lp))
-print("Upper probability for the query " + query + ": " + str(up))
-```
-where `filename` and `query` are the name of the file and the query to ask.
-
-You can also pass the file as a string, in this way:
-```
-query = "fly(1)"
-solver = pasta_solver.Pasta("", query)  # leave the filename as ""
-lp, up = solver.inference(program)
-
-print("Lower probability for the query " + query + ": " + str(lp))
-print("Upper probability for the query " + query + ": " + str(up))
-```
-where `program` is a string containing your program.
-
-### Options
-To see the available options, use:
+After the installation, use
 ```
 pasta --help
 ```
+to see the available options.
 
 ### Exact inference
+The probability of a query in a PASP is given by a range $P(q) = [\underline{P}(q),\overline{P}(q)]$ where
+$$
+\underline{P}(q) = \sum_{w_i \mid |AS(w_i)| > 0 \ \land \ m \in AS(w_i), \ m \models q} P(w_i)
+$$
+and
+$$
+\overline{P}(q) = \sum_{w_i \mid \exists m \in AS(w_i), \ m \models q} P(w_i)
+$$
+where $P(w)$ is the probability of the world $w$ computed as
+$$
+P(w) = \prod_{i \mid f_i = \top} \Pi_i \cdot \prod_{i \mid f_i = \bot} (1 - \Pi_i)
+$$
+and $AS(w)$ is the set of answer sets for a world $w$.
+The current algorithm adopts projected answer set enumeration to solve the task.
+
+Example:
 ```
-cd pasta
 pasta examples/conditionals/bird_4_cond.lp --query="fly"
 ```
 Asks the query `fly` for the program stored in `examples/conditionals/bird_4_cond.lp`.
@@ -83,7 +66,6 @@ You can specify evidence with `--evidence`.
 ### Abduction
 This is still experimental and some features might not work as expected.
 ```
-cd pasta
 pasta examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
 ```
 
@@ -124,6 +106,48 @@ Here, we make the same assumption.
 If you ask a query on a program that is not consistent, you should get an error.
 You can normalize the probability with the flag `--normalize`.
 
+### Use PASTA as a Library
+You can also use it as a library
+```
+from pasta.pasta_solver import Pasta
+
+filename = "examples/inference/bird_4.lp"
+query = "fly(1)"
+solver = Pasta(filename, query)
+lp, up = solver.inference()
+
+print("Lower probability for the query " + query + ": " + str(lp))
+print("Upper probability for the query " + query + ": " + str(up))
+```
+where `filename` and `query` are the name of the file and the query to ask.
+
+You can also pass the file as a string, in this way:
+```
+program = """
+0.5::bird(1).
+0.5::bird(2).
+0.5::bird(3).
+0.5::bird(4).
+
+% A bird can fly or not fly
+0{fly(X)}1 :- bird(X).
+
+% Constraint: at least 60% of the birds fly
+:- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<6*B.
+"""
+
+query = "fly(1)"
+
+solver = Pasta("", query)  # leave the filename as ""
+lp, up = solver.inference(program)
+
+print(f"Lower probability: {lp}")
+print(f"Upper probability: {up}")
+```
+where `program` is a string containing your program.
+
+All the above tasks can be used with the Python interface.
+
 ### Caveat
 Make sure to not write clauses with the same functor of probabilistic facts.
 For example, you should not write:
@@ -159,4 +183,4 @@ The system and the various types of inferences are currently described in:
 - Approximate inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Approximate inference in probabilistic answer set programming for statistical probabilities. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 33--46, Cham, 2023. Springer International Publishing.` 
 - Lifted inference: under review
 - Parameter learning: in press
-- Decision theory: in press
+- Decision theory (preliminary): in press
