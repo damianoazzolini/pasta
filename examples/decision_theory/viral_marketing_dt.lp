@@ -47,6 +47,6 @@ utility(buy(3),5).
 utility(buy(4),5).
 utility(buy(5),5).
 
-% python3 pasta_solver.py temp.pl -dt
+% pasta temp.pl -dt
 % Utility: 123.2
 % Choice: ['not a(1,2)', 'not a(2,3)', 'not a(2,4)', 'a(3,5)', 'a(4,5)']

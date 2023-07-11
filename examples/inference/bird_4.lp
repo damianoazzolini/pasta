@@ -17,3 +17,14 @@
 % Example query: fly(1)
 % What is the lower and the upper bound of the probability for fly(1)?
 % Expected: lower: 0.25, upper: 0.5
+
+% Call: 
+% pasta bird_4.lp --query="fly(1)"
+
+% Probability of fly(1) given that fly(2) is true
+% pasta bird_4.lp --query="fly(1)" --evidence="fly(2)"
+% Lower probability for the query: 0.125
+% Upper probability for the query: 0.5714285714285714
+
+% Approximate inference
+% pasta bird_4.lp --query="fly(1)" --approximate

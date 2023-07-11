@@ -6,12 +6,12 @@ valuable(X) ; not_valuable(X):- gold(X).
 
 :- #count{X:valuable(X), gold(X)} = FB, #count{X:gold(X)} = B, 10*FB < 6*B.
 
-% python3 pasta_solver.py gold_map.lp --query="valuable(1)" --map
+% pasta gold_map.lp --query="valuable(1)" --map
 % MAP: 0.060000000000000005
 % Map states: 1
 % State 0: ['gold(1)', 'not gold(3)']
 
-% python3 pasta_solver.py gold_map.lp --query="valuable(1)" --map --upper
+% pasta gold_map.lp --query="valuable(1)" --map --upper
 % MAP: 0.13999999999999999
 % Map states: 1
 % State 0: ['gold(1)', 'gold(3)']

@@ -9,7 +9,7 @@ utility(nqr, -12).
 qr :- da , a.
 qr ; nqr :- db , b.
 
-% python3 pasta_solver.py ../examples/decision_theory/dummy.lp -dtn
+% pasta dummy.lp -dtn
 % Warning: Naive decision theory solver, you should use -dt.
 % Utility: [0.6, 0.6]
 % Choice: ['da', 'not db']

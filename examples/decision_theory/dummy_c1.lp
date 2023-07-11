@@ -11,7 +11,7 @@ utility(nqr, -12).
 qr :- da , a.
 qr ; nqr :- db , b.
 
-% python3 pasta_solver.py ../examples/decision_theory/dummy_c1.lp -dtn --normalize
+% pasta dummy_c1.lp -dtn --normalize
 % Warning: Naive decision theory solver, you should use -dt.
 % Utility: [0.6000000000000001, 0.6000000000000001]
 % Choice: ['da', 'not db']

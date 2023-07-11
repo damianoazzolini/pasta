@@ -17,6 +17,6 @@ utility(raincoat,-20).
 utility(umbrella,-2).
 utility(dry,60).
 
-% python3 pasta_solver.py temp.pl -dt
+% pasta temp.pl -dt
 % Utility: 43.0
 % Choice: ['umbrella', 'not raincoat']

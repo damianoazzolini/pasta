@@ -2,18 +2,18 @@ import argparse
 
 
 examples_string_exact = "pasta \
-    ../examples/bird_4.lp \
+    examples/inference/bird_4.lp \
     --query=\"fly(1)\""
 examples_string_exact_evidence = "pasta \
-    ../examples/bird_4.lp \
+    examples/inference/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\""
 examples_string_approximate = "pasta \
-    ../examples/bird_4.lp \
+    examples/inference/bird_4.lp \
     --query=\"fly(1)\" \
     --approximate"
 examples_string_approximate_rej = "pasta \
-    ../examples/bird_4.lp \
+    examples/inference/bird_4.lp \
     --query=\"fly(1)\" \
     --evidence=\"bird(1)\" --rejection"
 examples_strings = "Examples:\n\n" + examples_string_exact + "\n\n" + examples_string_exact_evidence + \

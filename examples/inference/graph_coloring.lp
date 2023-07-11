@@ -1,4 +1,7 @@
-red(X) ; green(X) ; blue(X) :- node(X).
+% red(X) ; green(X) ; blue(X) :- node(X).
+red(X) :- node(X), not green(X), not blue(X).
+green(X) :- node(X), not red(X), not blue(X).
+blue(X) :- node(X), not red(X), not green(X).
 
 e(X,Y) :- edge(X,Y).
 e(Y,X) :- edge(Y,X).
@@ -20,6 +23,16 @@ green(6).
 0.3::edge(3, 4).
 0.8::edge(4, 5).
 0.2::edge(5, 6).
+
+0.1::edge(6,7).
+0.1::edge(7,8).
+0.1::edge(7,9).
+0.1::edge(9,8).
+0.1::edge(10,8).
+0.1::edge(11,8).
+0.1::edge(12,8).
+0.1::edge(13,8).
+0.1::edge(14,8).
 
 qr:- blue(3).
 

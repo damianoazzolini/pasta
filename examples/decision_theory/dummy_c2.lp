@@ -11,6 +11,6 @@ utility(nqr, -12).
 qr :- da , a.
 qr ; nqr :- db , b.
 
-% python3 pasta_solver.py ../examples/decision_theory/dummy_c2.lp -dtn --normalize
+% pasta dummy_c2.lp -dtn --normalize
 % Utility: [0.4090909090909091, 0.4090909090909091]
 % Choice: ['da', 'not db']

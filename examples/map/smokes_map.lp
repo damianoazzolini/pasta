@@ -16,7 +16,7 @@ smokes(X) ; no_smokes(X):- friend(X,Y), smokes(Y).
 
 :- #count{X:no_smokes(X)} = N, #count{X:smokes(X)} = S, 10*S < 8*(N+S).
 
-% > python3 pasta_solver.py smokes_map.pl --query="smokes(c)" --upper --map
+% pasta smokes_map.pl --query="smokes(c)" --upper --map
 % Warning: Brave (upper) MPE can be solved in a faster way using the --solver flag.
 % MPE: 0.03125
 % MPE states: 20

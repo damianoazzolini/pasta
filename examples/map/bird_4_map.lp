@@ -7,7 +7,7 @@ fly(X);nofly(X):- bird(X).
 
 :- #count{X:fly(X),bird(X)} = FB, #count{X:bird(X)} = B, 10*FB<6*B.
 
-% python3 pasta_solver.py ../examples/map/bird_4_map.lp  --map --query="fly(1)"
+% pasta bird_4_map.lp  --map --query="fly(1)"
 % MPE: 0.0625
 % MPE states: 4
 % State 0: ['bird(1)', 'bird(2)', 'not bird(3)', 'not bird(4)']

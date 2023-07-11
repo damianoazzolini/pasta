@@ -16,5 +16,5 @@ cold(4):- weak(4), rain, tb.
 % :- #count{X:person(X)} = P, #count{X:cold(X), person(X)} = SP, 10*SP < 2*P.
 at_least_one_cold:- #count{C : cold(C)} > 0.
 
-% p3 pasta_solver.py ../../examples/hybrid/cold.lp --query="at_least_one_cold"
+% pasta cold.lp --query="at_least_one_cold"
 % Lower probability == upper probability for the query: 0.58888

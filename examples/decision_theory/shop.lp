@@ -18,6 +18,6 @@ ce(C):- #count{X,Y : buy(Y,X)} = C.
 
 :- cs(S), ce(C), 10*S < 4*C.
 
-% python3 pasta_solver.py shop.pl -dtn
+% pasta shop.pl -dtn
 % Utility: [2.8, 2.8]
 % Choice: ['target(a)', 'not target(b)']

@@ -1,17 +1,16 @@
-0.5::shops(a).
-0.5::shops(b).
-0.5::shops(c).
-0.5::shops(d).
+0.3::shops(a).
+0.2::shops(b).
+0.6::shops(c).
 
-bought(spaghetti,a) ; bought(steak,a) :- shops(a).
-bought(spaghetti,b) ; bought(beans,b) :- shops(b).
-bought(tomato,c) ; bought(onions,c) :- shops(c).
-bought(steak,d) ; bought(onions,d) :- shops(d).
+bought(beans,a) ; bought(spaghetti,a) :- shops(a).
+bought(spaghetti,b) ; bought(steak,b) :- shops(b).
+bought(tomato,c) ; bought(garlic,c) :- shops(c).
+% bought(steak,d) ; bought(onions,d) :- shops(d).
 
-cs(C):- #count{X:bought(spaghetti,X)} = C0, #count{X : bought(onions,X)} = C1, C = C0 + C1.
+cs(C):- #count{X:bought(spaghetti,X)} = C0, #count{X : bought(garlic,X)} = C1, C = C0 + C1.
 ce(C):- #count{X,Y : bought(Y,X)} = C.
 
-:- cs(S), ce(C), 10* S < 4*C.
+:- cs(S), ce(C), 10* S < 3*C.
 
 qr:- bought(spaghetti,a).
 
