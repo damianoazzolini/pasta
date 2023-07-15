@@ -166,9 +166,8 @@ class AspInterface:
                 self.model_handler.add_value(str(m))  # type: ignore
                 self.computed_models = self.computed_models + 1
             handle.get()   # type: ignore
-    
+
         self.normalizing_factor = 1
-        
         # print(self.model_handler.worlds_dict)
 
         if len(self.model_handler.worlds_dict) != 2**len(self.prob_facts_dict):

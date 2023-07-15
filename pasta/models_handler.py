@@ -2,8 +2,8 @@
 Class to identify a world.
 '''
 
-from . import utils
 import math
+from . import utils
 
 class DecisionWorld:
     '''
@@ -22,26 +22,26 @@ class DecisionWorld:
         # or false, needed for the computation of the contribution
         # of the atoms
         self.probabilistic_worlds_to_utility : 'dict[str,list[str]]' = {}
-        w = World(prob)
-        self.probabilistic_worlds[id_prob] = w
+        wrld = World(prob)
+        self.probabilistic_worlds[id_prob] = wrld
         self.probabilistic_worlds_to_utility[id_prob] = [id_utilities]
 
     def __str__(self) -> str:
-        s = f"\nid decision: {self.id_strategy}\n"
+        str_decision = f"\nid decision: {self.id_strategy}\n"
 
         for world in self.probabilistic_worlds:
-            s += f"\tid world: {world}"
-            s += f" - probability: {self.probabilistic_worlds[world].prob}\n"
-            s += f"\t\tutility atoms: "
+            str_decision += f"\tid world: {world}"
+            str_decision += f" - probability: {self.probabilistic_worlds[world].prob}\n"
+            str_decision += "\t\tutility atoms: "
             if world in self.probabilistic_worlds_to_utility:
-                s += f"{str(self.probabilistic_worlds_to_utility[world])}\n"
+                str_decision += f"{str(self.probabilistic_worlds_to_utility[world])}\n"
             else:
-                s += "\n"
+                str_decision += "\n"
             # s += f"\t\t{self.probabilistic_worlds_to_utility[self.probabilistic_worlds[world]]}\n"
         # for e in self.probabilistic_worlds_to_utility:
         #     s += f"\t\t{str(self.probabilistic_worlds_to_utility[e])}\n"
 
-        return s
+        return str_decision
 
 
     def __repr__(self) -> str:
@@ -58,7 +58,7 @@ class AbdWorld:
         prob : float,
         model_query : bool
         ) -> None:
-        self.id : str = id_abd
+        self.id_inst : str = id_abd
         self.model_query_count : int = 0  # needed?
         self.model_not_query_count : int = 0  # needed?
         self.probabilistic_worlds : 'dict[str,World]' = {}
@@ -70,7 +70,7 @@ class AbdWorld:
 
 
     def __str__(self) -> str:
-        s = "id: " + self.id + " mqc: " + str(self.model_query_count) + \
+        s = "id: " + self.id_inst + " mqc: " + str(self.model_query_count) + \
             " mnqc: " + str(self.model_not_query_count) + "\n"
 
         for worlds in self.probabilistic_worlds.values():
@@ -101,12 +101,21 @@ class World:
         self.model_count : int = 0
 
     def increment_model_not_query_count(self) -> None:
+        '''
+        Increments the number of not query count
+        '''
         self.model_not_query_count = self.model_not_query_count + 1
 
     def increment_model_query_count(self) -> None:
+        '''
+        Increments the number of query count
+        '''
         self.model_query_count = self.model_query_count + 1
 
     def increment_model_count(self) -> None:
+        '''
+        Increments the number stable model count
+        '''
         self.model_count = self.model_count + 1
 
     def __str__(self) -> str:
@@ -148,33 +157,20 @@ class ModelsHandler():
         self.decision_worlds_dict : 'dict[str,DecisionWorld]' = {}
 
 
-    def increment_lower_query_prob(self, p : float) -> None:
-        self.lower_query_prob = self.lower_query_prob + p
-
-
-    def increment_upper_query_prob(self, p : float) -> None:
-        self.upper_query_prob = self.upper_query_prob + p
-
-
-    def increment_lower_evidence_prob(self, p : float) -> None:
-        self.lower_evidence_prob = self.lower_evidence_prob + p
-
-
-    def increment_upper_evidence_prob(self, p: float) -> None:
-        self.upper_evidence_prob = self.upper_evidence_prob + p
-
-
     def keep_best_model(self) -> 'tuple[float,float]':
+        '''
+        Only keep the best model; used in abduction.
+        '''
         for el in self.abd_worlds_dict:
             acc_lp = 0
             acc_up = 0
             worlds_comb = self.abd_worlds_dict[el].probabilistic_worlds
             for w_id in worlds_comb:
-                p = worlds_comb[w_id].prob
+                world_prob = worlds_comb[w_id].prob
                 if worlds_comb[w_id].model_query_count != 0:
-                    acc_up = acc_up + p
+                    acc_up = acc_up + world_prob
                     if worlds_comb[w_id].model_not_query_count == 0:
-                        acc_lp = acc_lp + p
+                        acc_lp = acc_lp + world_prob
 
             if acc_lp == self.best_lp and acc_lp > 0:
                 self.best_abd_combinations.append(el)
@@ -194,14 +190,14 @@ class ModelsHandler():
 
     def extract_pos_and_prob(self, term : str) -> 'tuple[int,int,float]':
         '''
-        Computes the position in the dict to generate the string and the 
+        Computes the position in the dict to generate the string and the
         probability of the current fact
         '''
         index = 0
         probability = 0
 
         term, positive = utils.clean_term(term)
-        
+
         found = False
         for el in self.prob_facts_dict:
             if term == el:
@@ -247,13 +243,13 @@ class ModelsHandler():
 
         if len(line_list) < len(self.prob_facts_dict):
             # this because with the project statment the result will not
-            # be correct: 0.5::a(1). a(X):- c(X). c(1). will provide a 
+            # be correct: 0.5::a(1). a(X):- c(X). c(1). will provide a
             # wrong result
             utils.print_error_and_exit("Maybe a probabilistic fact has the same functor of a clause? Or you use not_f where f is a probabilistic fact.")
 
         model_query = False  # model q and e for evidence, q without evidence
         model_evidence = False  # model nq and e for evidence, nq without evidence
-        id = "0" * len(self.prob_facts_dict)
+        id_str = "0" * len(self.prob_facts_dict)
         probability = 1
         for term in line_list:
             if term == "q":
@@ -266,36 +262,36 @@ class ModelsHandler():
                 model_evidence = False
             else:
                 position, true_or_false, prob = self.extract_pos_and_prob(term)
-                id = id[:position] + str(true_or_false) + id[position + 1 :]
+                id_str = id_str[:position] + str(true_or_false) + id_str[position + 1 :]
                 probability = probability * prob
 
         if evidence == "":
             # query without evidence
-            return id, probability, model_query, False
+            return id_str, probability, model_query, False
 
         # can I return directly model_query and model_evidence?
         # also in the case of evidence == ""?
         if (model_query is True) and (model_evidence is True):
-            return id, probability, True, True
+            return id_str, probability, True, True
         if (model_query is False) and (model_evidence is True):
-            return id, probability, False, True
+            return id_str, probability, False, True
 
         # all the other cases, don't care
-        return id, probability, False, False
+        return id_str, probability, False, False
 
 
     def get_weight_as(self, line : str, query : str) -> 'tuple[float,bool]':
         '''
         Extracts the weight of a stable model
         '''
-        l = line.split(' ')
+        l_splitted = line.split(' ')
         weight : float = 0.0
-        
+
         for wr in self.prob_facts_dict:
-            if wr in l:
+            if wr in l_splitted:
                 weight += weight + math.e**self.prob_facts_dict[wr]
 
-        return weight if weight > 0 else 1, query in l
+        return weight if weight > 0 else 1, query in l_splitted
 
 
     def get_ids_abduction(self, line : str) -> 'tuple[str,str,float,bool]':
@@ -424,7 +420,7 @@ class ModelsHandler():
         Normalizes the weights
         '''
         for el in self.worlds_dict:
-            self.worlds_dict[el].prob = self.worlds_dict[el].prob/nf 
+            self.worlds_dict[el].prob = self.worlds_dict[el].prob/nf
 
 
     def manage_worlds_dict_abduction(self,
@@ -443,7 +439,7 @@ class ModelsHandler():
         else:
             # add new key
             self.abd_worlds_dict[id_abd] = AbdWorld(id_abd, id_prob, prob, model_query)
-        
+
 
     def manage_worlds_dict_decision(self,
         id_strategy: str,
@@ -476,7 +472,7 @@ class ModelsHandler():
     def add_decision_model(self, line : str) -> None:
         '''
         Adds a models for decision theory solving.
-        Two possible options: aggregating the answer sets by worlds and, 
+        Two possible options: aggregating the answer sets by worlds and,
         for each one, save which utilities are selected or viceversa.
         Here, the viceversa is used.
         '''
@@ -527,10 +523,10 @@ class ModelsHandler():
                 if bounds_best_strategy[1] < decisions_utilities[ut][1] or ((bounds_best_strategy[1] == decisions_utilities[ut][1]) and (bounds_best_strategy[0] < decisions_utilities[ut][0])):
                     best_strategy = ut
                     bounds_best_strategy = decisions_utilities[ut]
-        
+
         return best_strategy, bounds_best_strategy
 
-        
+
     def get_abducibles_from_id(self, w_id : str) -> 'list[str]':
         '''
         From a 01 string returns the list of selected abducibles
@@ -587,23 +583,23 @@ class ModelsHandler():
                 if self.worlds_dict[w].model_query_count != 0:
                     if int(perc) == 1:
                         if self.worlds_dict[w].model_not_query_count == 0:
-                            self.increment_lower_query_prob(p)
+                            self.lower_query_prob = self.lower_query_prob + p
                     else:
                         if self.worlds_dict[w].model_query_count/self.worlds_dict[w].model_count >= perc:
-                            self.increment_lower_query_prob(p)
-                    self.increment_upper_query_prob(p)
+                            self.lower_query_prob = self.lower_query_prob + p
+                    self.upper_query_prob = self.upper_query_prob + p
             else:
                 mqe = self.worlds_dict[w].model_query_count
                 mnqe = self.worlds_dict[w].model_not_query_count
                 nm = self.worlds_dict[w].model_count
                 if mqe > 0:
                     if mqe == nm:
-                        self.increment_lower_query_prob(p)
-                    self.increment_upper_query_prob(p)
+                        self.lower_query_prob = self.lower_query_prob + p
+                    self.upper_query_prob = self.upper_query_prob + p
                 if mnqe > 0:
                     if mnqe == nm:
-                        self.increment_lower_evidence_prob(p)
-                    self.increment_upper_evidence_prob(p)
+                        self.lower_evidence_prob = self.lower_evidence_prob + p
+                    self.upper_evidence_prob = self.upper_evidence_prob + p
 
         if self.evidence == "":
             return self.lower_query_prob, self.upper_query_prob
@@ -720,30 +716,31 @@ class ModelsHandler():
         if atoms[0] == '':
             return 0, []
 
-        for a in atoms:
-            if a != 'q':
-                a = a.split('not_')
-                negated = len(a) == 2
-                a1 = a[0] if len(a) == 1 else a[1]
-                if '-' in a1:
-                    a1 = a1.split('-')[0][:-1] + ')'
-                p = self.prob_facts_dict[a1] if not negated else (1-self.prob_facts_dict[a1])
-                probability = probability * p
-                
-                map_state_parsed.append("not " + a1 if negated else a1)
+        for atm in atoms:
+            if atm != 'q':
+                atm = atm.split('not_')
+                negated = len(atm) == 2
+                atm_selected = atm[0] if len(atm) == 1 else atm[1]
+                if '-' in atm_selected:
+                    atm_selected = atm_selected.split('-')[0][:-1] + ')'
+                current_p = self.prob_facts_dict[atm_selected] if not negated else (
+                    1-self.prob_facts_dict[atm_selected])
+                probability = probability * current_p
+
+                map_state_parsed.append("not " + atm_selected if negated else atm_selected)
 
         # return [map_state_parsed] to have uniformity with MAP
         return probability, [map_state_parsed]
 
 
     def __repr__(self) -> str:
-        s = ""
+        str_repr = ""
         if len(self.abd_worlds_dict) == 0:
             print(f"N worlds dict: {len(self.worlds_dict)}")
-            for el in self.worlds_dict:
-                s = s + str(el) + "\n"
+            for wrld in self.worlds_dict:
+                str_repr = str_repr + str(wrld) + "\n"
         else:
             print(f"N abd worlds dict: {len(self.abd_worlds_dict)}")
-            for el in self.abd_worlds_dict:
-                s = s + str(el) + "\n"
-        return s
+            for abd_wrld in self.abd_worlds_dict:
+                str_repr = str_repr + str(abd_wrld) + "\n"
+        return str_repr

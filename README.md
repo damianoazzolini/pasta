@@ -1,7 +1,7 @@
 # PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
 This software allows to perform inference in probabilistic answer set programs under the credal semantics (PASPs) and with statistical statements.
-Currentyl supports:
+Currently it supports:
 - exact inference
 - approximate inference via sampling
 - abduction
