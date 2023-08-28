@@ -144,7 +144,7 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
-        "--stop-i-inconsistent",
+        "--stop-if-inconsistent",
         "-sif",
         help="Raise an error if some worlds have no answer sets (and lists them)",
         action=argparse.BooleanOptionalAction,
@@ -260,7 +260,7 @@ def parse_args_wrapper():
         default=1000
     )
 
-    # optimizable task
+    # optimizable/reducible task
     command_parser.add_argument(
         "--optimize",
         help="Optimize the probability of optimizable facts.",
@@ -268,15 +268,21 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
+        "--reducible",
+        help="Reduce the probabilistic answer set program.",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
         "--target",
-        help="Target for the optimization (default upper).",
+        help="Target for the optimizable/reducible task (default upper).",
         default="upper",
         choices=["upper","lower"]
     )
     command_parser.add_argument(
         "--threshold",
-        help="Threshold \\tau for the optimizable task (q > \\tau, default 0).",
-        default=0
+        help="Threshold \\tau for the optimizable task (q > \\tau, default -1).",
+        default=-1
     )
     command_parser.add_argument(
         "--epsilon",
