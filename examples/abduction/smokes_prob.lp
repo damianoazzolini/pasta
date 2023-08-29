@@ -21,8 +21,4 @@ smokes(X) ; no_smokes(X):- friend(X,Y), smokes(Y).
 0.2:- #count{X:no_smokes(X)} = N, #count{X:smokes(X)} = S, 10*S<8*(N+S).
 
 % query: smokes(c)
-% Lower probability for the query smokes(c): 0.125
-% Upper probability for the query smokes(c): 0.425
-% Abductive explanations 1
-% Explanation 0
-% {{e(b,c), e(d,e), e(e,c)}}
+% Inconsistent

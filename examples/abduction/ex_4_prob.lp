@@ -7,7 +7,4 @@ abducible e.
 
 0.1:- c,e.
 
-% Expected result
-% Lower probability == upper probability for the query: 0.648
-% Abductive explanations: 1
-% {{c,e}}
+% Expected result: inconsistent.
