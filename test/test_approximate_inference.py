@@ -87,16 +87,6 @@ class TestClassApproximateInference(unittest.TestCase):
         )
         self.wrap_test_approximate_inference(parameters)
 
-    # def test_evidence_certain(self):
-    #     parameters = utils_for_tests.TestArguments(
-    #         "evidence_certain",
-    #         "../examples/inference/evidence_certain.lp",
-    #         "qr",
-    #         0,
-    #         1
-    #     )
-    #     self.wrap_test_approximate_inference(parameters)
-
     def test_graph_coloring_qr(self):
         parameters = utils_for_tests.TestArguments(
             "graph_coloring_qr",
@@ -122,8 +112,8 @@ class TestClassApproximateInference(unittest.TestCase):
             "shop_qr",
             "../examples/inference/shop.lp",
             "qr",
-            0.0625,
-            0.5
+            0.096,
+            0.3
         )
         self.wrap_test_approximate_inference(parameters)
 

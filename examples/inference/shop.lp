@@ -15,5 +15,5 @@ ce(C):- #count{X,Y : bought(Y,X)} = C.
 qr:- bought(spaghetti,a).
 
 % query: qr 
-% Lower probability for the query: 0.0625
-% Upper probability for the query: 0.5
+% Lower probability for the query: 0.096
+% Upper probability for the query: 0.3
