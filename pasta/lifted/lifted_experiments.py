@@ -1,4 +1,4 @@
-import lifted
+from . import lifted
 import time
 import random
 

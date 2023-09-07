@@ -1,7 +1,7 @@
 import math
 
-import lifted_utilities
-import lifted_deltas
+from . import lifted_utilities
+from . import lifted_deltas
 
 
 def cx_ax_one_probability_cluster(n_vars : int, prob : float = 0.5, lb : int = 60, ub : int = 100) -> 'tuple[float,float]':
