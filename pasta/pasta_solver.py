@@ -329,7 +329,8 @@ class Pasta:
             k_credal = self.k_credal,
             # constraints=self.parser.constraints_list,
             # objective_function=self.parser.objective_function,
-            optimizable_facts=self.parser.optimizable_facts
+            optimizable_facts=self.parser.optimizable_facts,
+            reducible_facts=self.parser.reducible_facts
         )
 
         if self.minimal:
@@ -359,7 +360,7 @@ class Pasta:
         Approximate solver for decision theory.
         '''
         # TODO: check the setup of the interface, that must be done
-        # for approximate inference 
+        # for approximate inference
         self.setup_interface(from_string, True)
         # self.setup_sampling(from_string)
         return self.interface.decision_theory_approximate(
@@ -367,7 +368,8 @@ class Pasta:
             mutation_probability=mutation_probability,
             samples_for_inference=samples,
             max_iterations_genetic=iterations,
-            to_maximize=to_maximize)
+            to_maximize=to_maximize
+        )
 
 
     def decision_theory_naive(self,
@@ -391,12 +393,49 @@ class Pasta:
         return self.interface.decision_theory_project()
 
 
-    def abduction(self, from_string: str = "") -> 'tuple[float,float,list[list[str]]]':
+    def abduction(self,
+        threshold : float = -1,
+        only_smallest : bool = False,
+        one_shot : bool = False,
+        from_string: str = ""
+        ) -> 'tuple[float,float,list[list[str]]]':
         '''
         Probabilistic and deterministic abduction
         '''
         self.setup_interface(from_string)
-        self.interface.abduction()
+        self.interface.abduction(threshold=threshold,only_smallest_cardinality=only_smallest,one_shot=one_shot)
+        lp = self.interface.lower_probability_query
+        up = self.interface.upper_probability_query
+
+        check_lp_up(lp, up)
+
+        return lp, up, self.interface.abductive_explanations
+
+
+    def approximate_abduction(
+        self,
+        threshold: float = -1,
+        only_smallest: bool = False,
+        from_string: str = "",
+        samples : int = 1000,
+        popsize : int = 50,
+        mutation_probability : float = 0.05,
+        iterations : int = 1000,
+        target_probability : str = "lower"
+        ) -> 'tuple[float,float,list[list[str]]]':
+        '''
+        Probabilistic and deterministic abduction
+        '''
+        self.setup_interface(from_string)
+        self.interface.abduction_approximate(
+            threshold=threshold,
+            only_smallest_cardinality=only_smallest,
+            initial_population_size=popsize,
+            mutation_probability=mutation_probability,
+            samples_for_inference=samples,
+            max_iterations_genetic=iterations,
+            target_probability=target_probability
+        )
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
 
@@ -447,12 +486,27 @@ class Pasta:
             self.parser.map_id_list, self.consider_lower_prob)
         if self.interface.normalizing_factor >= 1:
             max_prob = 1
-            print_warning("No worlds have > 1 answer sets")
+            # print_warning("No worlds have > 1 answer sets")
 
         if self.normalize_prob and self.interface.normalizing_factor != 0:
             max_prob = max_prob / (1 - self.interface.normalizing_factor)
 
         return max_prob, map_state
+
+    
+    def reducible_task(
+        self,
+        target : str,
+        threshold : float,
+        simplify_iter : int = -1,
+        from_string : str = ""
+        ):
+        '''
+        Reducible task. Find the minimal subset of optimizable facts
+        such that the probability of the query is above the threshold.
+        '''
+        self.setup_interface(from_string)
+        return self.interface.reducible_task(target, threshold, simplify_iter)
 
 
     def optimize_probability(
@@ -523,7 +577,7 @@ def main():
         args.minimal = False
         args.stop_if_inconsistent = False
         args.normalize = False
-    if ((args.minimal and args.stop_if_inconsistent) or args.upper) and (not args.dtn and not args.dt):
+    if ((args.minimal and args.stop_if_inconsistent) or args.upper) and (not args.dtn and not args.dt and not args.dtopt):
         print_warning("The program is assumed to be consistent.")
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
@@ -553,8 +607,25 @@ def main():
                          args.processes)
 
     if args.abduction:
-        lower_p, upper_p, abd_explanations = pasta_solver.abduction()
-        print_result_abduction(lower_p, upper_p, abd_explanations, args.upper)
+        if args.approximate:
+            lower_p, upper_p, abd_explanations = pasta_solver.approximate_abduction(
+                threshold=float(args.threshold),
+                only_smallest=args.only_smallest
+            )
+        else:
+            lower_p, upper_p, abd_explanations = pasta_solver.abduction(
+                threshold=float(args.threshold),
+                only_smallest=args.only_smallest,
+                one_shot=args.one_shot
+            )
+        print_result_abduction(
+            lower_p,
+            upper_p,
+            abd_explanations,
+            args.upper,
+            float(args.threshold),
+            not args.only_smallest
+        )
     elif args.xor:
         lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
         print_prob(lower_p, upper_p)
@@ -578,7 +649,7 @@ def main():
             popsize=args.popsize,
             mutation_probability=args.mutation,
             iterations=args.iterations)
-        print(f"Utility: {best_util}\nChoice: {utility_atoms}")        
+        print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dtn or args.dtopt:
         best_util, utility_atoms = pasta_solver.decision_theory_naive(no_mix=args.no_mix, opt=args.dtopt)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
@@ -610,6 +681,17 @@ def main():
                 print_warning("Unable to solve the optimization problem.")
             if args.pedantic:
                 print(res)
+    elif args.reducible:
+        found, selected, computed_prob = pasta_solver.reducible_task(
+            args.target,
+            float(args.threshold)
+        )
+        if found:
+            print("Solution found")
+            for name, sel in selected.items():
+                print(f"{name}: {sel}")
+        else:
+            print("Solution not found")
     else:
         if args.lpmln:
             prob = pasta_solver.inference_lpmln()

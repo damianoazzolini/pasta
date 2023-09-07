@@ -98,7 +98,7 @@ def compute_optimal_probability(
     # if is_number(str(symplified)):
     #     return symplified
     
-    # the target is to minimize the sum of the prob of the 
+    # the target is to minimize the sum of the prob of the
     # optimizable facts
     target_equation = "+".join(optimizable_facts.keys())
     

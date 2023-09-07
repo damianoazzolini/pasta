@@ -142,14 +142,13 @@ class ModelsHandler():
         self.worlds_dict : 'dict[str,World]' = {}
         self.abd_worlds_dict : 'dict[str,AbdWorld]' = {}
         self.prob_facts_dict = prob_facts_dict
-        self.best_lp : float = 0 # best prob found so far with abduction
-        self.best_up : float = 0 # best prob found so far with abduction
+        self.best_lp : float = 0
+        self.best_up : float = 0
         self.best_abd_combinations : 'list[str]' = []
         self.upper_query_prob : float = 0
         self.lower_query_prob : float = 0
         self.upper_evidence_prob : float = 0
         self.lower_evidence_prob : float = 0
-        self.n_prob_facts : int = len(prob_facts_dict)
         self.evidence : str = evidence
         self.abducibles_list : 'list[str]' = abducibles_list # list of abducibles
         self.decision_atoms_list: 'list[str]' = decision_atoms_list
@@ -157,34 +156,78 @@ class ModelsHandler():
         self.decision_worlds_dict : 'dict[str,DecisionWorld]' = {}
 
 
-    def keep_best_model(self) -> 'tuple[float,float]':
+    def keep_best_model(
+        self,
+        threshold : float = -1,
+        normalize_prob: bool = False
+        ) -> 'tuple[float,float]':
         '''
         Only keep the best model; used in abduction.
+        If threshold > 0, constrained abduction: find the minimal set
+        of facts such that the probability of the query is above the
+        threshold.
         '''
+        # current_number_abducibles = list(self.abd_worlds_dict.keys())[0].count('1')
         for el in self.abd_worlds_dict:
             acc_lp = 0
             acc_up = 0
             worlds_comb = self.abd_worlds_dict[el].probabilistic_worlds
+            current_worlds = len(worlds_comb)
+            expected_worlds = 0
+            sum_p_worlds = 0
+            world_prob = 0
+            if current_worlds > 0:
+                expected_worlds = 2**(len(list(worlds_comb.keys())[0]))
+                # condition to maintain the consistency
             for w_id in worlds_comb:
                 world_prob = worlds_comb[w_id].prob
+                sum_p_worlds += world_prob
                 if worlds_comb[w_id].model_query_count != 0:
                     acc_up = acc_up + world_prob
                     if worlds_comb[w_id].model_not_query_count == 0:
                         acc_lp = acc_lp + world_prob
-
-            if acc_lp == self.best_lp and acc_lp > 0:
-                self.best_abd_combinations.append(el)
-            elif acc_lp > self.best_lp and acc_lp > 0:
-                self.best_lp = acc_lp
-                self.best_up = acc_up
-                self.best_abd_combinations = []
-                self.best_abd_combinations.append(el)
+            # print(acc_lp, acc_up, threshold)
+            if current_worlds != expected_worlds:
+                if normalize_prob:
+                    acc_lp = acc_lp / world_prob
+                    acc_up = acc_up / world_prob
+                else:
+                    # inconsistent, set everything to -1 to simulate
+                    # the pruning
+                    acc_lp = -1
+                    acc_up = -1
+                # consistent
+            if threshold < 0:
+                # plain abduction
+                if acc_lp == self.best_lp and acc_lp > 0:
+                    self.best_abd_combinations.append(el)
+                elif acc_lp > self.best_lp and acc_lp > 0:
+                    self.best_lp = acc_lp
+                    self.best_up = acc_up
+                    self.best_abd_combinations = []
+                    self.best_abd_combinations.append(el)
+            else:
+                # constrained abduction
+                # i don't need to separate the two cases
+                # if acc_lp == threshold and acc_lp > 0:
+                if acc_lp >= threshold and acc_lp > 0:
+                    if el not in self.best_abd_combinations:
+                        self.best_abd_combinations.append(el)
+                    
+                # elif acc_lp >= threshold and acc_lp > 0:
+                #     self.best_abd_combinations = []
+                #     self.best_abd_combinations.append(el)
+                #     self.best_lp = acc_lp
+                #     self.best_up = acc_up
 
         # remove the dominated elements
         for el in list(self.abd_worlds_dict.keys()):
             if el not in self.best_abd_combinations:
                 del self.abd_worlds_dict[el]
 
+        # print("To return")
+        # print(self.best_abd_combinations)
+        # print(self.best_lp, self.best_up)
         return self.best_lp, self.best_up
 
 

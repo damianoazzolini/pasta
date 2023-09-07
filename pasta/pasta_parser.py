@@ -131,6 +131,7 @@ class PastaParser:
         self.for_asp_solver : bool = for_asp_solver
         self.naive_dt : bool = naive_dt
         self.optimizable_facts : 'dict[str,tuple[float,float]]' = {}
+        self.reducible_facts : 'dict[str,float]' = {}
         self.objective_function : str = ""
         self.constraints_list : 'list[str]' = []
 
@@ -265,7 +266,7 @@ class PastaParser:
         # n_probabilistic_facts = 0
         gen = Generator()
         for line in self.lines_original:
-            if "::" in line and not line.startswith("map") and not line.startswith("optimizable"):
+            if "::" in line and not line.startswith("map") and not line.startswith("optimizable") and not line.startswith("reducible"):
                 if ':-' in line:
                     utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
@@ -370,12 +371,15 @@ class PastaParser:
                 upper_bound_prob = float(prob_range.split(',')[1])
                 self.optimizable_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = (lower_bound_prob,upper_bound_prob)
                 # to_add : 'list[str]' = []
-                self.add_probabilistic_fact(fact, 1)
-                # to_add.append(f"_opt_sel_{fact}_:- {fact}.\n")
-                # to_add.append(f"_opt_not_sel_{fact}_ :- not _opt_sel_{fact}_.\n")
-                # to_add.append(f"#show _opt_not_sel_{fact}_/0.\n#show _opt_sel_{fact}_/0.\n")
-                # self.lines_prob.extend(to_add)
-            # elif line.startswith("objective"):
+            elif line.startswith("reducible"):
+                fact = line.split('reducible')[1]
+                if '::' in fact:
+                    probability, fact = check_consistent_prob_fact(fact)
+                else:
+                    fact = fact[:-1].replace(' ','')
+                    probability = 1
+                self.reducible_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = probability
+                self.add_probabilistic_fact(fact, probability)
             #     self.objective_function = line.split('objective(')[1][:-2]
             # elif line.startswith("constraint"):
             #     self.constraints_list.append(line.split('constraint(')[1][:-2])

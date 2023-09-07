@@ -180,34 +180,6 @@ def parse_args_wrapper():
         type=float,
         default=2
     )
-
-    # decision theory
-    command_parser.add_argument(
-        "-dtn",
-        help="Decision theory (naive)",
-        action="store_true",
-        default=False
-    )
-    command_parser.add_argument(
-        "-dtopt",
-        help="Decision theory with optimization",
-        action="store_true",
-        default=False
-    )
-    command_parser.add_argument(
-        "-dt",
-        help="Decision theory (improved)",
-        action="store_true",
-        default=False
-    )
-    command_parser.add_argument(
-        "--no-mix",
-        help="Compute the utility of a strategy by considering\
-            only the lower probability and upper probability for\
-            the lower and upper utility bounds respectively.",
-        action="store_true",
-        default=False
-    )
     command_parser.add_argument(
         "--lpmln",
         help="Use the lpmnl semantics",
@@ -240,7 +212,34 @@ def parse_args_wrapper():
         default=False
     )
 
-    # for decision theory approximate with genetic algorithm
+    # decision theory
+    command_parser.add_argument(
+        "-dtn",
+        help="Decision theory (naive)",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "-dtopt",
+        help="Decision theory with optimization",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "-dt",
+        help="Decision theory (improved)",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "--no-mix",
+        help="Compute the utility of a strategy by considering\
+            only the lower probability and upper probability for\
+            the lower and upper utility bounds respectively.",
+        action="store_true",
+        default=False
+    )
+    # approximate with genetic algorithm, both decision theory and abduction
     command_parser.add_argument(
         "--popsize",
         help="Population size (default 50).",
@@ -274,6 +273,24 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
+        "--only-smallest",
+        help="Consider only the smallest set.",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "--one-shot",
+        help="Compute all the AS in one shot.",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "--simplify-iter",
+        help="Iteratively simplify the query equation every n steps.",
+        type=int,
+        default=-1
+    )
+    command_parser.add_argument(
         "--target",
         help="Target for the optimizable/reducible task (default upper).",
         default="upper",
@@ -281,7 +298,8 @@ def parse_args_wrapper():
     )
     command_parser.add_argument(
         "--threshold",
-        help="Threshold \\tau for the optimizable task (q > \\tau, default -1).",
+        help="Threshold \\tau for the optimizable task (q > \\tau, default -1)\
+        and constrained abduction.",
         default=-1
     )
     command_parser.add_argument(

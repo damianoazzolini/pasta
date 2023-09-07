@@ -18,8 +18,8 @@
 # echo "--- models_handler.py ---"
 # python3 -m pylint ../pasta/models_handler.py --disable=W0311,C0103,E0401,C0301,R0913,R0914,R0902
 
-echo "--- pasta_parser.py ---"
-python3 -m pylint ../pasta/pasta_parser.py --disable=W0311,C0103,E0401,C0301,R0913,R0914,R0902
+# echo "--- pasta_parser.py ---"
+# python3 -m pylint ../pasta/pasta_parser.py --disable=W0311,C0103,E0401,C0301,R0913,R0914,R0902
 
 # echo "--- pasta_solver.py ---"
 # python3 -m pylint ../pasta/pasta_solver.py --disable=W0311,C0103,E0401,C0301,R0913,R0914,R0902
@@ -42,7 +42,7 @@ python3 -m pylint ../pasta/pasta_parser.py --disable=W0311,C0103,E0401,C0301,R09
 # flake8 ../pasta/pasta_solver.py --show-source --statistics --ignore=E203,E231,E123,E125,E501,E303
 # flake8 ../pasta/asp_interface.py --show-source --statistics --ignore=E203,E231,E123,E125,E501,E303
 # flake8 ../pasta/models_handler.py --show-source --statistics --ignore=E203,E231,E123,E125,E501,E303,E128,E124
-flake8 ../pasta/pasta_parser.py --show-source --statistics --ignore=E203,E231,E123,E125,E501,E303,E128,E124
+# flake8 ../pasta/pasta_parser.py --show-source --statistics --ignore=E203,E231,E123,E125,E501,E303,E128,E124
 
 # echo "-- test with pytest ---"
 # cd .. && cd tests && pytest
@@ -51,3 +51,7 @@ echo '--- prospector ---'
 prospector ../pasta/ -s verylow
 
 # p3 -m black <file> : refactor automatico
+
+# p3 bowler
+
+# p3 -m pip install --editable .

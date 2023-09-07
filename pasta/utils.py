@@ -128,11 +128,15 @@ def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
         print(f"Probability for the query: {lp}")
 
 
-def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]]':
+def remove_dominated_explanations(
+        abd_exp : 'list[list[str]]',
+        set_inclusion : bool = True
+    ) -> 'list[set[str]]':
     '''
     Removes the dominated explanations, used in abduction.
     '''
     ls : 'list[set[str]]' = []
+    # print(abd_exp)
     for exp in abd_exp:
         e : 'set[str]' = set()
         for el in exp:
@@ -143,25 +147,27 @@ def remove_dominated_explanations(abd_exp : 'list[list[str]]') -> 'list[set[str]
                     e.add(el)
         ls.append(e)
 
-    for i, el in enumerate(ls):
-        for j in range(i + 1, len(ls)):
-            if len(el) > 0:
-                if el.issubset(ls[j]):
-                    ls[j] = set()  # type: ignore
+    # print(ls)
+    if set_inclusion:
+        return [s for s in ls if not any(set(s).issuperset(set(i)) and len(s) > len(i) for i in ls)]
+    else:
+        return [s for s in ls if len(s) == len(min(ls, key=lambda x : len(x)))]
 
-    return ls
 
 def print_result_abduction(
-    lp : float,
-    up : float,
-    abd_exp : 'list[list[str]]',
-    upper : bool = False) -> None:
+        lp : float,
+        up : float,
+        abd_exp : 'list[list[str]]',
+        upper : bool = False,
+        threshold : float = -1,
+        set_inclusion : bool = True
+    ) -> None:
     '''
     Prints the result for abduction.
     '''
-    abd_exp_no_dup = remove_dominated_explanations(abd_exp)
+    abd_exp_no_dup = remove_dominated_explanations(abd_exp, set_inclusion)
     # abd_exp_no_dup = abd_exp
-    if len(abd_exp_no_dup) > 0 and up != 0:
+    if len(abd_exp_no_dup) > 0 and up != 0 and threshold < 0:
         if upper:
             print(f"Upper probability for the query: {up}")
         else:

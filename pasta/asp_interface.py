@@ -7,7 +7,8 @@ import time
 
 from . import utils
 from .models_handler import ModelsHandler
-from .optimization import compute_optimal_probability
+from .optimizable import compute_optimal_probability
+from .reducible import reduce_pasp_up
 
 def reconstruct_atom(atm) -> str:  # type: ignore
     '''
@@ -82,7 +83,8 @@ class AspInterface:
         k_credal: int = 100,
         # constraints : 'list[str]' = [], # for the optimizable task
         # objective_function : str = "", # for the optimizable task
-        optimizable_facts : 'dict[str,tuple[float,float]]' = {} # for the optimizable task
+        optimizable_facts : 'dict[str,tuple[float,float]]' = {}, # for the optimizable task
+        reducible_facts : 'dict[str,float]' = {} # for the reducible task
         ) -> None:
         self.cautious_consequences : 'list[str]' = []
         self.program_minimal_set : 'list[str]' = sorted(set(program_minimal_set))
@@ -116,6 +118,7 @@ class AspInterface:
         # self.constraints : 'list[str]' = constraints
         # self.objective_function : str = objective_function
         self.optimizable_facts : 'dict[str,tuple[float,float]]' = optimizable_facts
+        self.reducible_facts : 'dict[str,float]' = reducible_facts
 
         self.model_handler : ModelsHandler = \
             ModelsHandler(
@@ -205,9 +208,9 @@ class AspInterface:
                         i = i + 1
                     res += "}\n"
                 if self.pedantic:
-                    utils.print_error_and_exit(f"Found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}")
+                    utils.print_error_and_exit(f"Found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}.")
                 else:
-                    utils.print_error_and_exit("Found worlds without answer sets")
+                    utils.print_error_and_exit(f"Found {2**len(self.prob_facts_dict) - len(self.model_handler.worlds_dict)} worlds without answer sets.")
 
             norm_fact = sum([x.prob for x in self.model_handler.worlds_dict.values()])
             
@@ -256,7 +259,7 @@ class AspInterface:
         if self.normalizing_factor == 0:
             self.lower_probability_query = 1
             self.upper_probability_query = 1
-            utils.print_warning("No worlds have > 1 answer sets")
+            # utils.print_warning("No worlds have > 1 answer sets")
         else:
             self.lower_probability_query = self.lower_probability_query / self.normalizing_factor
             self.upper_probability_query = self.upper_probability_query / self.normalizing_factor
@@ -607,7 +610,7 @@ class AspInterface:
         
         inc_sampled : 'dict[str,int]' = {}
         if self.pedantic:
-            print(f"I take {self.n_samples} samples")
+            print(f"Taking {self.n_samples} samples")
 
         # for _ in utils.progressbar(range(self.n_samples), "Computing: ", 40):
         for _ in range(self.n_samples):
@@ -649,7 +652,7 @@ class AspInterface:
                     up = 1 if upper_count > 0 else 0
                     lp = 1 if up and lower_count == 0 else 0
                     n_lower = n_lower + lp
-                    n_upper = n_upper + up    
+                    n_upper = n_upper + up
                 else:
                     lp = -1
                     up = -1
@@ -660,7 +663,7 @@ class AspInterface:
             p_inc = n_inconsistent / self.n_samples
             lp_u = n_lower / self.n_samples
             up_u = n_upper / self.n_samples
-            return lp_u / (1 - p_inc), up_u / (1 - p_inc) 
+            return lp_u / (1 - p_inc), up_u / (1 - p_inc)
 
         return n_lower / self.n_samples, n_upper / self.n_samples
 
@@ -699,7 +702,7 @@ class AspInterface:
 
             iterations += 1
 
-   
+
     def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[list[float],list[str]]':
         '''
         Loops over the utility list and find the best assignment.
@@ -739,7 +742,7 @@ class AspInterface:
         lower utility = sum_{(a,r) in U} r * LP{sigma}(a)
         upper utility = sum_{(a,r) in U} r * UP{sigma}(a)
         This may yield lower utility greater then the upper utility.
-        opt true computes performs maximization over the answer set of every world.
+        opt true performs maximization over the answer set of every world.
         '''
         decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
         computed_utilities_list : 'dict[str,list[float]]' = {}
@@ -849,7 +852,7 @@ class AspInterface:
                         handle.get()  # type: ignore
                         
                     if self.verbose:
-                        print(f"Stategy: {bin_value} world {bin_value_w} probability {world_probability}")
+                        print(f"\tworld {bin_value_w} probability {world_probability}")
                     
                     # compute the lower and upper bounds
                     if len(as_list) == 1 and len(as_list[0]) == 1:
@@ -869,6 +872,8 @@ class AspInterface:
 
                     self.asp_program = original_prg_constr.copy()
                 
+                if self.verbose:
+                    print(f"Strategy: {bin_value}, Utility: [{lr, ur}]")
                 computed_utilities_list[bin_value] = [lr,ur]
 
             # here, super important: restore the program
@@ -918,7 +923,7 @@ class AspInterface:
         '''
         Implementation of a genetic algorithm algorithm to compute
         the best strategy. The utility of every strategy is approximately
-        computed, since we use approximate inference to compute the 
+        computed, since we use approximate inference to compute the
         probability of every utility atom.
         https://it.mathworks.com/help/gads/how-the-genetic-algorithm-works.html
         '''
@@ -1025,7 +1030,7 @@ class AspInterface:
             pop : 'list[Individual]' = []
             while len(pop) < size:
                 ind = sample_individual()
-                if ind not in pop:
+                if ind.id_individual not in [i.id_individual for i in pop]:
                     pop.append(ind)
             return pop
 
@@ -1094,26 +1099,258 @@ class AspInterface:
         return [population[0].score_l, population[0].score_u], best_comb
 
 
-    def abduction_iter(self, n_abd: int, previously_computed : 'list[str]') -> 'list[str]':
+    def abduction_approximate(
+        self,
+        threshold : float,
+        only_smallest_cardinality : bool,
+        initial_population_size : int = 50,
+        mutation_probability : float = 0.05,
+        samples_for_inference : int = 5000,
+        max_iterations_genetic : int = 1000,
+        target_probability : str = "lower"
+        ) -> 'tuple[list[float],list[str]]':
         '''
-        Loop for exact abduction
+        Implementation of a genetic algorithm algorithm to compute
+        the abductive explanations. The probability of a query is
+        approximated via sampling.
+        TODO: everithing except evaluate score (which is as well heavily
+        copy-pasted) is the same as the
+        approximate dt via genetic algorithm.
+        https://it.mathworks.com/help/gads/how-the-genetic-algorithm-works.html
         '''
-        if self.verbose:
-            print(str(n_abd) + " abd")
+        class Individual:
+            '''
+            Individual for the population
+            '''
+            def __init__(self, id_individual: str, score: 'list[float]') -> None:
+                self.id_individual = id_individual
+                self.score_l = score[0]
+                self.score_u = score[1]
 
+            def __str__(self) -> str:
+                return f"id: {self.id_individual} lower score: {self.score_l} upper score: {self.score_u}"
+
+            def __repr__(self) -> str:
+                return self.__str__()
+
+        def evaluate_score(
+                id_individual: str,
+                only_smallest_cardinality : bool,
+                threshold : float = -1
+            ) -> 'list[float]':
+            '''
+            Evaluate the score of an individual: ask the query in the program
+            where the abducibles are ste to true or false according to the id
+            of the individual.
+            '''
+            min_score = -1000
+            
+            original_prg = self.asp_program.copy()
+
+            # TEST
+            # id = "11"
+            # self.verbose = True
+            # id_individual = "10"
+            if self.verbose:
+                print(f"Combination: {str(id_individual)}")
+            # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
+            # add the constraints for the truth values of the facts
+            # constraints: list[str] = []
+            for index, v in enumerate(id_individual):
+                mode = "" if int(v) == 0 else "not"
+                c = f":- {mode} {self.abducibles_list[index]}."
+                # constraints.append(c)
+                self.asp_program.append(c)
+            
+            # ask the queries
+            original_prg_constr = self.asp_program.copy()
+                
+            try:
+                lp, up = self.sample_query()
+            except:
+                lp = min_score
+                up = min_score
+                
+            self.model_handler = ModelsHandler(
+                self.prob_facts_dict,
+                self.evidence,
+                self.abducibles_list,
+                self.decision_atoms_list,
+                self.utilities_dict
+            )
+
+            # print(lp,up)
+                
+            self.asp_program = original_prg_constr.copy()
+            
+            if lp == min_score:
+                computed_score = [min_score, min_score]
+            else:
+                # score computation: difference between target and threshold
+                computed_score = [lp - threshold, up - threshold]
+            
+            if self.verbose:
+                print(f"Abd id: {id_individual}, score: {computed_score}")
+            self.asp_program = original_prg.copy()
+            
+            # sys.exit()
+            
+            return computed_score
+            
+
+        def sample_individual(only_smallest_cardinality : bool, threshold : float = -1) -> 'Individual':
+            '''
+            Samples an individual for the population (i.e, a set of abducibles).
+            '''
+            id_individual : str = ""
+            for _ in self.abducibles_list:
+                if random.random() < 0.5:
+                    id_individual += "1"
+                else:
+                    id_individual += "0"
+            return Individual(id_individual, evaluate_score(id_individual,only_smallest_cardinality,threshold))
+
+        def init_population(size : int, only_smallest_cardinality : bool,threshold : float = -1) -> 'list[Individual]':
+            '''
+            Initializes the population (list of PASP).
+            '''
+            pop : 'list[Individual]' = []
+            
+            while len(pop) < size:
+                ind = sample_individual(only_smallest_cardinality,threshold)
+                if ind.id_individual not in [i.id_individual for i in pop]:
+                    pop.append(ind)
+            return pop
+
+        # body of the method
+        if initial_population_size > 2**(len(self.decision_atoms_list)):
+            utils.print_warning(f"Initial population size ({initial_population_size}) should be less than the number of possible combinations ({2**len(self.abducibles_list)}) of abducibles.")
+            utils.print_warning("Setting initial population size to number of possible combinations of abducibles.")
+            initial_population_size = 2**(len(self.abducibles_list))
+
+        # preprocess self.asp_program to make it compatible with sample_query
+        l1 = [a for a in self.asp_program if not a.startswith('#show')]
+        self.asp_program = l1
+        self.asp_program.append("#show q/0.")
+        self.asp_program.append("#show nq/0.")
+        pfl : list[str] = []
+        for pf in self.prob_facts_dict:
+            self.asp_program.append(f"#external {pf}.")
+            pfl.append('0{' + pf + '}1.')
+        self.asp_program = list(set.difference(set(self.asp_program),set(pfl)))
+        
+        population : 'list[Individual]' = init_population(initial_population_size, only_smallest_cardinality,threshold)
+        # how to sort: first criterion, the score, second criterion, the number of abducibles
+        if target_probability == "lower":
+            population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+        else:
+            population.sort(key=lambda x : (x.score_u, x.id_individual.count('0')), reverse=True)
+        
+        self.n_samples = samples_for_inference
+
+        for it in range(max_iterations_genetic):
+            if it % 100 == 0:
+                print(f"Iteration {it} - best: {population[0]}")
+
+            best_a = population[0]
+            best_b = population[1]
+            crossover_position = random.randint(0, len(best_a.id_individual) - 1)
+            
+            # combine the two ids
+            l_id_0 = list(best_a.id_individual[:crossover_position] + best_b.id_individual[crossover_position:])
+            l_id_1 = list(best_b.id_individual[:crossover_position] + best_a.id_individual[crossover_position:])
+
+            # mutation
+            for i in range(0, len(l_id_0)):
+                if random.random() < mutation_probability:
+                    l_id_0[i] = '0' if l_id_0[i] == '1' else '1'
+            new_element_id_0 = ''.join(l_id_0)
+            for i in range(0, len(l_id_1)):
+                if random.random() < mutation_probability:
+                    l_id_1[i] = '0' if l_id_1[i] == '1' else '1'
+            new_element_id_1 = ''.join(l_id_1)
+            
+            # find whether the current element is in the list
+            for new_element_id in [new_element_id_0, new_element_id_1]:
+                found = False
+                for l in population:
+                    if l.id_individual == new_element_id:
+                        found = True
+                        break
+
+                if not found:
+                    score = evaluate_score(new_element_id, only_smallest_cardinality)
+                    population.append(Individual(new_element_id, score))
+                    if target_probability == "lower":
+                        population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+                    else:
+                        population.sort(key=lambda x : (x.score_u, x.id_individual.count('0')), reverse=True)
+
+                    # ordered insert: maybe do this, but the order is on 2 levels
+                    # i = 0
+                    # for i in range(0, len(population)):
+                    #     if target_probability == "lower":
+                    #         if population[i].score_l < score[0]:
+                    #             break
+                    #     else:
+                    #         if population[i].score_u < score[1]:
+                    #             break
+                    # population.insert(i, Individual(new_element_id, score))
+
+                    # remove the element with the lowest score
+                    population = population[:-1]
+
+        # print(population)
+        best_comb: 'list[str]' = []
+        for c, decision in zip(population[0].id_individual, self.decision_atoms_list):
+            if int(c) == 1:
+                best_comb.append(decision)
+            else:
+                best_comb.append(f"not {decision}")
+        
+        i = 0
+        # TODO: since approximate, add tolerance so, score > -0.05 or something
+        # along this line
+        epsilon = 0.05
+        if target_probability == "lower":
+            while population[i].score_l > -epsilon:
+                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(population[i].id_individual))
+                i = i + 1
+        else:
+            while population[i].score_u > 0:
+                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(population[i].id_individual))
+                i = i + 1
+        
+
+        # return [population[0].score_l, population[0].score_u], best_comb
+
+
+    def __abduction_iter(self,
+        n_abd: int,
+        previously_computed : 'list[str]',
+        one_shot : bool = False
+        ) -> 'list[str]':
+        '''
+        Loop for exact abduction.
+        If one_shot is true then it does not insert the constraint since we
+        call the ASP solver only once to compute all the projected answer sets. 
+        '''
         clauses = self.asp_program.copy()
+        # for deterministic abduction
         for c in self.cautious_consequences:
             clauses.append(f':- not {c}.')
         if len(self.prob_facts_dict) == 0:
             clauses.append(':- not q.')
-        clauses.append('abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
-        clauses.append(f':- abd_facts_counter(C), C != {n_abd}.')
+        
+        if not one_shot:
+            clauses.append('abd_facts_counter(C):- #count{X : abd_fact(X)} = C.')
+            clauses.append(f':- abd_facts_counter(C), C != {n_abd}.')
 
         # TODO: instead of, for each iteration, rewriting the whole program,
         # use multi-shot with Number
 
         ctl = self.init_clingo_ctl(["0", "--project"], clauses)
-    
+
         for exp in previously_computed:
             s = ":- "
             for el in exp:
@@ -1132,13 +1369,21 @@ class AspInterface:
                 # n_models = n_models + 1
             handle.get()  # type: ignore
 
-
         return computed_models
 
 
-    def abduction(self) -> None:
+    def abduction(self,
+        threshold : float = -1,
+        only_smallest_cardinality : bool = False,
+        one_shot : bool = False
+        ) -> None:
         '''
-        Abduction
+        Abduction. If threshold > 0, constrained abduction find the minimal
+        set of facts such taht the probability of the query is above the
+        threshold.
+        only_smallest_cardinality: if True, find the set of the smallest cardinality.
+        If false, the algorithm loops over all the possible solutions.
+        If one_shot is true, we compute all the projected answer sets in one shot.
         '''
         if len(self.abducibles_list) == 0:
             utils.print_error_and_exit("Specify at least one abducible.")
@@ -1146,10 +1391,13 @@ class AspInterface:
         computed_abducibles_list : 'list[str]' = []
 
         for i in range(0, len(self.abducibles_list) + 1):
-            currently_computed = self.abduction_iter(i, computed_abducibles_list)
+            currently_computed = self.__abduction_iter(i, computed_abducibles_list, one_shot)
             self.computed_models = self.computed_models + len(currently_computed)
             if self.verbose:
-                print(f"Models with {i} abducibles: {len(currently_computed)}")
+                if not one_shot:
+                    print(f"Models with {i} abducibles: {len(currently_computed)}")
+                else:
+                    print(f"Total number of models: {len(currently_computed)}")
                 if self.pedantic:
                     print(currently_computed)
 
@@ -1166,26 +1414,37 @@ class AspInterface:
                 for cc in currently_computed:
                     computed_abducibles_list.append(cc)
             else:
-                if i == 0 and len(currently_computed) != 2**(len(self.prob_facts_dict) - self.n_probabilistic_ics):
-                    utils.print_inconsistent_program(self.stop_if_inconsistent)
+                # if i == 0 and len(currently_computed) != 2**(len(self.prob_facts_dict) - self.n_probabilistic_ics):
+                #     utils.print_inconsistent_program(self.stop_if_inconsistent)
                 for el in currently_computed:
                     self.model_handler.add_model_abduction(str(el))
 
             # keep the best model
-            self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model()
+            self.lower_probability_query, self.upper_probability_query = self.model_handler.keep_best_model(threshold=threshold)
+            # this is ok if I search the one with the lowest cardinality
 
-        n_inconsistent = 0
+            if self.lower_probability_query >= threshold and threshold != -1 and only_smallest_cardinality:
+                break
+            
+            # if one shot stop the loop
+            if one_shot:
+                break
+
         for el in self.model_handler.abd_worlds_dict:
-            if self.stop_if_inconsistent is True and len(self.model_handler.abd_worlds_dict[el].probabilistic_worlds) != 2**len(self.prob_facts_dict):
-                n_inconsistent = n_inconsistent + 1
-            self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
+            # if self.stop_if_inconsistent is True and len(self.model_handler.abd_worlds_dict[el].probabilistic_worlds) != 2**len(self.prob_facts_dict):
+            consistent = len(self.model_handler.abd_worlds_dict[el].probabilistic_worlds) == 2**len(self.prob_facts_dict)
+            if consistent:
+                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
+            elif not consistent and self.normalize_prob:
+                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el))
+
             # TODO: add normalization, as in compute_probabilities
 
         if len(self.prob_facts_dict) == 0:
             if len(self.abductive_explanations) > 0:
                 self.lower_probability_query = 1
                 self.upper_probability_query = 1
-                
+
 
     def compute_probability_lpmln(self, query : str) -> None:
         '''
@@ -1204,6 +1463,112 @@ class AspInterface:
         self.model_handler.normalize_weights_as(nf)
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
 
+
+    def __extract_query_equation(self,
+        target : str,
+        task : str,
+        iter_simplification : bool = False,
+        mod_simplification : int = 100
+        ) -> str:
+        '''
+        Computes the query equation.
+        task can be 'optimizable' or 'reducible'
+        iter_simplification is true if the method simplify iteratively the equation
+        mod_simplification: number of iterations after which simplifying the equation
+        '''
+        from sympy import simplify
+        
+        pf_as_list = self.prob_facts_dict.items()
+
+        eq = ""
+        it = 0
+        for k, w in self.model_handler.worlds_dict.items():
+            if (target == "upper" and w.model_query_count > 0) or \
+                    (target == "lower" and w.model_query_count > 0 and w.model_not_query_count == 0):
+                for pf_0_1, pf_data in zip(k, pf_as_list):
+                    cleaned_fact = pf_data[0].replace('(', '_').replace(')', '_').replace(',', '_')
+                    considered_facts = self.optimizable_facts if task == "optimizable" else self.reducible_facts
+                    if cleaned_fact in considered_facts:
+                        if pf_0_1 == '0':
+                            eq += "(1-" + cleaned_fact + ")"
+                        else:
+                            eq += cleaned_fact
+                    else:
+                        if pf_0_1 == '0':
+                            eq += str(1 - pf_data[1])[:6]
+                        else:
+                            eq += str(pf_data[1])[:6]
+                    eq += " * "
+                eq = eq[:-3]  # remove the last *
+                eq += " + "
+
+            if len(eq) > 0 and iter_simplification and (it + 1) % mod_simplification == 0:
+                print(f"simplification: {it}/{len(self.model_handler.worlds_dict)}")
+                eq = str(simplify(eq[:-2])) + " + "
+            it += 1
+        
+        eq = eq[:-2]  # remove the last +
+        if eq == "":
+            utils.print_error_and_exit(
+                "Error in gathering the query equation.")
+        
+        return eq
+
+
+    def reducible_task(self,
+        target : str,
+        threshold : float,
+        simplify_iter : int = -1
+        ):
+        '''
+        Soves the reducible task.
+        '''
+
+        if len(self.reducible_facts) == 0:
+            utils.print_error_and_exit("Specify at least one reducible fact")
+        
+        if threshold < 0 or threshold > 1:
+            utils.print_error_and_exit(f"The threshold must be between 0 and 1, found {threshold}.")
+        
+        start_time = time.time()
+        if self.verbose:
+            print("Computing answer sets")
+        self.compute_probabilities()
+        elapsed_time = time.time() - start_time
+        
+        if self.verbose:
+            print(f"Answer set generation time: {elapsed_time} s")
+        
+        print(target)
+        target = "lower"
+        eq = self.__extract_query_equation(target, "reducible", simplify_iter > 0, simplify_iter)
+        
+        # bu now I assume that there is only one constraint
+        # of the form 'query > value'
+        # if len(self.constraints) == 0:
+        #     utils.print_error_and_exit("Specify at least one constraint.")
+        # constraint_on_probability = float(self.constraints[0].split('>')[1])
+        start_time = time.time()
+        if self.verbose:
+            print("Starting optimization")
+
+        found, selected, computed_prob = reduce_pasp_up(
+            eq,
+            self.reducible_facts,
+            threshold
+        )
+        elapsed_time = time.time() - start_time
+        if self.verbose:
+            print(f"Optimization time: {elapsed_time} s")
+        
+        sel = {}
+        if found:
+            # print("Solution found")
+            for name, sl in zip(self.reducible_facts.keys(),selected):
+                sel[name] = sl
+        
+        return found, sel, computed_prob
+    
 
     def optimize_prob(self,
             target : str,
@@ -1226,36 +1591,8 @@ class AspInterface:
         
         if self.verbose:
             print(f"Answer set generation time: {elapsed_time} s")
-        # print(self.model_handler.worlds_dict)
-        # print(self.prob_facts_dict)
-        # print(self.optimizable_facts)
-        pf_as_list = self.prob_facts_dict.items()
-
-        eq = ""
-        for k, w in self.model_handler.worlds_dict.items():
-            if (target == "upper" and w.model_query_count > 0) or \
-                (target == "lower" and w.model_query_count > 0 and w.model_not_query_count == 0):
-                for pf_0_1, pf_data in zip(k,pf_as_list):
-                    # replace these elements since they are not supported in the
-                    # optimization task
-                    cleaned_fact = pf_data[0].replace('(','_').replace(')','_').replace(',','_')
-                    if cleaned_fact in self.optimizable_facts:
-                        if pf_0_1 == '0':
-                            eq += "(1-" + cleaned_fact + ")"
-                        else:
-                            eq += cleaned_fact
-                    else:
-                        if pf_0_1 == '0':
-                            eq += str(1 - pf_data[1])[:6]
-                        else:
-                            eq += str(pf_data[1])[:6]
-                    eq += " * "
-                eq = eq[:-3] # remove the last *
-                eq += " + "
-
-        eq = eq[:-2] # remove the last +
-        if eq == "":
-            utils.print_error_and_exit("Error in gathering the query equation.")
+        
+        eq = self.__extract_query_equation(target, "optimizable")
         
         if self.pedantic:
             print(f"Equation: {eq}")
