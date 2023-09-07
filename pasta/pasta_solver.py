@@ -427,6 +427,7 @@ class Pasta:
         Probabilistic and deterministic abduction
         '''
         self.setup_interface(from_string)
+        self.interface.n_samples = samples
         self.interface.abduction_approximate(
             threshold=threshold,
             only_smallest_cardinality=only_smallest,
@@ -610,7 +611,8 @@ def main():
         if args.approximate:
             lower_p, upper_p, abd_explanations = pasta_solver.approximate_abduction(
                 threshold=float(args.threshold),
-                only_smallest=args.only_smallest
+                only_smallest=args.only_smallest,
+                samples=args.samples
             )
         else:
             lower_p, upper_p, abd_explanations = pasta_solver.abduction(
