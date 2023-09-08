@@ -2,6 +2,20 @@
 requires = [
     "setuptools>=42",
     "wheel",
-    "clingo"
+    "clingo",
+    "numpy",
+    "scipy",
+    "sympy",
+    "unittest",
+    "pytest",
+    "math",
+    "re",
+    "statistics",
+    "gekko",
+    "cProfile",
+    "pstats",
+    "multiprocessing",
+    "itertools",
+    "argparse"
 ]
 build-backend = "setuptools.build_meta"
