@@ -7,7 +7,6 @@ requires = [
     "scipy",
     "sympy",
     "pytest",
-    "re",
     "statistics",
     "gekko",
     "cProfile",
