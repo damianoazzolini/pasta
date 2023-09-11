@@ -7,14 +7,10 @@ requires = [
     "scipy",
     "sympy",
     "pytest",
-    "math",
     "re",
     "statistics",
     "gekko",
     "cProfile",
     "pstats",
-    "multiprocessing",
-    "itertools",
-    "argparse"
 ]
 build-backend = "setuptools.build_meta"
