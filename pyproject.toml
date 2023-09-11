@@ -8,8 +8,6 @@ requires = [
     "sympy",
     "pytest",
     "statistics",
-    "gekko",
-    "cProfile",
-    "pstats",
+    "gekko"
 ]
 build-backend = "setuptools.build_meta"
