@@ -579,8 +579,8 @@ class ModelsHandler():
         for i in range(0,len(w_id)):
             if w_id[i] == '1':
                 obtained_abds.append(self.abducibles_list[i])
-            else:
-                obtained_abds.append(f"not {self.abducibles_list[i]}")
+            # else:
+            #     obtained_abds.append(f"not {self.abducibles_list[i]}")
         return obtained_abds
 
 

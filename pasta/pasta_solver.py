@@ -7,7 +7,7 @@ import multiprocessing
 
 from .pasta_parser import PastaParser
 from .asp_interface import AspInterface
-from .utils import print_error_and_exit, print_warning, print_result_abduction, print_prob, print_map_state, is_number
+from .utils import *
 from . import generator
 from . import learning_utilities
 from .arguments import parse_args_wrapper
@@ -234,7 +234,7 @@ class Pasta:
             stop_if_inconsistent=self.stop_if_inconsistent,
             normalize_prob=self.normalize_prob,
             upper = not self.consider_lower_prob
-        )       
+        )
 
 
     def test_consistency(self, just_test : bool = False, from_string : str = "") -> None:
@@ -409,7 +409,7 @@ class Pasta:
 
         check_lp_up(lp, up)
 
-        return lp, up, self.interface.abductive_explanations
+        return lp, up, remove_dominated_explanations(self.interface.abductive_explanations)
 
 
     def approximate_abduction(
@@ -440,9 +440,7 @@ class Pasta:
         lp = self.interface.lower_probability_query
         up = self.interface.upper_probability_query
 
-        check_lp_up(lp, up)
-
-        return lp, up, self.interface.abductive_explanations
+        return lp, up, remove_dominated_explanations(self.interface.abductive_explanations)
 
 
     def inference(self, from_string : str = "") -> 'tuple[float,float]':

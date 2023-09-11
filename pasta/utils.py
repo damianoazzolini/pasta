@@ -129,16 +129,16 @@ def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
 
 
 def remove_dominated_explanations(
-        abd_exp : 'list[list[str]]',
-        set_inclusion : bool = True
-    ) -> 'list[set[str]]':
+    abd_exp: 'list[list[str]]',
+    set_inclusion: bool = True
+) -> 'list[list[str]]':
     '''
     Removes the dominated explanations, used in abduction.
     '''
-    ls : 'list[set[str]]' = []
+    ls: 'list[set[str]]' = []
     # print(abd_exp)
     for exp in abd_exp:
-        e : 'set[str]' = set()
+        e: 'set[str]' = set()
         for el in exp:
             if not el.startswith('not') and el != 'q':
                 if el.startswith('abd_'):
@@ -147,11 +147,21 @@ def remove_dominated_explanations(
                     e.add(el)
         ls.append(e)
 
-    # print(ls)
     if set_inclusion:
-        return [s for s in ls if not any(set(s).issuperset(set(i)) and len(s) > len(i) for i in ls)]
+        res : 'list[list[str]]' = []
+        for i in range(0, len(ls)):
+            is_dominated = False
+            for ii in range(0, len(ls)):
+                if ls[ii].issubset(ls[i]) and ls[i] != ls[ii] and len(ls[i]) > 0 and len(ls[ii]) > 0:
+                    # print(f"{ls[ii]} dominates {ls[i]}")
+                    is_dominated = True
+                    break
+            if not is_dominated and len(ls[i]) > 0:
+                res.append(list(ls[i]))
+
+        return res
     else:
-        return [s for s in ls if len(s) == len(min(ls, key=lambda x : len(x)))]
+        return [s for s in ls if len(s) == len(min(ls, key=lambda x: len(x)))]
 
 
 def print_result_abduction(
@@ -165,8 +175,8 @@ def print_result_abduction(
     '''
     Prints the result for abduction.
     '''
-    abd_exp_no_dup = remove_dominated_explanations(abd_exp, set_inclusion)
-    # abd_exp_no_dup = abd_exp
+    # abd_exp_no_dup = remove_dominated_explanations(abd_exp, set_inclusion)
+    abd_exp_no_dup = abd_exp
     if len(abd_exp_no_dup) > 0 and up != 0 and threshold < 0:
         if upper:
             print(f"Upper probability for the query: {up}")

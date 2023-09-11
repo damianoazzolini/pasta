@@ -18,14 +18,14 @@ class TestClassAbduction(unittest.TestCase):
         pasta_solver = Pasta(filename, query, evidence)
         lp, up, abd = pasta_solver.abduction()
 
-        if lp is not None and up is not None and abd is not None:
-            self.assertTrue(utils_for_tests.almostEqual(lp, expected_lp, 5),
-                            test_name + ": wrong lower probability")
-            self.assertTrue(utils_for_tests.almostEqual(up, expected_up, 5),
-                            test_name + ": wrong upper probability")
-
-            self.assertTrue(utils_for_tests.check_if_lists_equal(
-                abd, expected_abd), test_name + ": wrong abduction")
+        self.assertTrue(utils_for_tests.almostEqual(lp, expected_lp, 5),
+                        test_name + ": wrong lower probability")
+        self.assertTrue(utils_for_tests.almostEqual(up, expected_up, 5),
+                        test_name + ": wrong upper probability")
+        self.assertTrue(
+            utils_for_tests.check_if_lists_equal(abd, expected_abd),
+            f"{test_name}: wrong abduction. Found {abd} expected {expected_abd}"
+        )
 
     def test_bird_4_abd_prob(self):
         self.wrap_test_abduction(
@@ -35,11 +35,7 @@ class TestClassAbduction(unittest.TestCase):
             "bird_4_abd_prob",
             0.5,
             0.5,
-            [   ['fa(1)', 'not fa(2)', 'not fa(3)', 'not fa(4)'],
-                ['fa(1)', 'fa(2)', 'not fa(3)', 'not fa(4)'],
-                ['fa(1)', 'not fa(2)', 'fa(3)', 'not fa(4)'],
-                ['fa(1)', 'not fa(2)', 'not fa(3)', 'fa(4)']
-            ]
+            [['fa(1)']]
         )
 
     def test_ex_1_det(self):
@@ -50,7 +46,7 @@ class TestClassAbduction(unittest.TestCase):
             "ex_1_det",
             1,
             1,
-            [['abd_a', 'abd_b', 'q']]
+            [['a', 'b']]
         )
 
     def test_ex_1_prob(self):
@@ -72,13 +68,17 @@ class TestClassAbduction(unittest.TestCase):
             "ex_2_det",
             1,
             1,
-            [['q', 'abd_b', 'not_abd_a'],['abd_a', 'not_abd_b', 'q']]
+            [['b'],['a']]
         )
 
     def test_ex_2_prob(self):
         self.wrap_test_abduction(
             "../examples/abduction/ex_2_prob.lp",
-            "query", "", "ex_2_prob", 0.75, 0.75, [['a', 'b']])
+            "query", "", "ex_2_prob",
+            0.75,
+            0.75,
+            [['a', 'b']]
+        )
 
     def test_ex_3_det(self):
         self.wrap_test_abduction(
@@ -88,8 +88,8 @@ class TestClassAbduction(unittest.TestCase):
             "ex_3_det",
             1,
             1,
-            [   ['q', 'abd_a', 'not_abd_d', 'not_abd_c', 'not_abd_b'],
-                ['q', 'abd_c', 'abd_b', 'not_abd_d', 'not_abd_a']
+            [   ['a'],
+                ['c', 'b']
             ]
         )
 
@@ -101,7 +101,7 @@ class TestClassAbduction(unittest.TestCase):
             "ex_3_prob",
             0.58,
             0.58,
-            [['a', 'b', 'c', 'not d']]
+            [['a', 'b', 'c']]
         )
 
     def test_ex_4_det(self):
@@ -112,8 +112,8 @@ class TestClassAbduction(unittest.TestCase):
             "ex_4_det",
             1,
             1,
-            [   ['q', 'abd_a(1)', 'not_abd_d', 'not_abd_c', 'not_abd_b'],
-                ['q', 'abd_c', 'abd_b', 'not_abd_d', 'not_abd_a(1)']
+            [   ['a(1)'],
+                ['c', 'b']
             ]
         )
 
@@ -130,8 +130,8 @@ class TestClassAbduction(unittest.TestCase):
             "ex_5_det",
             1,
             1,
-            [   ['q', 'abd_c', 'abd_b', 'abd_a', 'not_abd_e', 'not_abd_d'],
-                ['q', 'abd_e', 'abd_d', 'abd_b', 'abd_a', 'not_abd_c']
+            [   ['c', 'b', 'a'],
+                ['e', 'd', 'b', 'a',]
             ]
         )
 
@@ -165,8 +165,8 @@ class TestClassAbduction(unittest.TestCase):
             "smokes_det",
             1,
             1,
-            [   ['q', 'abd_e(b,c)', 'not_abd_e(e,c)', 'not_abd_e(d,e)', 'not_abd_e(a,d)', 'not_abd_e(a,b)'],
-                ['q', 'abd_e(e,c)', 'abd_e(d,e)', 'not_abd_e(b,c)', 'not_abd_e(a,d)', 'not_abd_e(a,b)']
+            [   ['e(b,c)'],
+                ['e(e,c)', 'e(d,e)']
             ]
         )
 

@@ -6,7 +6,6 @@ requires = [
     "numpy",
     "scipy",
     "sympy",
-    "unittest",
     "pytest",
     "math",
     "re",

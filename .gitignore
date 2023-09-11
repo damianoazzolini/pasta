@@ -23,6 +23,7 @@ run.sh
 red.pl
 dt_test.lp
 placement.lp
+data/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

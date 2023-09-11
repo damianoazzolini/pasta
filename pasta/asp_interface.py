@@ -1122,13 +1122,22 @@ class AspInterface:
             '''
             Individual for the population
             '''
-            def __init__(self, id_individual: str, score: 'list[float]') -> None:
+            def __init__(self,
+                id_individual: str,
+                score: 'list[float]'
+                ) -> None:
+                
                 self.id_individual = id_individual
                 self.score_l = score[0]
                 self.score_u = score[1]
+                self.lp = score[2]
+                self.up = score[3]
 
             def __str__(self) -> str:
-                return f"id: {self.id_individual} lower score: {self.score_l} upper score: {self.score_u}"
+                return f"id: {self.id_individual}\
+                    lower score: {self.score_l}\
+                    upper score: {self.score_u}\
+                    prob: {self.lp,self.up}".replace("                    "," ")
 
             def __repr__(self) -> str:
                 return self.__str__()
@@ -1163,8 +1172,6 @@ class AspInterface:
                 self.asp_program.append(c)
             
             # ask the queries
-            original_prg_constr = self.asp_program.copy()
-                
             try:
                 lp, up = self.sample_query()
             except:
@@ -1179,15 +1186,11 @@ class AspInterface:
                 self.utilities_dict
             )
 
-            # print(lp,up)
-                
-            self.asp_program = original_prg_constr.copy()
-            
             if lp == min_score:
-                computed_score = [min_score, min_score]
+                computed_score = [min_score, min_score, lp, up]
             else:
                 # score computation: difference between target and threshold
-                computed_score = [lp - threshold, up - threshold]
+                computed_score = [lp - threshold, up - threshold, lp, up]
             
             if self.verbose:
                 print(f"Abd id: {id_individual}, score: {computed_score}")
@@ -1198,7 +1201,9 @@ class AspInterface:
             return computed_score
             
 
-        def sample_individual(only_smallest_cardinality : bool, threshold : float = -1) -> 'Individual':
+        def sample_individual(
+            only_smallest_cardinality : bool,
+            threshold : float = -1) -> 'Individual':
             '''
             Samples an individual for the population (i.e, a set of abducibles).
             '''
@@ -1217,13 +1222,14 @@ class AspInterface:
             pop : 'list[Individual]' = []
             
             while len(pop) < size:
+                print("init")
                 ind = sample_individual(only_smallest_cardinality,threshold)
                 if ind.id_individual not in [i.id_individual for i in pop]:
                     pop.append(ind)
             return pop
 
         # body of the method
-        if initial_population_size > 2**(len(self.decision_atoms_list)):
+        if initial_population_size > 2**(len(self.abducibles_list)):
             utils.print_warning(f"Initial population size ({initial_population_size}) should be less than the number of possible combinations ({2**len(self.abducibles_list)}) of abducibles.")
             utils.print_warning("Setting initial population size to number of possible combinations of abducibles.")
             initial_population_size = 2**(len(self.abducibles_list))
@@ -1242,10 +1248,11 @@ class AspInterface:
         population : 'list[Individual]' = init_population(initial_population_size, only_smallest_cardinality,threshold)
         # how to sort: first criterion, the score, second criterion, the number of abducibles
         if target_probability == "lower":
-            population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+            # population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+            population.sort(key=lambda x : (x.score_l * x.id_individual.count('0')), reverse=True)
         else:
             population.sort(key=lambda x : (x.score_u, x.id_individual.count('0')), reverse=True)
-        
+                
         self.n_samples = samples_for_inference
 
         for it in range(max_iterations_genetic):
@@ -1281,8 +1288,10 @@ class AspInterface:
                 if not found:
                     score = evaluate_score(new_element_id, only_smallest_cardinality)
                     population.append(Individual(new_element_id, score))
+                    
                     if target_probability == "lower":
-                        population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+                        # population.sort(key=lambda x : (x.score_l, x.id_individual.count('0')), reverse=True)
+                        population.sort(key=lambda x : (x.score_l * x.id_individual.count('0')), reverse=True)
                     else:
                         population.sort(key=lambda x : (x.score_u, x.id_individual.count('0')), reverse=True)
 
@@ -1300,29 +1309,23 @@ class AspInterface:
                     # remove the element with the lowest score
                     population = population[:-1]
 
-        # print(population)
         best_comb: 'list[str]' = []
         for c, decision in zip(population[0].id_individual, self.decision_atoms_list):
             if int(c) == 1:
                 best_comb.append(decision)
             else:
                 best_comb.append(f"not {decision}")
-        
+
         i = 0
         # TODO: since approximate, add tolerance so, score > -0.05 or something
         # along this line
         epsilon = 0.05
-        if target_probability == "lower":
-            while population[i].score_l > -epsilon:
-                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(population[i].id_individual))
-                i = i + 1
-        else:
-            while population[i].score_u > 0:
-                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(population[i].id_individual))
-                i = i + 1
-        
-
-        # return [population[0].score_l, population[0].score_u], best_comb
+        for el in population:
+            target_prob = el.lp if target_probability == "lower" else el.up
+            if target_prob > threshold - epsilon:
+                if self.pedantic:
+                    print(f"added {el.id_individual,el.id_individual.count('1'), target_prob}")
+                self.abductive_explanations.append(self.model_handler.get_abducibles_from_id(el.id_individual))
 
 
     def __abduction_iter(self,
