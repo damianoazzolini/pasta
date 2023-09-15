@@ -74,10 +74,30 @@ class Pasta:
         Parameter learning
         '''
         self.parser = PastaParser(self.filename)
+        self.parser.query = "placeholder"
+        # self.parser.parse(from_string)
+        # print(self.parser.get_asp_program())
+        
         training_set, test_set, program, prob_facts_dict, offset = self.parser.parse_input_learning(from_string)
-        interpretations_to_worlds = learning_utilities.learn_parameters(
-            training_set, test_set, program, prob_facts_dict, offset, not self.consider_lower_prob, self.verbose)
-        learning_utilities.test_results(test_set, interpretations_to_worlds, prob_facts_dict, program, offset)
+        # print(training_set, test_set, program, prob_facts_dict, offset)
+        # sys.exit()
+        interpretations_to_worlds, learned_probs = learning_utilities.learn_parameters(
+            training_set,
+            test_set,
+            program,
+            prob_facts_dict,
+            offset,
+            not self.consider_lower_prob,
+            self.verbose
+        )
+        learning_utilities.test_results(
+            test_set,
+            interpretations_to_worlds,
+            prob_facts_dict,
+            program,
+            offset
+        )
+        self.parser.reconstruct_parameters(learned_probs)
 
 
     def test_unsat_xor(self, arguments: argparse.Namespace, from_string : str = "") -> 'tuple[float,float]':
@@ -349,7 +369,7 @@ class Pasta:
                 print("---")
 
 
-    def decision_theory_approximate(self, 
+    def decision_theory_approximate(self,
         from_string: str = "",
         samples : int = 1000,
         popsize : int = 50,

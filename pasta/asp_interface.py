@@ -228,6 +228,9 @@ class AspInterface:
         if self.pedantic:
             print(utils.RED + "lp" + utils.END + utils.YELLOW + " up" + utils.END)
             for el in self.prob_facts_dict:
+                print(f"{el} : {self.prob_facts_dict[el]}")
+            print("_"*50)
+            for el in self.prob_facts_dict:
                 print(el, end="\t")
             print("#pf", end="\t")
             print("LP/UP\tProbability")
@@ -1193,13 +1196,12 @@ class AspInterface:
                 computed_score = [lp - threshold, up - threshold, lp, up]
             
             if self.verbose:
-                print(f"Abd id: {id_individual}, score: {computed_score}")
+                print(f"Evaluating score for: {id_individual}, score: {computed_score}")
             self.asp_program = original_prg.copy()
             
             # sys.exit()
             
             return computed_score
-            
 
         def sample_individual(
             only_smallest_cardinality : bool,
@@ -1222,10 +1224,11 @@ class AspInterface:
             pop : 'list[Individual]' = []
             
             while len(pop) < size:
-                print("init")
                 ind = sample_individual(only_smallest_cardinality,threshold)
                 if ind.id_individual not in [i.id_individual for i in pop]:
                     pop.append(ind)
+                    if self.verbose:
+                        print(f"Inserted element {len(pop)}")
             return pop
 
         # body of the method
@@ -1295,7 +1298,7 @@ class AspInterface:
                     else:
                         population.sort(key=lambda x : (x.score_u, x.id_individual.count('0')), reverse=True)
 
-                    # ordered insert: maybe do this, but the order is on 2 levels
+                    # ordered insert: maybe do this
                     # i = 0
                     # for i in range(0, len(population)):
                     #     if target_probability == "lower":

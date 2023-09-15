@@ -6,11 +6,14 @@ import os
 import re
 import copy
 import math
+import sys
+from scipy.optimize import fsolve
 
 from . import utils
 from .generator import Generator
 from .generator import ComparisonPredicate
-
+from .generator import ParametersFinder
+from .continuous_cdfs import *
 
 def symbol_endline_or_space(char1: str) -> bool:
     return char1 == '\n' or char1 == '\r' or char1 == '\r\n' or char1 == '\n\r' or char1 == ' '
@@ -404,9 +407,10 @@ class PastaParser:
                 # comparison predicates
                 # for simplicity, suppose that the variables are atoms and
                 # not compound
-                # TODO: below(a,0.5), not w. became below(a,0.5),notw,
-                # so the not disapears: FIX, due to the next line
+                # hack to preserve the not before space: terrible
+                line = line.replace('not ','**not**')
                 line = line.replace(' ','') # remove the spaces
+                line = line.replace('**not**','not ')
                 args_cp = extract_arguments_comparison_predicates(line)
                 # print(args_cp)
                 # replace between(a,L,U) with below(a,U) and above(a,L)
@@ -449,13 +453,11 @@ class PastaParser:
 
         if len(self.continuous_facts) > 0:
             inter = gen.create_intersections(self.intervals)
-            # print(inter)
-            
             prob_facts_converted, aux_facts_clauses = gen.generate_switch_clauses(
                 inter, self.continuous_facts)
             for lf in prob_facts_converted:
-                # print("Probabilistic facts converted")
-                # print(lf)
+                print("Probabilistic facts converted")
+                print(lf)
                 for f in lf:
                     probability, fact = check_consistent_prob_fact(f, self.lpmln)
                     self.add_probabilistic_fact(fact, probability)
@@ -521,7 +523,7 @@ class PastaParser:
         #program('program') where program is a set of clauses
         #learnable(atom) where atom is a probabilistic fact with init probability 0.5
         '''
-        lines: list[str] = []
+        lines: 'list[str]' = []
 
         if self.filename == "":
             lines = from_string.split('\n')
@@ -533,16 +535,16 @@ class PastaParser:
         i = 0
         program = ""
         # target = ""
-        prob_facts_dict: dict[str, float] = dict()
-        interpretations_dict: dict[int, list[str]] = dict()
+        prob_facts_dict: 'dict[str, float]' = dict()
+        interpretations_dict: 'dict[int, list[str]]' = dict()
 
-        training_set: list[list[str]] = []
-        test_set: list[list[str]] = []
+        training_set: 'list[list[str]]' = []
+        test_set: 'list[list[str]]' = []
 
-        train_ids: list[int] = []
-        test_ids: list[int] = []
-
-        offset = 0
+        train_ids: 'list[int]' = []
+        test_ids: 'list[int]' = []
+        
+        # offset = 0
 
         while i < len(lines):
             lines[i] = lines[i].replace('\n', '')
@@ -550,18 +552,41 @@ class PastaParser:
                 i = i + 1
                 while(not (lines[i].startswith("')."))):
                     program = program + lines[i]
-                    # look for prob facts in the program that need to be considered
-                    # in the dict but whose probabilities cannot be set
-                    if '::' in lines[i]:
-                        prob_fact = lines[i].split('::')[1].replace(
-                            '\n', '').replace('.', '').replace(' ', '')
-                        prob_facts_dict[prob_fact] = float(lines[i].split('::')[0])
-                        offset = offset + 1
                     i = i + 1
             elif lines[i].startswith("#learnable("):
-                ll = lines[i].split("#learnable(")
-                name = ll[1].replace('\n', '')[:-2]
-                prob_facts_dict[name] = 0.5
+                # convert the continuous probabilistic facts
+                #learnable(a,gaussian). -> a:gaussian(0,1).
+                to_split = ""
+                # this if-else is terrible
+                if "gaussian" in lines[i]:
+                    to_split = "gaussian"
+                elif "uniform" in lines[i]:
+                    to_split = "uniform"
+                elif "gamma" in lines[i]:
+                    to_split = "gamma"
+                elif "exponential" in lines[i]:
+                    to_split = "exponential"
+                else:
+                    # discrete probabilistic fact
+                    ll = lines[i].split("#learnable(")
+                    name = ll[1].replace('\n', '')[:-2]
+                    prob_facts_dict[name] = 0.5
+                
+                if to_split:
+                    # print(lines[i])
+                    line = lines[i].replace('\n', '')[:-2].split("#learnable(")[1]
+                    # print(line)
+                    distr_args = ""
+                    if to_split == "exponential":
+                        distr_args = "(1)"
+                    else:
+                        distr_args = "(0,1)"
+                    pf = f"{line.split(to_split)[0][:-1]}:{to_split}{distr_args}"
+                    # ora devo convertire
+                    prob_facts_dict[pf] = -1
+                    program += pf + '.\n'
+                    # sys.exit()
+                
                 i = i + 1
             elif lines[i].startswith("#positive("):
                 ll = lines[i].split("#positive(")
@@ -598,8 +623,53 @@ class PastaParser:
 
         for id in test_ids:
             test_set.append(interpretations_dict[int(id)])
+        
+        # recycle the parsing from the parse method
+        self.parse(from_string=program)
+        
+        # self.probabilistic_facts contains probabilistic facts already in the program
+        # prob_facts_dict contains the probabilistic facts whose probabilities should be learned
+        
+        # merge the two dicts: the one for the prob facts in the
+        # program and the one for the prob facts to learn
+        df = dict(self.probabilistic_facts, **prob_facts_dict)
+        
+        # filter out the #show statements that parse adds
+        prg = [l for l in self.lines_prob if not l.startswith('#')]
+        # add back the probabilistic facts
+        for el in self.probabilistic_facts:
+            prg.append(f'{self.probabilistic_facts[el]}::{el}.')
+        # remove extra statements added by parse
+        for el in self.probabilistic_facts:
+            prg.remove('0{' + el + '}1.')
+            prg.remove(f"not_{el}:- not {el}.")
 
-        return training_set, test_set, program, prob_facts_dict, offset
+        # i need to move from self.probabilistic_facts to prob_facts_dict the
+        # probabilistic facts describing continuous random variables
+        for el in self.probabilistic_facts:
+            if el.startswith('__'):
+                # check whether it is a fact to be learned
+                to_learn = False
+                for el_to_learn in prob_facts_dict:
+                    if ':' in el_to_learn and el_to_learn.split(':')[0] in el:
+                        to_learn = True
+                        break
+                if to_learn:
+                    # move
+                    prob_facts_dict[el] = self.probabilistic_facts[el]
+        
+        # get the dict with pf to learn
+        intersect = list(set(self.probabilistic_facts.keys()) & set(prob_facts_dict.keys()))
+        for pf in intersect:
+            del self.probabilistic_facts[pf]
+
+        # remove from df the continuous facts
+        for pf in prob_facts_dict:
+            if ':' in pf:
+                del df[pf]
+
+        # return training_set, test_set, program, prob_facts_dict, offset
+        return training_set, test_set, '\n'.join(prg) + '\n', df, len(self.probabilistic_facts)
 
 
     def get_content_to_compute_minimal_set_facts(self) -> 'list[str]':
@@ -660,9 +730,54 @@ class PastaParser:
         list of probabilistic facts
         '''
         key = term.split('.')[0]
-        if key in self.probabilistic_facts:
+        if key in self.probabilistic_facts and self.probabilistic_facts[key] != prob:
             utils.error_prob_fact_twice(key, prob, self.probabilistic_facts[key])
         self.probabilistic_facts[key] = float(prob)
+    
+    
+    def reconstruct_parameters(self, learned_prob_facts_dict : 'dict[str,float]'):
+        '''
+        Reconstructs the parameters of continuous distributions
+        starting from a set of probabilistic facts obtained via
+        parameter learning.
+        '''
+        # inter = gen.create_intersections(self.intervals)
+        # print(inter)
+        # print(self.intervals)
+        # print(self.continuous_facts)
+        # print(learned_prob_facts_dict)
+        
+        computed_vals : 'dict[str,list[float]]' = {}
+        
+        for lpf in learned_prob_facts_dict:
+            current_fact = lpf[2:-3]
+            if lpf.startswith('__') and current_fact in self.intervals:
+                if current_fact in computed_vals:
+                    computed_vals[current_fact].append(learned_prob_facts_dict[lpf])
+                else:
+                    computed_vals[current_fact] = [learned_prob_facts_dict[lpf]]
+
+        # print(computed_vals)
+        for cv in computed_vals:
+            bounds = self.intervals[cv]
+            vals = computed_vals[cv]
+            distr = self.continuous_facts[cv][0]
+
+            realprobs = [vals[0]]
+            for i in range(1, len(vals)):
+                # compute the denominator
+                if distr == "gaussian":
+                    real_val = vals[i] * (1 - sum(realprobs)) + sum(realprobs)
+                    realprobs.append(real_val)
+            
+            args_to_pass : 'list[tuple[float,float]]' = []
+            for (vi, p_i) in zip(realprobs, bounds):
+                args_to_pass.append((vi,p_i.bound1))
+
+            pf = ParametersFinder(args_to_pass)
+            x, y =  fsolve(pf.equations_gauss, x0=(5, 5))
+            # print(x,y)
+            print(f"{cv}:\n\tMean: {x}\n\tVariance: {y}")
 
 
     def __repr__(self) -> str:

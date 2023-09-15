@@ -129,9 +129,9 @@ def print_prob(lp : float, up : float, lpmln : bool = False) -> None:
 
 
 def remove_dominated_explanations(
-    abd_exp: 'list[list[str]]',
-    set_inclusion: bool = True
-) -> 'list[list[str]]':
+        abd_exp: 'list[list[str]]',
+        set_inclusion: bool = True
+    ) -> 'list[list[str]]':
     '''
     Removes the dominated explanations, used in abduction.
     '''

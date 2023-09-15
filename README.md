@@ -63,14 +63,12 @@ pasta examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
 
 ### MAP/MPE inference
 ```
-cd pasta
 pasta examples/map/color_map.lp --query="win" --map
 ```
 
 ### Approximate inference
 Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis hastings sampling (`--mh`), rejection sampling (`--rejection`).
 ```
-cd pasta
 pasta examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 Use the flag `--samples` to set the number of samples (1000 by default), for example `--samples=2000`.
@@ -79,13 +77,11 @@ Use the flag `--processes` to set the number of processes (1 by default), for ex
 
 ### Parameter Learning
 ```
-cd pasta/
 pasta examples/learning/background_bayesian_network.lp --pl
 ```
 
 ### Decision Theory
 ```
-cd pasta/
 pasta examples/decision_theory/dummy.lp -dt
 ```
 For normalization, you should use `-dtn` insted of `-dt`.

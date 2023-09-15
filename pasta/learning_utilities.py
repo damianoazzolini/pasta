@@ -1,5 +1,5 @@
 import math
-
+import sys
 from . import pasta_solver
 
 interpretation_string = "interpretation"
@@ -13,38 +13,37 @@ def generate_program_string(
     program: str
 ) -> str:
     '''
-    Generates a string containing the PASP program
+    Generates a string containing the probabilistic answer set program.
     '''
-    s = ""
-    s = s + program
-    to_assert = f"{interpretation_string}:- "
-
-    for e in atoms:
-        to_assert = to_assert + e + ", "
-    to_assert = to_assert[:-2] + ".\n"
+    st_prog = ""
+    st_prog = st_prog + program
+    to_assert = f"{interpretation_string}:- {','.join(atoms)}.\n"
 
     for k in facts_prob:
         if offset == 0:
-            s = s + f"{facts_prob[k]}::{k}.\n"
+            st_prog = st_prog + f"{facts_prob[k]}::{k}.\n"
         else:
             offset = offset - 1
 
-    return s + to_assert + "\n"
+    return st_prog + to_assert + "\n"
 
 
 
-def get_prob_from_id(id: str, facts_prob: 'dict[str,float]') -> float:
-    index = 0
+def get_prob_from_id(id_w: str, facts_prob: 'dict[str,float]') -> float:
+    '''
+    Given a world id, extracts its probability
+    '''
     probability = 1
-    for el in facts_prob:
-        contribution = facts_prob[el] if id[index] == '1' else (
-            1 - facts_prob[el])
+    for index, el in enumerate(facts_prob):
+        contribution = facts_prob[el] if id_w[index] == '1' else (1 - facts_prob[el])
         probability = probability * contribution
-        index = index + 1
     return probability
 
 
 def add_element_to_dict(worlds_dict, dict_to_store, key):
+    '''
+    Adds an element to the specified dict.
+    '''
     for w in worlds_dict:
         el = worlds_dict[w]
         # if el.model_query_count != 0:
@@ -88,8 +87,13 @@ def get_prob_from_dict(dict_with_data, facts_prob, key):
     return lp, up
 
 
-def get_conditional_prob_from_dict(dict_with_data, facts_prob, key
-                                   ) -> 'tuple[float,float]':
+def get_conditional_prob_from_dict(
+    dict_with_data,
+    facts_prob,
+    key) -> 'tuple[float,float]':
+    '''
+    Gets the comditional probability.
+    '''
 
     # if key not in dict_with_data:
     #     return 0,0
@@ -144,20 +148,19 @@ def get_conditional_prob_from_dict(dict_with_data, facts_prob, key
 
 
 def compute_probability_interpretation(
-        facts_prob: 'dict[str,float]',
-        example: 'list[str]',
-        program: str,
-        key: int,
-        interpretations_to_worlds: 'dict[int,list[tuple[str,int,int,int]]]',
-        offset : int
-) -> 'tuple[float,float]':
+    facts_prob: 'dict[str,float]',
+    example: 'list[str]',
+    program: str,
+    key: int,
+    interpretations_to_worlds: 'dict[int,list[tuple[str,int,int,int]]]',
+    offset : int
+    ) -> 'tuple[float,float]':
     '''
     Computation of the probability of an interpretation: P(I)
     '''
 
     if key not in interpretations_to_worlds:
         s = generate_program_string(facts_prob, offset, example, program)
-
         pasta_solver_ins = pasta_solver.Pasta(
             "", interpretation_string)  # type: ignore
         up: float = 0
@@ -180,7 +183,10 @@ def compute_expected_values(
         prob_fact: str,
         key: int,
         computed_expectation_dict: 'dict[str,list[tuple[str,int,int,int]]]'
-) -> 'tuple[float,float,float,float]':
+    ) -> 'tuple[float,float,float,float]':
+    '''
+    Computation of the expected values.
+    '''
 
     idT = prob_fact + "_T" + str(key)
     idF = prob_fact + "_F" + str(key)
@@ -230,7 +236,10 @@ def test_results(
     prob_facts_dict: 'dict[str,float]',
     program: str,
     offset : int
-) -> None:
+    ) -> None:
+    '''
+    Test the results.
+    '''
 
     p = 0
 
@@ -251,7 +260,10 @@ def to_logprob(
     lp: float,
     up: float,
     upper: bool
-) -> float:
+    ) -> float:
+    '''
+    Conversion to log probabilites.
+    '''
     if upper:
         return math.log(float(up)) if float(up) != 0 else math.log(LOGZERO)
     else:
@@ -266,7 +278,10 @@ def learn_parameters(
     offset: int,
     upper: bool = False,
     verbose: bool = True
-) -> 'dict[int,list[tuple[str,int,int,int]]]':
+    ) -> 'tuple[dict[int,list[tuple[str,int,int,int]]],dict[str,float]]':
+    '''
+    Main loop for parameter learning.
+    '''
 
     # start_time = time.time()
 
@@ -290,7 +305,13 @@ def learn_parameters(
     p = 0
     for i in range(0, len(training_set)):
         lp, up = compute_probability_interpretation(
-            prob_facts_dict, training_set[i], program, i, interpretations_to_worlds, offset)
+            prob_facts_dict,
+            training_set[i],
+            program,
+            i,
+            interpretations_to_worlds,
+            offset
+        )
         p = p + to_logprob(lp, up, upper)
         # print(f"interpretation: {i}")
 
@@ -319,7 +340,14 @@ def learn_parameters(
 
                 for i in range(0, len(training_set)):
                     lp1, up1, lp0, up0 = compute_expected_values(
-                        prob_facts_dict, offset_value, training_set[i], program, prob_fact, i, computed_expectation_dict)
+                        prob_facts_dict,
+                        offset_value,
+                        training_set[i],
+                        program,
+                        prob_fact,
+                        i,
+                        computed_expectation_dict
+                    )
                     upper1 = upper1 + up1
                     lower1 = lower1 + lp1
                     upper0 = upper0 + up0
@@ -354,7 +382,13 @@ def learn_parameters(
         # for ex in examples:
         for i in range(0, len(training_set)):
             lp, up = compute_probability_interpretation(
-                prob_facts_dict, training_set[i], program, i, interpretations_to_worlds, offset)
+                prob_facts_dict,
+                training_set[i],
+                program,
+                i,
+                interpretations_to_worlds,
+                offset
+            )
             p = p + to_logprob(lp, up, upper)
 
         ll1 = p
@@ -364,4 +398,4 @@ def learn_parameters(
     print(f"Iterations: {n_iterations}")
     print(prob_facts_dict)
 
-    return interpretations_to_worlds
+    return interpretations_to_worlds, prob_facts_dict
