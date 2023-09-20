@@ -7,12 +7,13 @@ import re
 import copy
 import math
 import sys
-from scipy.optimize import fsolve
+from scipy.optimize import minimize, fsolve
+from scipy import special
 
 from . import utils
 from .generator import Generator
 from .generator import ComparisonPredicate
-from .generator import ParametersFinder
+# from .generator import ParametersFinder
 from .continuous_cdfs import *
 
 def symbol_endline_or_space(char1: str) -> bool:
@@ -688,7 +689,7 @@ class PastaParser:
 
     def get_asp_program(self, lpmln : bool = False) -> 'list[str]':
         '''
-        Returns a string that represent the ASP program obtained by converting the PASP
+        Returns a string that represent the answer set program obtained by converting the PASP
         '''
         if self.query and not lpmln:
             self.lines_prob.extend([f"q:- {self.query}.","#show q/0.",f"nq:- not {self.query}.","#show nq/0."])
@@ -704,10 +705,10 @@ class PastaParser:
         Parameters:
             - None
         Returns:
-            - str: string representing the program that can be used to 
+            - str: string representing the program that can be used to
             compute lower and upper probability
         Behavior:
-            returns a string that represent the ASP program where models 
+            returns a string that represent the answer set program where models
             need to be computed
         '''
         if self.evidence == "":
@@ -733,19 +734,44 @@ class PastaParser:
         if key in self.probabilistic_facts and self.probabilistic_facts[key] != prob:
             utils.error_prob_fact_twice(key, prob, self.probabilistic_facts[key])
         self.probabilistic_facts[key] = float(prob)
-    
-    
+
+
     def reconstruct_parameters(self, learned_prob_facts_dict : 'dict[str,float]'):
         '''
         Reconstructs the parameters of continuous distributions
         starting from a set of probabilistic facts obtained via
         parameter learning.
         '''
-        # inter = gen.create_intersections(self.intervals)
-        # print(inter)
-        # print(self.intervals)
-        # print(self.continuous_facts)
-        # print(learned_prob_facts_dict)
+        
+        def evaluate_fn_gaussian(mv, *args):
+            '''
+            Target of the minimization process for gaussian distributions.
+            '''
+            # mv[0] = mean
+            # mv[1] = variance
+
+            to_minimize : float = 0
+            for el in args[0]:
+                x = el[0]
+                y = el[1]
+                # x - \mu / \sigma
+                cdf = (0.5*(1 + special.erf((x - mv[0]) / (math.sqrt(2)*mv[1]))))
+                to_minimize += abs(cdf - y)
+
+            return to_minimize
+
+        def equations_gauss(p, *args):
+            '''
+            Used when there are 2 values and 2 parameters.
+            '''
+            x0, y0 = p
+            funz = []
+            for (p0,v0) in args[0]:
+                funz.append(0.5*(1 + special.erf((p0 - x0) / (math.sqrt(2)*y0) )) - v0)
+            
+            return funz
+        
+        ### BODY
         
         computed_vals : 'dict[str,list[float]]' = {}
         
@@ -771,13 +797,22 @@ class PastaParser:
                     realprobs.append(real_val)
             
             args_to_pass : 'list[tuple[float,float]]' = []
-            for (vi, p_i) in zip(realprobs, bounds):
-                args_to_pass.append((vi,p_i.bound1))
+            for (p_i,vi) in zip(bounds,realprobs):
+                args_to_pass.append((p_i.bound1,vi))
 
-            pf = ParametersFinder(args_to_pass)
-            x, y =  fsolve(pf.equations_gauss, x0=(5, 5))
+            if len(args_to_pass) == 2:
+                mean_d, var_d =  fsolve(equations_gauss, x0=(0.5, 0.5), args=args_to_pass)
+            else:
+                res = minimize(
+                    evaluate_fn_gaussian,
+                    [0.5,0.5],
+                    args=args_to_pass,
+                    method='Powell',
+                )
+                mean_d = res.x[0]
+                var_d = res.x[1]
             # print(x,y)
-            print(f"{cv}:\n\tMean: {x}\n\tVariance: {y}")
+            print(f"{cv}:\n\tMean: {mean_d}\n\tVariance: {var_d}")
 
 
     def __repr__(self) -> str:

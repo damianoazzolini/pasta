@@ -1,13 +1,9 @@
 import math
 import random
 import copy
-from scipy import special
 
 from .utils import print_error_and_exit
 from . import continuous_cdfs
-
-def flip():
-    return random.randint(0,1) == 1
 
 
 class ComparisonPredicate:
@@ -32,27 +28,10 @@ class ComparisonPredicate:
         return self.__str__()
 
 
-class ParametersFinder:
-    '''
-    Class to wrap a set of equations to find the parameters of
-    continuous distributions.
-    '''
-    def __init__(self,args) -> None:
-        self.args = args
-
-    def equations_gauss(self,p):
-        x0, y0 = p
-        funz = []
-        for (v0,p0) in self.args:
-            funz.append((1 + special.erf((p0 - x0) / (math.sqrt(2)*y0) )) - v0)
-        
-        return funz
-
-'''
-Class defining a generator of an ASP program
-'''
-
 class Generator:
+    '''
+    Class defining a generator of an answer set program
+    '''
     def __init__(self):
         pass
 
@@ -219,6 +198,10 @@ class Generator:
 
     @staticmethod
     def generate_xor_constraint(n_vars : int):
+        
+        def flip():
+            return random.randint(0,1) == 1
+
         constr = ":- #count{"
 
         for i in range(0, n_vars):
