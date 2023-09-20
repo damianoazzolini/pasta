@@ -1454,7 +1454,7 @@ class AspInterface:
 
     def compute_probability_lpmln(self, query : str) -> None:
         '''
-        Computes the probability for a PASP program following the
+        Computes the probability for a probabilistic answer set program following the
         LPMLN semantics. Most of the data structures are reused,
         so 'probability' should be considered as 'weight' until the
         values are not normalized.
@@ -1632,9 +1632,9 @@ class AspInterface:
 
     def print_asp_program(self) -> None:
         '''
-        Utility that prints the ASP program
+        Utility that prints the answer set program.
         '''
-        print("--- Asp program ---")
+        print("--- Answer set program ---")
         print(*self.asp_program, sep='\n')
         for c in self.cautious_consequences:
             print(f":- not {c}.")
