@@ -1752,6 +1752,8 @@ class AspInterface:
             print(f"Answer set generation time: {elapsed_time} s")
         
         eq = self.__extract_query_equation(target, "optimizable")
+        print(f"number of sums: {eq.count('+')}")
+        print(f"number of prods: {eq.count('*')}")
         
         if self.pedantic:
             print(f"Equation: {eq}")

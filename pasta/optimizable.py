@@ -56,7 +56,6 @@ class Problem:
         else:
             s = str(other_to_eval)
         
-        print(s)
         for idx, val in enumerate(self.symbolic_variables):
             s = s.replace(val, str(x[idx]))
         # # return sympify(s)
@@ -91,12 +90,12 @@ def compute_optimal_probability(
     '''
     # 1: simplify the equation
     # print(initial_equation.count('+'))
-    print(initial_equation)
+    # print(initial_equation)
     # sys.exit()
     # symplified = sympify(initial_equation)
     symplified = simplify_chunk(initial_equation + f"- {probability_threshold}", chunk_size)
-    print(symplified)
-    print(optimizable_facts)
+    # print(symplified)
+    # print(optimizable_facts)
     # 1.1: if is a number, return it
     # if is_number(str(symplified)):
     #     return symplified
@@ -107,7 +106,7 @@ def compute_optimal_probability(
     
     # target_equation = "+".join([f"P({x})" for x in optimizable_facts.keys()])
     
-    print(target_equation)
+    # print(target_equation)
     
     # problem_to_solve = Problem(symplified, optimizable_facts.keys())
     problem_to_solve = Problem(target_equation, list(optimizable_facts.keys()))
