@@ -706,17 +706,22 @@ class AspInterface:
             iterations += 1
 
 
-    def extract_best_utility(self, computed_utilities_list : 'dict[str,list[float]]', lower : bool = False) -> 'tuple[list[float],list[str]]':
+    def extract_best_utility(
+            self,
+            computed_utilities_list: 'dict[str,tuple[float,float,float]]',
+            lower : bool = False
+        ) -> 'tuple[tuple[float,float,float],list[str]]':
         '''
         Loops over the utility list and find the best assignment.
         '''
-        best : 'list[float]' = [-math.inf,-math.inf]
+        best : 'list[float]' = [-math.inf,-math.inf,0] # lower utility, upper utility, and unsat worlds
         best_comb : 'list[str]' = []
         for el in computed_utilities_list:
             index = 0 if lower else 1
             if computed_utilities_list[el][index] > best[index] or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0])):
                 best[index] = computed_utilities_list[el][index]
                 best[1 if lower else 0] = computed_utilities_list[el][1 if lower else 0]
+                best[2] = computed_utilities_list[el][2]
                 best_comb = []
                 for c, decision in zip(el,self.decision_atoms_list):
                     if int(c) == 1:
@@ -727,9 +732,224 @@ class AspInterface:
         return best, best_comb
 
 
+    def _evaluate_strategy_dtopt(
+            self,
+            bin_value : str
+        ) -> 'tuple[float,float,float]':
+        '''
+        Evaluates a strategy: it computes all the words and extract the
+        min and max utility.
+        '''
+        # bin_value = bin(strategy)[2:].zfill(len(self.decision_atoms_list))
+        st = ""
+        for index, v in enumerate(bin_value):
+            if int(v) == 1:
+                st += f"{self.decision_atoms_list[int(index)]} "
+        if self.verbose:
+            print(f"----- Strategy: [{st}] -----")
+        # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
+        # add the constraints for the truth values of the facts
+        # constraints : list[str] = []
+        for index, v in enumerate(bin_value):
+            mode = "" if int(v) == 0 else "not"
+            c = f":- {mode} {self.decision_atoms_list[index]}."
+            # constraints.append(c)
+            self.asp_program.append(c)
+        # enumerate the worlds
+        all_worlds : 'list[int]' = list(range(0, 2**len(self.prob_facts_dict)))
+        w_list : 'list[str]' = list(self.prob_facts_dict.keys())
+        lr = 0
+        ur = 0
+        p_unsat = 0 # probability of the UNSAT worlds
+        for w in all_worlds:
+            original_prg_constr = self.asp_program.copy()
+            
+            # compute the encoding of the world
+            bin_value_w = bin(w)[2:].zfill(len(self.prob_facts_dict))
+            world_probability : float = 1
+
+            # impose the constraint on the probabilistic facts true in the world
+            w_str = ""
+            for index, v in enumerate(bin_value_w):
+                mode = "" if int(v) == 0 else "not"
+                if int(v) == 1:
+                    w_str += f"{w_list[index]} "
+                c = f":- {mode} {w_list[index]}."
+                self.asp_program.append(c)
+                if int(v) == 1:
+                    world_probability *= self.prob_facts_dict[w_list[index]]
+                else:
+                    world_probability *= (1-self.prob_facts_dict[w_list[index]])
+            
+            # remove the show statements and insert only the ones on the utility
+            self.asp_program = [s for s in self.asp_program if not s.startswith('#show')]
+            for el in self.utilities_dict:
+                if el.count('(') > 0:
+                    self.asp_program.append(f"#show {el.split('(')[0]}/{el.count('(') + el.count(',') }.")
+                else:
+                    self.asp_program.append(f"#show {el}/0.")
+
+
+            # enumerate the answer sets
+            ctl = self.init_clingo_ctl(["0"])
+            # print(f"PROGRAM for strategy [{st}] world [{w_str}]")
+            # self.print_asp_program()
+            # import sys
+            # sys.exit()
+            as_list : 'list[list[str]]' = []
+            with ctl.solve(yield_=True) as handle:  # type: ignore
+                for m in handle:  # type: ignore
+                    as_list.append(str(m).split(' '))  # type: ignore
+                handle.get()  # type: ignore
+                
+            if self.pedantic:
+                print(f"\tworld [{w_str}] probability {world_probability}")
+            # print(as_list)
+            # compute the lower and upper bounds
+            if len(as_list) >= 1 and as_list[0] != ['']:
+                rewards_list_inner : list[float] = []
+                for answer_set in as_list:
+                    # r : float = 1 # for product
+                    r : float = 0
+                    for atom in answer_set:
+                        if len(atom) > 0:
+                            # r *= self.utilities_dict[atom]
+                            r += self.utilities_dict[atom]
+                    rewards_list_inner.append(r)
+
+                lr_obt = min(rewards_list_inner) * world_probability
+                ur_obt = max(rewards_list_inner) * world_probability
+                
+                if self.pedantic:
+                    print(f"Rewards obtained for world [{w_str}]")
+                    for as_el,as_rew in zip(as_list,rewards_list_inner):
+                        print(f"\t{as_el} -> {as_rew}")
+                    print(f"Optimal reward: ({lr_obt},{ur_obt})")
+
+                lr += lr_obt
+                ur += ur_obt
+                # lb, ub = compute_utility_bounds(as_list, world_probability, self.utilities_dict)
+            elif len(as_list) == 0:
+                # no answer sets
+                p_unsat += world_probability
+            if self.pedantic:
+                if len(as_list) == 0:
+                    print(f"Unsat {w_str}")
+                else:
+                    print(f"SAT {w_str} but 0")
+                # print(f"Rewards obtained for world [{w_str}]: 0")
+            self.asp_program = original_prg_constr.copy()
+        
+        if self.verbose:
+            print(f"Strategy: [{st}], Utility: [{lr, ur, p_unsat}]")
+
+        return lr, ur, p_unsat
+
+
+    def decision_theory_opt(
+            self,
+            approximate : bool = False,
+            samples : int = 1000,
+            to_maximize : str = "upper"
+        ) -> 'tuple[tuple[float,float,float],list[str]]':
+        '''
+        Solves decision theory with optimization approaches.
+        '''
+        def flip_bit(s : str, one : bool = True) -> str:
+            '''
+            Flips bits in a binary string, used for approximate.
+            One flips one random bit, otherwise flips each one
+            with probaiblity 0.5
+            '''
+            st = list(s)
+            if one:
+                idx = random.randint(0,len(st) - 1)
+                st[idx] = '1' if st[idx] == '0' else '0'
+            else:
+                for idx in range(0, len(st)):
+                    if random.random() > 0.5:
+                        st[idx] = '1' if st[idx] == '0' else '0'
+                    
+            return ''.join(st)
+        
+        ######### BODY
+        computed_utilities_dict : 'dict[str,tuple[float,float,float]]' = {}
+
+        if len(self.decision_atoms_list) == 0:
+            utils.print_error_and_exit("Specify at least one decision atom.")
+
+        original_prg = self.asp_program.copy()
+        
+        if not approximate:
+            decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
+            # exact: enumerates all the strategies
+            for strategy in decision_facts_combinations:
+                bin_value = bin(strategy)[2:].zfill(len(self.decision_atoms_list))
+                lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_value)
+                computed_utilities_dict[bin_value] = (lr,ur,p_unsat)
+                # restore the program, since it is modified in evaluate strategy
+                self.asp_program = original_prg.copy()
+            
+            return self.extract_best_utility(computed_utilities_dict, self.upper)
+        else:
+            current_strategy = random.randint(0, 2**len(self.decision_atoms_list) - 1)
+            bin_value_current_strategy = bin(current_strategy)[2:].zfill(len(self.decision_atoms_list))
+            lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_value_current_strategy)
+            # print(f"add: {bin_value_current_strategy} -> {(lr, ur, p_unsat)}")
+            computed_utilities_dict[bin_value_current_strategy] = (lr, ur, p_unsat)
+            # cleanup - crucial
+            self.asp_program = original_prg.copy()
+            
+            if to_maximize == "upper":
+                best_value = ur
+            else:
+                best_value = lr
+
+            # hill climbing: iteratively improves a strategy
+            for i in range(1, samples):
+                # selects a strategy
+                bin_selected_strategy = flip_bit(bin_value_current_strategy, one=False)
+                # print(bin_selected_strategy)
+                if not(bin_selected_strategy in computed_utilities_dict):
+                    lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_selected_strategy)
+
+                    if to_maximize == "upper":
+                        current_value = ur
+                    else:
+                        current_value = lr
+                    
+                    if current_value > best_value:
+                        # found a better one
+                        best_value = current_value
+                        bin_value_current_strategy = bin_selected_strategy
+                        if self.verbose:
+                            print(f"Improved at iteration {i}")
+                    # print(f"add: {bin_selected_strategy} -> {(lr, ur, p_unsat)}")
+                    computed_utilities_dict[bin_selected_strategy] = (lr, ur, p_unsat)
+                    # check whether all the strategies have been evaluated
+                    if len(computed_utilities_dict) == 2**len(self.decision_atoms_list):
+                        print(f"Evaluated all {2**len(self.decision_atoms_list)} possible strategies")
+                        break
+                    # cleanup - crucial
+                    self.asp_program = original_prg.copy()
+                
+            if self.verbose:
+                print(f"Tested {len(computed_utilities_dict)} different strategies")
+            if self.pedantic:
+                print("Utilities")
+                for ut in computed_utilities_dict:
+                    print(f"{ut}: {computed_utilities_dict[ut]}")
+
+            # To recycle the method
+            best_found = computed_utilities_dict[bin_value_current_strategy]
+            computed_utilities_dict = {}
+            computed_utilities_dict[bin_value_current_strategy] = best_found
+            return self.extract_best_utility(computed_utilities_dict)
+
+
     def decision_theory_naive_method(self,
-        no_mix : bool = False,
-        opt : bool = False) -> 'tuple[list[float],list[str]]':
+            no_mix : bool = False,
+        ) -> 'tuple[tuple[float,float,float],list[str]]':
         '''
         Naive implementation of decision theory: enumerates all the possible
         combinations of decision atoms and then ask the queries (i.e., the
@@ -749,7 +969,6 @@ class AspInterface:
         '''
         decision_facts_combinations = list(range(0, 2**len(self.decision_atoms_list)))
         computed_utilities_list : 'dict[str,list[float]]' = {}
-        rewards_list : 'list[list[float]]' = [] # used for maximization
 
         if len(self.decision_atoms_list) == 0:
             utils.print_error_and_exit("Specify at least one decision atom.")
@@ -757,8 +976,12 @@ class AspInterface:
         original_prg = self.asp_program.copy()
         for el in decision_facts_combinations:
             bin_value = bin(el)[2:].zfill(len(self.decision_atoms_list))
+            st = ""
+            for index, v in enumerate(bin_value):
+                if int(v) == 1:
+                    st += f"{self.decision_atoms_list[int(index)]} "
             if self.verbose:
-                print(f"----- Strategy: {str(bin_value)} -----")
+                print(f"----- Strategy: [{st}] -----")
             # s = "0"*(len(self.decision_atoms_list) - len(bin(el)[2:]))
             # add the constraints for the truth values of the facts
             # constraints : list[str] = []
@@ -767,129 +990,59 @@ class AspInterface:
                 c = f":- {mode} {self.decision_atoms_list[index]}."
                 # constraints.append(c)
                 self.asp_program.append(c)
-            
-            if not opt:
-                # ask the queries
-                original_prg_constr = self.asp_program.copy()
-                current_utility_l : float = 0
-                current_utility_u : float = 0
-                for query in self.utilities_dict:
-                    if self.verbose:
-                        print(f"Query: {query}")
-                    self.asp_program.append(f"q:- {query}.")
-                    self.asp_program.append("#show q/0.")
-                    self.asp_program.append(f"nq:- not {query}.")
-                    self.asp_program.append("#show nq/0.")
 
-                    self.compute_probabilities()
-                    # lp = self.lower_probability_query
-                    # up = self.upper_probability_query
-                    self.model_handler = ModelsHandler(
-                        self.prob_facts_dict,
-                        self.evidence,
-                        self.abducibles_list,
-                        self.decision_atoms_list,
-                        self.utilities_dict
-                    )
-                    # self.upper_probability_query = 0
-                    # self.lower_probability_query = 0
-                    current_reward = self.utilities_dict[query]
-                    if no_mix:
+            # ask the queries
+            original_prg_constr = self.asp_program.copy()
+            current_utility_l : float = 0
+            current_utility_u : float = 0
+            for query in self.utilities_dict:
+                if self.verbose:
+                    print(f"Query: {query}")
+                self.asp_program.append(f"q:- {query}.")
+                self.asp_program.append("#show q/0.")
+                self.asp_program.append(f"nq:- not {query}.")
+                self.asp_program.append("#show nq/0.")
+
+                self.compute_probabilities()
+                # lp = self.lower_probability_query
+                # up = self.upper_probability_query
+                self.model_handler = ModelsHandler(
+                    self.prob_facts_dict,
+                    self.evidence,
+                    self.abducibles_list,
+                    self.decision_atoms_list,
+                    self.utilities_dict
+                )
+                # self.upper_probability_query = 0
+                # self.lower_probability_query = 0
+                current_reward = self.utilities_dict[query]
+                if no_mix:
+                    current_utility_l += self.lower_probability_query * current_reward
+                    current_utility_u += self.upper_probability_query * current_reward
+                else:
+                    if current_reward > 0:
+                        # lower util -> lower prob * reward
+                        # upper util -> upper prob * reward
                         current_utility_l += self.lower_probability_query * current_reward
                         current_utility_u += self.upper_probability_query * current_reward
                     else:
-                        if current_reward > 0:
-                            # lower util -> lower prob * reward
-                            # upper util -> upper prob * reward
-                            current_utility_l += self.lower_probability_query * current_reward
-                            current_utility_u += self.upper_probability_query * current_reward
-                        else:
-                            # lower util -> upper prob * reward
-                            # upper util -> lower prob * reward
-                            current_utility_l += self.upper_probability_query * current_reward
-                            current_utility_u += self.lower_probability_query * current_reward
-                        
-                    self.asp_program = original_prg_constr.copy()
-                computed_utilities_list[bin_value] = [current_utility_l, current_utility_u]
-                if self.verbose:
-                    print(f"Strategy: {bin_value}, Utility: [{current_utility_l, current_utility_u}]")
-            else:
-                # optimization: compute all the answer sets and find the ones
-                # with the highest and lowest reward
-                # Enumerate all the worlds, then find the optimal AS
-                # remove all the show statements
-                
-                # enumerate the worlds
-                all_worlds : 'list[int]' = list(range(0, 2**len(self.prob_facts_dict)))
-                w_list : 'list[str]' = list(self.prob_facts_dict.keys())
-                lr = 0
-                ur = 0
-
-                for w in all_worlds:
-                    original_prg_constr = self.asp_program.copy()
+                        # lower util -> upper prob * reward
+                        # upper util -> lower prob * reward
+                        current_utility_l += self.upper_probability_query * current_reward
+                        current_utility_u += self.lower_probability_query * current_reward
                     
-                    # compute the encoding of the world
-                    bin_value_w = bin(w)[2:].zfill(len(self.prob_facts_dict))
-                    world_probability : float = 1
-
-                    # impose the constraint on the probabilistic facts true in the world
-                    for index, v in enumerate(bin_value_w):
-                        mode = "" if int(v) == 0 else "not"
-                        c = f":- {mode} {w_list[index]}."
-                        self.asp_program.append(c)
-                        world_probability *= self.prob_facts_dict[w_list[index]]
-                    
-                    # remove the show statements and insert only the ones on the utility
-                    self.asp_program = [s for s in self.asp_program if not s.startswith('#show')]
-                    for el in self.utilities_dict:
-                        self.asp_program.append(f"#show {el}/{el.count('(') + el.count(',') }.")
-
-
-                    # enumerate the answer sets
-                    ctl = self.init_clingo_ctl(["0"])
-                    as_list : 'list[list[str]]' = []
-                    with ctl.solve(yield_=True) as handle:  # type: ignore
-                        for m in handle:  # type: ignore
-                            # i need only the last one
-                            as_list.append(str(m).split(' '))  # type: ignore
-                        handle.get()  # type: ignore
-                        
-                    if self.verbose:
-                        print(f"\tworld {bin_value_w} probability {world_probability}")
-                    
-                    # compute the lower and upper bounds
-                    if len(as_list) == 1 and len(as_list[0]) == 1:
-                        lr += 0
-                        ur += 0
-                    else:
-                        rewards_list_inner : list[float] = []
-                        for answer_set in as_list:
-                            r : float = 1
-                            for atom in answer_set:
-                                if len(atom) > 0:
-                                    r *= self.utilities_dict[atom]
-                            rewards_list_inner.append(r)
-                        lr += min(rewards_list_inner) * world_probability
-                        ur += max(rewards_list_inner) * world_probability
-                        # lb, ub = compute_utility_bounds(as_list, world_probability, self.utilities_dict)
-
-                    self.asp_program = original_prg_constr.copy()
-                
-                if self.verbose:
-                    print(f"Strategy: {bin_value}, Utility: [{lr, ur}]")
-                computed_utilities_list[bin_value] = [lr,ur]
+                self.asp_program = original_prg_constr.copy()
+            computed_utilities_list[bin_value] = [current_utility_l, current_utility_u]
+            if self.verbose:
+                print(f"Strategy: {bin_value}, Utility: [{current_utility_l, current_utility_u}]")
 
             # here, super important: restore the program
             self.asp_program = original_prg.copy()
     
         if self.pedantic:
-            if not opt:
-                print("Utilities")
-                for ut in computed_utilities_list:
-                    print(f"{ut}: {computed_utilities_list[ut]}")
-            else:
-                for rw in rewards_list:
-                    print(f"Reward: {rw}")
+            print("Utilities")
+            for ut in computed_utilities_list:
+                print(f"{ut}: {computed_utilities_list[ut]}")
         
         return self.extract_best_utility(computed_utilities_list, self.upper)
  
@@ -1494,11 +1647,11 @@ class AspInterface:
                 for pf_0_1, pf_data in zip(k, pf_as_list):
                     cleaned_fact = pf_data[0].replace('(', '_').replace(')', '_').replace(',', '_')
                     considered_facts = self.optimizable_facts if task == "optimizable" else self.reducible_facts
-                    if cleaned_fact in considered_facts:
+                    if f"P({cleaned_fact})" in considered_facts:
                         if pf_0_1 == '0':
-                            eq += "(1-" + cleaned_fact + ")"
+                            eq += "(1-" + f"P({cleaned_fact})" + ")"
                         else:
-                            eq += cleaned_fact
+                            eq += f"P({cleaned_fact})"
                     else:
                         if pf_0_1 == '0':
                             eq += str(1 - pf_data[1])[:6]

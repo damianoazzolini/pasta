@@ -206,6 +206,18 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
+        "--aspmc",
+        help="Uses aspmc as inference engine.",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
+        "--convert",
+        help="Print the converted PASP",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
         "--profile",
         help="Use code profiling (cProfile)",
         action="store_true",

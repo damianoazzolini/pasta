@@ -9,7 +9,8 @@ from .pasta_parser import PastaParser
 from .asp_interface import AspInterface
 from .utils import *
 from . import generator
-from . import learning_utilities
+# from . import learning_utilities
+from .learning_utilities import ParameterLearner
 from .arguments import parse_args_wrapper
 
 
@@ -43,7 +44,8 @@ class Pasta:
         k : int = 100,
         naive_dt : bool = False,
         lpmln : bool = False,
-        processes : int = 1
+        processes : int = 1,
+        aspmc : bool = False
         ) -> None:
         self.filename = filename
         self.query = query
@@ -65,8 +67,22 @@ class Pasta:
         self.naive_dt : bool = naive_dt
         self.lpmln : bool = lpmln
         self.processes : int = processes
+        self.aspmc : bool = aspmc
         self.interface : AspInterface
         self.parser : PastaParser
+
+
+    def _get_program_str_for_aspmc(self, from_string : str = "") -> str:
+        '''
+        Returns the program string to use into the aspmc solver
+        '''
+        self.parser = PastaParser(self.filename, self.query, self.evidence)
+        f = self.parser.get_file_handler(from_string)
+        program_str = f.readlines()
+        f.close()
+        program_str.append(f"query({self.query}).")
+        program_str = '\n'.join(program_str)
+        return program_str
 
 
     def parameter_learning(self, from_string : str = "") -> None:
@@ -81,21 +97,22 @@ class Pasta:
         training_set, test_set, program, prob_facts_dict, offset = self.parser.parse_input_learning(from_string)
         # print(training_set, test_set, program, prob_facts_dict, offset)
         # sys.exit()
-        interpretations_to_worlds, learned_probs = learning_utilities.learn_parameters(
-            training_set,
-            test_set,
-            program,
-            prob_facts_dict,
-            offset,
-            not self.consider_lower_prob,
-            self.verbose
+        parameter_learner = ParameterLearner(
+            training_set=training_set,
+            test_set=test_set,
+            program=program,
+            prob_facts_dict=prob_facts_dict,
+            offset=offset,
+            upper=not self.consider_lower_prob,
+            aspmc=self.aspmc,
+            verbose=self.verbose
         )
-        learning_utilities.test_results(
-            test_set,
+        interpretations_to_worlds, learned_probs = parameter_learner.learn_parameters(
+            
+        )
+        parameter_learner.test_results(
             interpretations_to_worlds,
-            prob_facts_dict,
-            program,
-            offset
+            {}
         )
         self.parser.reconstruct_parameters(learned_probs)
 
@@ -392,16 +409,26 @@ class Pasta:
         )
 
 
-    def decision_theory_naive(self,
-        from_string: str = "",
-        no_mix : bool = False,
-        opt : bool = False) -> 'tuple[list[float],list[str]]':
+    def decision_theory_naive(
+            self,
+            from_string: str = "",
+            no_mix : bool = False,
+            opt : bool = False,
+            approximate : bool = False,
+            samples : int = 1000
+        ) -> 'tuple[tuple[float,float,float],list[str]]':
         '''
         Naive implementation of decision theory, i.e., by enumerating
         all the strategies and by picking the best one.
         '''
         self.setup_interface(from_string)
-        return self.interface.decision_theory_naive_method(no_mix, opt)
+        if opt:
+            return self.interface.decision_theory_opt(
+                    approximate=approximate,
+                    samples=samples
+                )
+        else:
+            return self.interface.decision_theory_naive_method(no_mix)
 
 
     def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
@@ -477,6 +504,69 @@ class Pasta:
 
         return lp, up
 
+    
+    def _get_cnf_aspmc(self, from_string : str = ""):
+        '''
+        Gets the CNF representation of the program from aspmc.
+        '''
+        from aspmc.programs.smprogram import SMProblogProgram
+        import aspmc.config as config
+
+        config.config["knowledge_compiler"] = "c2d"
+        # time aspmc -m smproblog b_10_ground.lp -c -k c2d
+
+        program_files = []
+
+        # cycle_breaking = "tp"
+
+        # self.parser = PastaParser(self.filename, self.query, self.evidence)
+        # f = self.parser.get_file_handler(from_string)
+        # program_str = f.readlines()
+        # f.close()
+        # program_str.append(f"query({self.query}).")
+        program_str = self._get_program_str_for_aspmc(from_string)
+
+        program = SMProblogProgram(program_str, program_files)
+        program._decomposeGraph()
+        program.tpUnfold()
+        program.td_guided_both_clark_completion(adaptive=False, latest=False)
+
+        return program.get_cnf()
+    
+    
+    def inference_aspmc(self, from_string : str = "") -> 'tuple[float,float]':
+        '''
+        Exact inference using aspmc as engine.
+        # use the nse environment
+        '''
+        strategy = "flexible"
+        preprocessing = False
+        cnf = self._get_cnf_aspmc(from_string=from_string)
+        results = cnf.evaluate(strategy = strategy, preprocessing = preprocessing)
+
+        if len(results) > 0:
+            # added
+            lp_res = results[0][0]
+            up_res = results[1][0]
+            query = "q"
+            print(f"Lower Probabiility: {query}: {' '*max(1,(20 - len(query)))}{lp_res}")
+            print(f"Upper Probabiility: {query}: {' '*max(1,(20 - len(query)))}{up_res}")
+
+        return lp_res, up_res
+
+    
+    def convert(self, from_string : str = "") -> None:
+        '''
+        Print the HPASP converted into PASP.
+        '''
+        self.setup_interface(from_string)
+        for l in self.interface.asp_program:
+            if not l.startswith('0{') and not l.startswith('#'):
+                print(l)
+        # print(*self.interface.asp_program, sep='\n')
+        for el in self.interface.prob_facts_dict:
+            print(f"{self.interface.prob_facts_dict[el]:f}::{el}.")
+
 
     def inference_lpmln(self, from_string : str = "") -> 'float':
         '''
@@ -521,7 +611,7 @@ class Pasta:
         from_string : str = ""
         ):
         '''
-        Reducible task. Find the minimal subset of optimizable facts
+        Reducible task. Find the minimal subset of reducible facts
         such that the probability of the query is above the threshold.
         '''
         self.setup_interface(from_string)
@@ -585,6 +675,8 @@ def main():
             args.query = "__placeholder__"
     elif args.test is not None:
         args.query = "__placeholder__"
+    elif args.convert:
+        args.query = "asdf"
 
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
@@ -623,9 +715,13 @@ def main():
                          100,
                          args.dtn,
                          args.lpmln,
-                         args.processes)
+                         args.processes,
+                         args.aspmc
+                        )
 
-    if args.abduction:
+    if args.convert:
+        pasta_solver.convert()
+    elif args.abduction:
         if args.approximate:
             lower_p, upper_p, abd_explanations = pasta_solver.approximate_abduction(
                 threshold=float(args.threshold),
@@ -649,7 +745,7 @@ def main():
     elif args.xor:
         lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
         print_prob(lower_p, upper_p)
-    elif args.approximate and not (args.dt or args.dtn):
+    elif args.approximate and not (args.dt or args.dtn or args.dtopt):
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         print_prob(lower_p, upper_p)
     elif args.pl:
@@ -671,7 +767,8 @@ def main():
             iterations=args.iterations)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dtn or args.dtopt:
-        best_util, utility_atoms = pasta_solver.decision_theory_naive(no_mix=args.no_mix, opt=args.dtopt)
+        best_util, utility_atoms = pasta_solver.decision_theory_naive(
+            no_mix=args.no_mix, opt=args.dtopt, approximate=args.approximate, samples=args.samples)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dt:
         if args.normalize:
@@ -717,6 +814,8 @@ def main():
             prob = pasta_solver.inference_lpmln()
             lower_p = prob
             upper_p = prob
+        elif args.aspmc:
+            lower_p, upper_p = pasta_solver.inference_aspmc()
         else:
             lower_p, upper_p = pasta_solver.inference()
         if args.lpmln and args.all:

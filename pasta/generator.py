@@ -256,7 +256,7 @@ class Generator:
         Creates the intervals for every continuous variable by
         joining the ranges.
         '''
-        all_bounds : 'list[list[float]]' = [] 
+        all_bounds : 'list[list[float]]' = []
         for el in intervals:
             bounds : 'list[float]' = []
             for comparison_pred in intervals[el]:
@@ -269,7 +269,7 @@ class Generator:
 
     @staticmethod
     def generate_switch_clauses(
-        bounds: 'list[list[float]]', 
+        bounds: 'list[list[float]]',
         continuous_facts: 'dict[str, tuple[str,float,float]]'
     ) -> 'tuple[list[list[str]],list[list[str]]]':
         '''
@@ -281,7 +281,7 @@ class Generator:
         __h_a_1__ :- not __fa0__, __fa1__.
         __h_a_2__ :- not __fa0__, not __fa1__.
         # P(X < 0.4).
-        0.6554::__fa0__. 
+        0.6554::__fa0__.
         # P(0.4 < X < 0.5) / (1 - P(X < 0.4)) = 0.036 / (1 - 0.6554) = 0.10459
         0.10446::__fa1__.
         # P(0.5 < X < 0.7) / (1 - P(X < 0.5)) = 0.066 / (1 - 0.6915) = 0.2157724
@@ -301,26 +301,26 @@ class Generator:
                 if continuous_facts[current_fact][0] == "gaussian":
                     vals.append(
                         continuous_cdfs.evaluate_gaussian(
-                            continuous_facts[current_fact][1], 
-                            continuous_facts[current_fact][2], 
-                            cb[ii], 
+                            continuous_facts[current_fact][1],
+                            continuous_facts[current_fact][2],
+                            cb[ii],
                             cb[ii + 1]
                         )
                     )
                 elif continuous_facts[current_fact][0] == "uniform":
                     vals.append(
                         continuous_cdfs.evaluate_uniform(
-                            continuous_facts[current_fact][1], 
-                            continuous_facts[current_fact][2], 
-                            cb[ii], 
+                            continuous_facts[current_fact][1],
+                            continuous_facts[current_fact][2],
+                            cb[ii],
                             cb[ii + 1]
                         )
                     )
                 elif continuous_facts[current_fact][0] == "gamma":
                     vals.append(
                         continuous_cdfs.evaluate_gamma(
-                            continuous_facts[current_fact][1], 
-                            continuous_facts[current_fact][2], 
+                            continuous_facts[current_fact][1],
+                            continuous_facts[current_fact][2],
                             cb[ii], 
                             cb[ii + 1]
                         )
@@ -328,8 +328,8 @@ class Generator:
                 elif continuous_facts[current_fact][0] == "exponential":
                     vals.append(
                         continuous_cdfs.evaluate_exponential(
-                            continuous_facts[current_fact][1], 
-                            cb[ii], 
+                            continuous_facts[current_fact][1],
+                            cb[ii],
                             cb[ii+1]
                         )
                     )
@@ -348,7 +348,12 @@ class Generator:
                 for iii in range(0, ii):
                     tp += vals[iii]
                     ts += f"not __{current_fact}{iii}__,"
+
+                if tp >= 1:  # to avoid tp > 1 due to floating point issues
+                    tp = tp - 10e-6
                 tp = "{:.10f}".format(vals[ii] / (1-tp))
+                if float(tp) > 1: # to avoid tp > 1 due to floating point issues
+                    tp = 1 - 10e-6
                 name_pf = f"__{current_fact}{ii}__"
                 if ii != len(vals) - 1:
                     t_prob_facts_list.append(f"{tp}::{name_pf}.")

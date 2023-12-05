@@ -8,6 +8,7 @@ import copy
 import math
 import sys
 from scipy.optimize import minimize, fsolve
+import scipy.stats
 from scipy import special
 
 from . import utils
@@ -373,7 +374,10 @@ class PastaParser:
                 fact = fact_and_range.split('::')[1].replace('.','')
                 lower_bound_prob = float(prob_range.split(',')[0])
                 upper_bound_prob = float(prob_range.split(',')[1])
-                self.optimizable_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = (lower_bound_prob,upper_bound_prob)
+                k = f"P({fact.replace('(','_').replace(')','_').replace(',','_')})"
+                # self.optimizable_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = (lower_bound_prob,upper_bound_prob)
+                self.optimizable_facts[k] = (lower_bound_prob,upper_bound_prob)
+                self.add_probabilistic_fact(fact, 0.5)
                 # to_add : 'list[str]' = []
             elif line.startswith("reducible"):
                 fact = line.split('reducible')[1]
@@ -457,8 +461,8 @@ class PastaParser:
             prob_facts_converted, aux_facts_clauses = gen.generate_switch_clauses(
                 inter, self.continuous_facts)
             for lf in prob_facts_converted:
-                print("Probabilistic facts converted")
-                print(lf)
+                # print("Probabilistic facts converted")
+                # print(lf)
                 for f in lf:
                     probability, fact = check_consistent_prob_fact(f, self.lpmln)
                     self.add_probabilistic_fact(fact, probability)
@@ -771,6 +775,29 @@ class PastaParser:
             
             return funz
         
+        def evaluate_fn_gamma(mv, *args):
+            '''
+            Target of the minimization process for gamma distributions.
+            CDF(x; \alpha, \beta): \gamma(\alpha, \beta * x) / \Gamma(\alpha)
+            '''
+            # mv[0] = alpha
+            # mv[1] = beta
+
+            to_minimize: float = 0
+            # print(f"args: {args[0]}")
+            for el in args[0]:
+                # print(f"mv: {mv}")
+                x = el[0]
+                y = el[1]
+                a, b = mv[0], mv[1]
+                # x - \mu / \sigma
+                cdf = scipy.stats.gamma.cdf(x, a, scale=b)
+                # cdf = special.gammainc(a,b*x) / special.gamma(a)
+                # print(f"cdf: {cdf}")
+                to_minimize += abs(cdf - y)
+
+            return to_minimize
+        
         ### BODY
         
         computed_vals : 'dict[str,list[float]]' = {}
@@ -792,27 +819,38 @@ class PastaParser:
             realprobs = [vals[0]]
             for i in range(1, len(vals)):
                 # compute the denominator
-                if distr == "gaussian":
-                    real_val = vals[i] * (1 - sum(realprobs)) + sum(realprobs)
-                    realprobs.append(real_val)
+                real_val = vals[i] * (1 - sum(realprobs)) + sum(realprobs)
+                realprobs.append(real_val)
             
             args_to_pass : 'list[tuple[float,float]]' = []
             for (p_i,vi) in zip(bounds,realprobs):
                 args_to_pass.append((p_i.bound1,vi))
-
-            if len(args_to_pass) == 2:
-                mean_d, var_d =  fsolve(equations_gauss, x0=(0.5, 0.5), args=args_to_pass)
-            else:
+            mean_d = None
+            var_d = None
+            if distr == "gaussian":
+                if len(args_to_pass) == 2:
+                    mean_d, var_d =  fsolve(equations_gauss, x0=(0.5, 0.5), args=args_to_pass)
+                else:
+                    res = minimize(
+                        evaluate_fn_gaussian,
+                        [0.5,0.5],
+                        args=args_to_pass,
+                        method='Powell',
+                    )
+                    mean_d = res.x[0]
+                    var_d = res.x[1]
+                print(f"{cv}:\n\tMean: {mean_d}\n\tVariance: {var_d}")
+            elif distr == "gamma":
                 res = minimize(
-                    evaluate_fn_gaussian,
-                    [0.5,0.5],
-                    args=args_to_pass,
-                    method='Powell',
-                )
+                        evaluate_fn_gamma,
+                        [0.5,0.5],
+                        args=args_to_pass,
+                        method='Powell',
+                    )
                 mean_d = res.x[0]
                 var_d = res.x[1]
-            # print(x,y)
-            print(f"{cv}:\n\tMean: {mean_d}\n\tVariance: {var_d}")
+                print(f"{cv}:\n\tShape: {mean_d}\n\tRate: {var_d}")
+                
 
 
     def __repr__(self) -> str:
