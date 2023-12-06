@@ -7,10 +7,10 @@ from .utils import is_number, print_error_and_exit
 
 def reduce_pasp_up(
     equation : str,
-    reducible_facts : dict[str,float],
+    reducible_facts : 'dict[str,float]',
     probability_threshold : float,
     pedantic : bool = True
-    ) -> tuple[bool,list[int],float]:
+    ) -> 'tuple[bool,list[int],float]':
     '''
     Solution of the reducible task considering the UP.
     Returns:
