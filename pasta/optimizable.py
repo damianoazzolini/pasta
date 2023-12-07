@@ -164,11 +164,11 @@ def compute_optimal_probability(
             # constraints.append(NonlinearConstraint(fun01, -1, epsilon))
             # constraints.append(NonlinearConstraint(fun10, -1, epsilon))
             current_constraint_01 = Problem(
-                f"{pair[0]} - {pair[1]} - {epsilon}",
+                f"-({pair[0]} - {pair[1]} - {epsilon})",
                 list(optimizable_facts.keys())
             )
             current_constraint_10 = Problem(
-                f"{pair[1]} - {pair[0]} - {epsilon}", 
+                f"-({pair[1]} - {pair[0]} - {epsilon})", 
                 list(optimizable_facts.keys())
             )            
             constraints.append({
