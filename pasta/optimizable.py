@@ -99,17 +99,18 @@ def compute_optimal_probability(
     # 1.1: if is a number, return it
     # if is_number(str(symplified)):
     #     return symplified
+    opt_facts_names = list(optimizable_facts.keys())
     
     # the target is to minimize the sum of the prob of the
     # optimizable facts
-    target_equation = "+".join(optimizable_facts.keys())
+    target_equation = "+".join(opt_facts_names)
     
     # target_equation = "+".join([f"P({x})" for x in optimizable_facts.keys()])
     
     # print(target_equation)
     
     # problem_to_solve = Problem(symplified, optimizable_facts.keys())
-    problem_to_solve = Problem(target_equation, list(optimizable_facts.keys()))
+    problem_to_solve = Problem(target_equation, opt_facts_names)
 
     # 2: generate the bounds
     bounds : 'list[tuple[float,float]]' = []
@@ -127,7 +128,7 @@ def compute_optimal_probability(
     
     query_constraint = Problem(
         symplified,
-        list(optimizable_facts.keys())
+        opt_facts_names
     )
 
     # constraints : 'list[NonlinearConstraint]' = [
@@ -147,7 +148,7 @@ def compute_optimal_probability(
     })
     
     for el in bounds_constraints_cobyla:
-        current_constraint = Problem(el, list(optimizable_facts.keys()))
+        current_constraint = Problem(el, opt_facts_names)
         constraints.append({
             'type' : 'ineq',
             'fun' : current_constraint.eval_fn,
@@ -164,11 +165,11 @@ def compute_optimal_probability(
             # constraints.append(NonlinearConstraint(fun01, -1, epsilon))
             # constraints.append(NonlinearConstraint(fun10, -1, epsilon))
             current_constraint_01 = Problem(
-                f"-({pair[0]} - {pair[1]} - {epsilon})",
+                f"-({opt_facts_names[pair[0]]} - {opt_facts_names[pair[1]]} - {epsilon})",
                 list(optimizable_facts.keys())
             )
             current_constraint_10 = Problem(
-                f"-({pair[1]} - {pair[0]} - {epsilon})", 
+                f"-({opt_facts_names[pair[1]]} - {opt_facts_names[pair[0]]} - {epsilon})", 
                 list(optimizable_facts.keys())
             )            
             constraints.append({
@@ -198,5 +199,5 @@ def compute_optimal_probability(
             method=method,
             constraints=constraints
         )
-    
+    print(res)
     return res
