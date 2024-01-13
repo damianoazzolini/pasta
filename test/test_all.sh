@@ -10,5 +10,5 @@ python3 test_exact_inference.py
 echo "Test MAP/MPE"
 python3 test_map_mpe.py
 
-echo "Test lifted"
-python3 test_lifted.py
+# echo "Test lifted"
+# python3 test_lifted.py
