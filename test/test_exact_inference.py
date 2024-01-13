@@ -54,7 +54,9 @@ class TestClassExactInference(unittest.TestCase):
     def test_disjunction(self):
         self.wrap_test_exact_inference("../examples/inference/disjunction.lp", "f", "", "disjunction", 0.6, 0.8)
  
-
+    def test_multiple_ad(self):
+        self.wrap_test_exact_inference("../examples/inference/multiple_ad.lp", "qr", "", "multiple_ad", 0.0975, 0.5775)
+ 
     def test_certain_fact_a1_exit(self):
         with pytest.raises(SystemExit):
             self.wrap_test_exact_inference("../examples/inference/certain_fact.lp", "a1", "", "certain_fact_a1", 1.0, 1.0)

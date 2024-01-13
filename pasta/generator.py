@@ -32,6 +32,8 @@ class Generator:
     '''
     Class defining a generator of an answer set program
     '''
+    ad_count : int = 0 # static variable
+
     def __init__(self):
         pass
 
@@ -221,7 +223,8 @@ class Generator:
         new_facts : list[str] = []
         new_clauses : list[str] = []
         prob_list : 'list[float]' = []
-        name : str = "__aux_fact__"
+        name : str = f"__aux_fact_{Generator.ad_count}__"
+        Generator.ad_count += 1
         acc_prob : float = 0
         line = line.split(';')  # type: ignore
         for index, el in enumerate(line):
