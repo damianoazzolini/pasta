@@ -783,12 +783,10 @@ class AspInterface:
             
             # remove the show statements and insert only the ones on the utility
             self.asp_program = [s for s in self.asp_program if not s.startswith('#show')]
+            
             for el in self.utilities_dict:
-                if el.count('(') > 0:
-                    self.asp_program.append(f"#show {el.split('(')[0]}/{el.count('(') + el.count(',') }.")
-                else:
-                    self.asp_program.append(f"#show {el}/0.")
-
+                self.asp_program.append(f"#show {el}:{el}.")
+            self.asp_program.append(f"#show.")
 
             # enumerate the answer sets
             ctl = self.init_clingo_ctl(["0"])
@@ -859,7 +857,7 @@ class AspInterface:
             '''
             Flips bits in a binary string, used for approximate.
             One flips one random bit, otherwise flips each one
-            with probaiblity 0.5
+            with probability 0.5
             '''
             st = list(s)
             if one:
@@ -1624,10 +1622,10 @@ class AspInterface:
 
 
     def __extract_query_equation(self,
-        target : str,
-        task : str,
-        iter_simplification : bool = False,
-        mod_simplification : int = 100
+            target : str,
+            task : str,
+            iter_simplification : bool = False,
+            mod_simplification : int = 100
         ) -> str:
         '''
         Computes the query equation.
@@ -1667,9 +1665,8 @@ class AspInterface:
             it += 1
         
         eq = eq[:-2]  # remove the last +
-        if eq == "":
-            utils.print_error_and_exit(
-                "Error in gathering the query equation.")
+        # if eq == "":
+        #     utils.print_error_and_exit("Error in gathering the query equation.")
         
         return eq
 
@@ -1680,7 +1677,7 @@ class AspInterface:
         simplify_iter : int = -1
         ):
         '''
-        Soves the reducible task.
+        Solves the reducible task.
         '''
 
         if len(self.reducible_facts) == 0:
@@ -1734,7 +1731,8 @@ class AspInterface:
             threshold: float,
             epsilon : float,
             method : str,
-            chunk : int
+            chunk : int,
+            credal_facts : bool = False
         ):
         '''
         Solves the optimization task.
@@ -1751,9 +1749,14 @@ class AspInterface:
         if self.verbose:
             print(f"Answer set generation time: {elapsed_time} s")
         
-        eq = self.__extract_query_equation(target, "optimizable")
-        print(f"number of sums: {eq.count('+')}")
-        print(f"number of prods: {eq.count('*')}")
+        if credal_facts:
+            eq_lp = self.__extract_query_equation("lower", "optimizable")
+            eq_up = self.__extract_query_equation("upper", "optimizable")
+            eq = (eq_lp,eq_up)
+        else:
+            eq = self.__extract_query_equation(target, "optimizable")
+            print(f"number of sums: {eq.count('+')}")
+            print(f"number of prods: {eq.count('*')}")
         
         if self.pedantic:
             print(f"Equation: {eq}")
@@ -1772,17 +1775,25 @@ class AspInterface:
             threshold,
             epsilon,
             method,
-            chunk
+            chunk,
+            credal_facts
         )
         elapsed_time = time.time() - start_time
         if self.verbose:
             print(f"Optimization time: {elapsed_time} s")
-        
-        for el, val in zip(self.optimizable_facts.keys(), res.x):
-            eq = eq.replace(el, str(val))
 
-        print(f"Target equation: {eval(eq)}")
-
+        if not isinstance(res, list) == 1: # optimizable task   
+            for el, val in zip(self.optimizable_facts.keys(), res.x):
+                eq = eq.replace(el, str(val))
+            print(f"Target equation: {eval(eq)}")
+        else:
+            # credal facts, two values
+            for idx, extracted_eq in enumerate(eq):
+                for el, val in zip(self.optimizable_facts.keys(), res[idx].x):
+                    extracted_eq = extracted_eq.replace(el, str(val))
+                if self.pedantic:
+                    print(f"Target equation: {extracted_eq}")
+            
         return res
 
     def print_asp_program(self) -> None:
