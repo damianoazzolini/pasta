@@ -549,8 +549,8 @@ class Pasta:
             lp_res = results[0][0]
             up_res = results[1][0]
             query = "q"
-            print(f"Lower Probabiility: {query}: {' '*max(1,(20 - len(query)))}{lp_res}")
-            print(f"Upper Probabiility: {query}: {' '*max(1,(20 - len(query)))}{up_res}")
+            print(f"Lower probability: {query}: {' '*max(1,(20 - len(query)))}{lp_res}")
+            print(f"Upper probability: {query}: {' '*max(1,(20 - len(query)))}{up_res}")
 
         return lp_res, up_res
 
@@ -619,23 +619,22 @@ class Pasta:
 
 
     def optimize_probability(
-        self,
-        target : str,
-        threshold : float,
-        epsilon : float,
-        method : str,
-        chunk : int = 100,
-        from_string : str = ""
+            self,
+            target : str,
+            threshold : float,
+            epsilon : float,
+            method : str,
+            chunk : int = 100,
+            credal_facts : bool = False,
+            from_string : str = ""
         ):
         '''
         Optimize the probability of the optimizable facts subject to the constraints.
         Returns the result of scipy.minimize.
         '''
         self.setup_interface(from_string)
-        # print(self.parser.constraints_list)
-        # print(self.parser.objective_function)
-        # print(self.parser.optimizable_facts)
-        return self.interface.optimize_prob(target, threshold, epsilon, method, chunk)
+
+        return self.interface.optimize_prob(target, threshold, epsilon, method, chunk, credal_facts)
 
 
     def upper_mpe_inference(self, from_string : str = "") -> 'tuple[float,list[list[str]]]':
@@ -677,7 +676,8 @@ def main():
         args.query = "__placeholder__"
     elif args.convert:
         args.query = "asdf"
-
+    if args.normalize and args.evidence:
+        print_error_and_exit("Cannot use normalization and evidence.")
     if args.rejection or args.mh or args.gibbs:
         args.approximate = True
     if args.dtn and not args.approximate:
@@ -767,9 +767,10 @@ def main():
             iterations=args.iterations)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dtn or args.dtopt:
-        best_util, utility_atoms = pasta_solver.decision_theory_naive(
+        lowest_val, lowest_comb, highest_val, highest_comb = pasta_solver.decision_theory_naive(
             no_mix=args.no_mix, opt=args.dtopt, approximate=args.approximate, samples=args.samples)
-        print(f"Utility: {best_util}\nChoice: {utility_atoms}")
+        print(f"Lowest utility: {lowest_val}\nChoice: {lowest_comb}")
+        print(f"Highest utility: {highest_val}\nChoice: {highest_comb}")
     elif args.dt:
         if args.normalize:
             print_error_and_exit("Normalization should be used with the -dtn flag.")
@@ -779,25 +780,33 @@ def main():
         pasta_solver.test_consistency(args.test == 1)
     elif args.uxor:
         pasta_solver.test_unsat_xor(args)
-    elif args.optimize:
+    elif args.optimize or args.cf:
         res = pasta_solver.optimize_probability(
-            args.target,
-            args.threshold,
-            args.epsilon,
-            args.method,
-            args.chunk
-            )
-        if is_number(res):
-            print(f"No optimization needed: {res}")
-        else:
-            if res.success:
-                print(f"Sum of optimizable facts = {res.fun}")
-                print("Optimal probabilities")
-                print(res.x)
+            target = args.target,
+            threshold = args.threshold,
+            epsilon = args.epsilon,
+            method = args.method,
+            chunk = args.chunk,
+            credal_facts = args.cf
+        )
+        if not isinstance(res, list):
+            res = [res]
+        for idx, v in enumerate(res):
+            if is_number(v):
+                print(f"No optimization needed: {v}")
             else:
-                print_warning("Unable to solve the optimization problem.")
-            if args.pedantic:
-                print(res)
+                if v.success:
+                    if idx == 0:
+                        print(f"Target function = {v.fun}")
+                    else:
+                        print(f"Target function = {str(v.fun)[1:]}")
+                    print("Optimal probabilities")
+                    print(v.x)
+                else:
+                    print_warning("Unable to solve the optimization problem.")
+                if args.pedantic:
+                    print(v)
+    
     elif args.reducible:
         found, selected, computed_prob = pasta_solver.reducible_task(
             args.target,

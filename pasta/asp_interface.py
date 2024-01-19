@@ -233,30 +233,36 @@ class AspInterface:
             for el in self.prob_facts_dict:
                 print(el, end="\t")
             print("#pf", end="\t")
-            print("LP/UP\tProbability")
+            if not self.evidence:
+                print("LP/UP\tProbability")
+            else:
+                print("Probability")
             lp_count = 0
             up_count = 0
             for el in sorted(self.model_handler.worlds_dict, key= lambda x: x.count('1')):
                 for val in el:
                     print(f"{val}", end="\t")
                 print(f"{el.count('1')}", end="\t")
-                if self.model_handler.worlds_dict[el].model_query_count > 0 and \
-                    self.model_handler.worlds_dict[el].model_not_query_count == 0:
-                    print(utils.RED + "LP\t", end = "")
-                    lp_count = lp_count + 1
-                elif self.model_handler.worlds_dict[el].model_query_count > 0 and \
-                    self.model_handler.worlds_dict[el].model_not_query_count > 0:
-                    print(utils.YELLOW + "UP\t", end="")
-                    up_count = up_count + 1
-                else:
-                    print("-\t", end="")
+                if not self.evidence:
+                    if self.model_handler.worlds_dict[el].model_query_count > 0 and \
+                        self.model_handler.worlds_dict[el].model_not_query_count == 0:
+                        print(utils.RED + "LP\t", end = "")
+                        lp_count = lp_count + 1
+                    elif self.model_handler.worlds_dict[el].model_query_count > 0 and \
+                        self.model_handler.worlds_dict[el].model_not_query_count > 0:
+                        print(utils.YELLOW + "UP\t", end="")
+                        up_count = up_count + 1
+                    else:
+                        print("-\t", end="")
                 print(self.model_handler.worlds_dict[el].prob, end="")
-                if self.model_handler.worlds_dict[el].model_query_count > 0:
+                if self.model_handler.worlds_dict[el].model_query_count > 0 and not self.evidence:
                     print(utils.END)
                 else:
                     print("")
+
             print(f"Total number of worlds that contribute to the probability: {lp_count + up_count}")
-            print(f"Only LP: {lp_count}, Only UP: {up_count}")
+            if not self.evidence:
+                print(f"Only LP: {lp_count}, Only UP: {up_count}")
         
         self.lower_probability_query, self.upper_probability_query = self.model_handler.compute_lower_upper_probability(self.k_credal)
         if self.normalizing_factor == 0:
@@ -709,16 +715,21 @@ class AspInterface:
     def extract_best_utility(
             self,
             computed_utilities_list: 'dict[str,tuple[float,float,float]]',
-            lower : bool = False
+            lower : bool = False,
+            highest = True
         ) -> 'tuple[tuple[float,float,float],list[str]]':
         '''
         Loops over the utility list and find the best assignment.
         '''
-        best : 'list[float]' = [-math.inf,-math.inf,0] # lower utility, upper utility, and unsat worlds
+        best : 'list[float]' = []
+        if highest:
+            best = [-math.inf,-math.inf,0] # lower utility, upper utility, and unsat worlds
+        else:
+            best = [math.inf,math.inf,0]
         best_comb : 'list[str]' = []
         for el in computed_utilities_list:
             index = 0 if lower else 1
-            if computed_utilities_list[el][index] > best[index] or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0])):
+            if highest and ((computed_utilities_list[el][index] > best[index]) or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0]))) or not highest and ((computed_utilities_list[el][index] < best[index]) or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0]))):
                 best[index] = computed_utilities_list[el][index]
                 best[1 if lower else 0] = computed_utilities_list[el][1 if lower else 0]
                 best[2] = computed_utilities_list[el][2]
@@ -730,6 +741,41 @@ class AspInterface:
                         best_comb.append(f"not {decision}")
 
         return best, best_comb
+    
+    def extract_best_utility_opt(
+            self,
+            computed_utilities_list: 'dict[str,tuple[float,float,float]]',
+            lower : bool = False,
+            highest = True
+        ) -> 'tuple[tuple[float,float,float],list[str]]':
+        '''
+        Loops over the utility list and find the best assignment.
+        '''
+        lowest_val : float = math.inf
+        lowest_comb : 'list[str]' = []
+        highest_val : float = -math.inf
+        highest_comb : 'list[str]' = []
+        # lower -> 0, upper -> 1, unsat 3
+        for el in computed_utilities_list:
+            if computed_utilities_list[el][1] > highest_val:
+                highest_val = computed_utilities_list[el][1]
+                highest_comb = []
+                for c, decision in zip(el,self.decision_atoms_list):
+                    if int(c) == 1:
+                        highest_comb.append(decision)
+                    else:
+                        highest_comb.append(f"not {decision}")
+            
+            if computed_utilities_list[el][0] < lowest_val:
+                lowest_val = computed_utilities_list[el][0]
+                lowest_comb = []
+                for c, decision in zip(el,self.decision_atoms_list):
+                    if int(c) == 1:
+                        lowest_comb.append(decision)
+                    else:
+                        lowest_comb.append(f"not {decision}")
+
+        return lowest_val, lowest_comb, highest_val, highest_comb
 
 
     def _evaluate_strategy_dtopt(
@@ -888,7 +934,7 @@ class AspInterface:
                 # restore the program, since it is modified in evaluate strategy
                 self.asp_program = original_prg.copy()
             
-            return self.extract_best_utility(computed_utilities_dict, self.upper)
+            return self.extract_best_utility_opt(computed_utilities_dict)
         else:
             current_strategy = random.randint(0, 2**len(self.decision_atoms_list) - 1)
             bin_value_current_strategy = bin(current_strategy)[2:].zfill(len(self.decision_atoms_list))
@@ -942,7 +988,7 @@ class AspInterface:
             best_found = computed_utilities_dict[bin_value_current_strategy]
             computed_utilities_dict = {}
             computed_utilities_dict[bin_value_current_strategy] = best_found
-            return self.extract_best_utility(computed_utilities_dict)
+            return self.extract_best_utility(computed_utilities_dict, False)
 
 
     def decision_theory_naive_method(self,
