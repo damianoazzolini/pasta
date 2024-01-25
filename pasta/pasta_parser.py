@@ -271,7 +271,7 @@ class PastaParser:
         # n_probabilistic_facts = 0
         gen = Generator()
         for line in self.lines_original:
-            if "::" in line and not line.startswith("map") and not line.startswith("optimizable") and not line.startswith("reducible"):
+            if "::" in line and not line.startswith("map") and not line.startswith("optimizable") and not line.startswith("reducible") and "?::" not in line:
                 if ':-' in line:
                     utils.print_error_and_exit("Probabilistic clauses are not supported\n" + line)
                 if ';' in line:
@@ -353,8 +353,12 @@ class PastaParser:
                 probability, fact = check_consistent_prob_fact(fact)
                 self.map_id_list.append(len(self.probabilistic_facts))
                 self.add_probabilistic_fact(fact,probability)
-            elif line.startswith("decision"):
-                fact = line.split('decision')[1][:-1].strip()
+            elif line.startswith("decision") or line.startswith("?::"):
+                if line.startswith("decision"):
+                    to_s = "decision"
+                else:
+                    to_s = "?::"
+                fact = line.split(to_s)[1][:-1].strip()
                 clauses = gen.generate_clauses_for_dt(fact, "decision", self.naive_dt)
                 self.decision_facts.append(fact)
                 self.lines_prob.extend(clauses)
