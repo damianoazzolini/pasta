@@ -6,6 +6,8 @@ import random
 import time
 
 from . import utils
+from .continuous_cdfs import take_sample, evaluate_sample
+from .generator import ComparisonPredicate
 from .models_handler import ModelsHandler
 from .optimizable import compute_optimal_probability
 from .reducible import reduce_pasp_up
@@ -81,7 +83,7 @@ class AspInterface:
         upper : bool = False,
         n_probabilistic_ics : int = 0,
         k_credal: int = 100,
-        # constraints : 'list[str]' = [], # for the optimizable task
+        continuous_facts : 'dict[str,tuple[str,float,float]]' = {},
         # objective_function : str = "", # for the optimizable task
         optimizable_facts : 'dict[str,tuple[float,float]]' = {}, # for the optimizable task
         reducible_facts : 'dict[str,float]' = {} # for the reducible task
@@ -113,7 +115,7 @@ class AspInterface:
         self.upper : bool = upper
         self.n_probabilistic_ics : int = n_probabilistic_ics
         self.k_credal : int = k_credal
-
+        self.continuous_facts : 'dict[str,tuple[str,float,float]]' = continuous_facts
         # for the optimizable task
         # self.constraints : 'list[str]' = constraints
         # self.objective_function : str = objective_function
@@ -129,6 +131,20 @@ class AspInterface:
                 self.utilities_dict
             )
 
+    def init_clingo_ctl(self, clingo_arguments : 'list[str]', clauses : 'list[str]' = []) -> 'clingo.Control':
+        '''
+        Init clingo and grounds the program
+        '''
+        ctl = clingo.Control(clingo_arguments)
+        lines = self.asp_program if len(clauses) == 0 else clauses
+        try:
+            for clause in lines:
+                ctl.add('base', [], clause)
+            ctl.ground([("base", [])])
+        except RuntimeError:
+            utils.print_error_and_exit('Syntax error, parsing failed.')
+
+        return ctl
 
     def compute_minimal_set_facts(self) -> None:
         '''
@@ -298,21 +314,42 @@ class AspInterface:
         w_id: 'dict[str,bool]' = {}
         w_id_key: str = ""
 
+        # sample a value for continuous facts
+        samples_continuous : dict[str,float] = {}
+        for el in self.continuous_facts:
+            samples_continuous[el] = take_sample(self.continuous_facts[el])
+        
         for key in self.prob_facts_dict:
-            comp = 0.5 if randomly else self.prob_facts_dict[key]
-            if random.random() < comp:
-                w_id[key] = True
-                w_id_key = w_id_key + "T"
+            possibly_continuous_fact = key.split('_')[0] 
+            if possibly_continuous_fact in self.continuous_facts:
+                # the variables have the form
+                # var_type_before_after where
+                # var is the name of the variable
+                # type is in {above, below}
+                # before is the integer part
+                # after is the floating point part
+                sample_true = evaluate_sample(samples_continuous[possibly_continuous_fact], key)
+                if sample_true:
+                    w_id[key] = True
+                    w_id_key = w_id_key + "T"
+                else:
+                    w_id[key] = False
+                    w_id_key = w_id_key + "F"
             else:
-                w_id[key] = False
-                w_id_key = w_id_key + "F"
+                comp = 0.5 if randomly else self.prob_facts_dict[key]
+                if random.random() < comp:
+                    w_id[key] = True
+                    w_id_key = w_id_key + "T"
+                else:
+                    w_id[key] = False
+                    w_id_key = w_id_key + "F"
 
         return w_id, w_id_key
 
 
     def resample(self, i : int) -> 'tuple[str,str]':
         '''
-        Resamples a facts. Used in Gibbs sampling.
+        Resamples a fact. Used in Gibbs sampling.
         '''
         key : str = ""
         for k in self.prob_facts_dict:
@@ -413,22 +450,7 @@ class AspInterface:
         return lower_qe, upper_qe, lower_nqe, upper_nqe
 
 
-    def init_clingo_ctl(self, clingo_arguments : 'list[str]', clauses : 'list[str]' = []) -> 'clingo.Control':
-        '''
-        Init clingo and grounds the program
-        '''
-        ctl = clingo.Control(clingo_arguments)
-        lines = self.asp_program if len(clauses) == 0 else clauses
-        try:
-            for clause in lines:
-                ctl.add('base', [], clause)
-            ctl.ground([("base", [])])
-        except RuntimeError:
-            utils.print_error_and_exit('Syntax error, parsing failed.')
-
-        return ctl
-
-    def mh_sampling(self, dummy: bool = True) -> 'tuple[float, float]':
+    def mh_sampling(self, dummy: int = True) -> 'tuple[float, float]':
         '''
         MH sampling.
         The argument dummy is for multiprocessing, to use imap
@@ -569,7 +591,7 @@ class AspInterface:
         return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, n_samples)
 
 
-    def rejection_sampling(self, dummy : bool = True) -> 'tuple[float, float]':
+    def rejection_sampling(self, dummy : int = True) -> 'tuple[float, float]':
         '''
         Rejection Sampling.
         The argument dummy is for multiprocessing, for imap.
@@ -600,7 +622,15 @@ class AspInterface:
         return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
 
 
-    def sample_query(self, dummy : bool = True) -> 'tuple[float, float]':
+    # def sample_query_hybrid(self) -> 'tuple[float, float]':
+    #     '''
+    #     Samples the query by directly sampling continuous facts.
+    #     '''
+    #     sampled : 'dict[str,list[int]]' = {}
+
+
+
+    def sample_query(self, dummy : int = True) -> 'tuple[float, float]':
         '''
         Samples the query self.n_samples times.
         dummy is a dummy argument for imap_unordered, that requires

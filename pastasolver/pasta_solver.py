@@ -250,13 +250,13 @@ class Pasta:
         return res_l if res_l <= 1 else 1, res_u if res_u <= 1 else 1 
 
 
-    def setup_sampling(self, from_string: str = "") -> None:
+    def setup_sampling(self, from_string: str = "", keep_hybrid : bool = False) -> None:
         # TODO, REFACTOR: remove and use setup interface with approx True
         '''
         Setup the variables for sampling
         '''
         self.parser = PastaParser(self.filename, self.query, self.evidence)
-        self.parser.parse(from_string,approximate_version=True)
+        self.parser.parse(from_string, approximate_version=True, keep_hybrid=keep_hybrid)
         asp_program = self.parser.get_asp_program_approx()
 
         self.interface = AspInterface(
@@ -270,7 +270,8 @@ class Pasta:
             self.samples,
             stop_if_inconsistent=self.stop_if_inconsistent,
             normalize_prob=self.normalize_prob,
-            upper = not self.consider_lower_prob
+            upper = not self.consider_lower_prob,
+            continuous_facts=self.parser.continuous_facts if keep_hybrid else {}
         )
 
 
@@ -296,7 +297,7 @@ class Pasta:
         '''
         Inference through sampling
         '''
-        self.setup_sampling(from_string)
+        self.setup_sampling(from_string, keep_hybrid=arguments.approximate_hybrid)
 
         if self.processes > 16:
             print_error_and_exit("Too many processes, max 16 for safety.")
@@ -311,6 +312,8 @@ class Pasta:
             if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
                 for i in pool.imap_unordered(self.interface.sample_query, [1]*self.processes):
                     results.append(i)
+                # i = self.interface.sample_query()
+                # results.append(i)
             elif self.evidence != "":
                 if arguments.rejection:
                     for i in pool.imap_unordered(self.interface.rejection_sampling, [1]*self.processes):
@@ -745,7 +748,7 @@ def main():
     elif args.xor:
         lower_p, upper_p = pasta_solver.approximate_solve_xor(args)
         print_prob(lower_p, upper_p)
-    elif args.approximate and not (args.dt or args.dtn or args.dtopt):
+    elif (args.approximate or args.approximate_hybrid) and not (args.dt or args.dtn or args.dtopt):
         lower_p, upper_p = pasta_solver.approximate_solve(args)
         print_prob(lower_p, upper_p)
     elif args.pl:

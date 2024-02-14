@@ -195,7 +195,10 @@ class PastaParser:
             return io.StringIO(from_string)
 
 
-    def parse(self, from_string: str = "", approximate_version : bool = False) -> None:
+    def parse(self,
+              from_string: str = "",
+              approximate_version : bool = False,
+              keep_hybrid : bool = False) -> None:
         '''
         Parses the file
         '''
@@ -241,7 +244,7 @@ class PastaParser:
 
             self.lines_original.append(l1)
 
-        self.parse_program(approximate_version)
+        self.parse_program(approximate_version, keep_hybrid)
 
         for el in self.lines_prob:
             if ':-' in el:
@@ -263,7 +266,9 @@ class PastaParser:
                     f"Cannot use {h} as head of a rule.")
                 
 
-    def parse_program(self, approximate_version : bool = False) -> None:
+    def parse_program(self,
+                      approximate_version : bool = False,
+                      keep_hybrid : bool = False) -> None:
         '''
         Second layer of program parsing: generates the ASP encoding
         for the probabilistic, abducible, map, ... facts
@@ -392,12 +397,8 @@ class PastaParser:
                     probability = 1
                 self.reducible_facts[fact.replace('(','_').replace(')','_').replace(',','_')] = probability
                 self.add_probabilistic_fact(fact, probability)
-            #     self.objective_function = line.split('objective(')[1][:-2]
-            # elif line.startswith("constraint"):
-            #     self.constraints_list.append(line.split('constraint(')[1][:-2])
             elif utils.is_number(line.split(':-')[0]):
                 # probabilistic IC p:- body.
-                # print("prob ic")
                 # generate the probabilistic fact
                 new_line = line.split(':-')[0] + "::icf" + str(self.n_probabilistic_ics) + "."
                 probability, fact = check_consistent_prob_fact(new_line)
@@ -443,24 +444,16 @@ class PastaParser:
                         utils.print_error_and_exit(f"{lb} > {ub}")
                     converted_above = f"above({el[0]},{ub})"
                     converted_below = f"below({el[0]},{lb})"
-                    # print("--- Converted: ---")
-                    # print(line)
-                    # print(f"outside({el[0]},{el[1]},{el[2]})")
                     line_above = line.replace(f"outside({el[0]},{el[1]},{el[2]})", converted_above)
                     line_below = line.replace(f"outside({el[0]},{el[1]},{el[2]})", converted_below)
-                    # print(line_above)
-                    # print(line_below)
                     line = line_above + "\n" + line_below
-                    # print(line)
-                # print(args_cp)
-                # print(args_cp)
                 self.insert_comparison(args_cp)
                 self.lines_prob.append(line)
             else:
                 if not line.startswith("#show"):
                     self.lines_prob.append(line)
 
-        if len(self.continuous_facts) > 0:
+        if len(self.continuous_facts) > 0 and not keep_hybrid:
             inter = gen.create_intersections(self.intervals)
             prob_facts_converted, aux_facts_clauses = gen.generate_switch_clauses(
                 inter, self.continuous_facts)
@@ -472,16 +465,37 @@ class PastaParser:
                     self.add_probabilistic_fact(fact, probability)
             for aux in aux_facts_clauses:
                 self.lines_prob.extend(aux)
-            # print(prob_facts_converted)
-            # print(prob_facts_converted,sep='\n')
-            # print(aux_facts_clauses, sep='\n')
-
 
         if not self.query and len(self.decision_facts) == 0:
             utils.print_error_and_exit("Missing query")
 
+        external_names : 'list[str]' = []
+        original_names : 'list[str]' = []
+        if keep_hybrid:
+            for fact in self.intervals:
+                # create external names
+                for el in self.intervals[fact]:
+                    v = f"{fact}_{el.comparison_type}_{str(el.bound1).replace('.','_')}"
+                    o = f"{el.comparison_type}({fact},{el.bound1}"
+                    if el.bound2 != -math.inf:
+                        v += f"_{str(el.bound2).replace('.','_')}"
+                        o += f"{el.bound2})"
+                    else:
+                        o += ")"
+
+                    external_names.append(v)
+                    original_names.append(o)
+                    self.add_probabilistic_fact(v, 0.5)
+
+            # replace each occurrence of comparison predicates with the external facts
+            for original, external in zip(original_names,external_names):
+                for i in range(0,len(self.lines_prob)):
+                    if original in self.lines_prob[i]:
+                        self.lines_prob[i] = self.lines_prob[i].replace(original, external)
+
         i = 0
-        for fact in self.probabilistic_facts:
+        facts = list(self.probabilistic_facts.keys()) + external_names
+        for fact in facts:
             if self.for_asp_solver and i in self.map_id_list:
                 clauses = gen.generate_clauses_for_facts_for_asp_solver(
                     i, fact, self.probabilistic_facts[fact])
@@ -499,15 +513,10 @@ class PastaParser:
             i = i + 1
             self.lines_prob.extend(clauses)
 
-        if len(self.continuous_facts) > 0:
+        if len(self.continuous_facts) > 0 and not keep_hybrid:
             self.convert_comparison_predicates(gen, True)
             self.convert_comparison_predicates(gen, False)
 
-        # print('-----')
-        # for l in self.lines_prob:
-        #     print(l)
-        # import sys
-        # sys.exit()
     
     def inference_to_mpe(self, from_string: str = "") -> 'tuple[str,int]':
         '''

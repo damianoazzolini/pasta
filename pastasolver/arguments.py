@@ -72,7 +72,6 @@ def parse_args_wrapper():
     )
     command_parser.add_argument(
         "--approximate-hybrid",
-        "-approxh",
         help="Compute approximate probability by sampling continuous distributions",
         action="store_true"
     )
