@@ -5,7 +5,7 @@ import utils_for_tests as t_utils
 import sys
 
 
-import pasta.lifted.lifted as lft
+import pastasolver.lifted.lifted as lft
 
 
 class TestClassLiftedInference(unittest.TestCase):

@@ -1,4 +1,4 @@
-from pasta.pasta_solver import Pasta
+from pastasolver.pasta_solver import Pasta
 
 filename = ""
 

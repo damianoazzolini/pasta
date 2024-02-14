@@ -31,7 +31,7 @@ then you are ready to go (follows the next instructions to run an example).
 ## How to Use
 After the installation, use
 ```
-pasta --help
+pastasolver --help
 ```
 to see the available options.
 
@@ -45,7 +45,7 @@ The current algorithm adopts projected answer set enumeration to solve the task.
 
 Example:
 ```
-pasta examples/conditionals/bird_4_cond.lp --query="fly"
+pastasolver examples/conditionals/bird_4_cond.lp --query="fly"
 ```
 Asks the query `fly` for the program stored in `examples/conditionals/bird_4_cond.lp`.
 Expected result:
@@ -58,18 +58,18 @@ You can specify evidence with `--evidence`.
 ### Abduction
 This is still experimental and some features might not work as expected.
 ```
-pasta examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
+pastasolver examples/abduction/bird_4_abd_prob.lp --query="fly(1)" --abduction
 ```
 
 ### MAP/MPE inference
 ```
-pasta examples/map/color_map.lp --query="win" --map
+pastasolver examples/map/color_map.lp --query="win" --map
 ```
 
 ### Approximate inference
 Available: sampling (`--approximate`), gibbs sampling (`--gibbs`), metropolis hastings sampling (`--mh`), rejection sampling (`--rejection`).
 ```
-pasta examples/inference/bird_4.lp --query="fly(1)" --approximate
+pastasolver examples/inference/bird_4.lp --query="fly(1)" --approximate
 ```
 Use the flag `--samples` to set the number of samples (1000 by default), for example `--samples=2000`.
 
@@ -77,14 +77,14 @@ Use the flag `--processes` to set the number of processes (1 by default), for ex
 
 ### Parameter Learning
 ```
-pasta examples/learning/background_bayesian_network.lp --pl
+pastasolver examples/learning/background_bayesian_network.lp --pl
 ```
 
 ### Decision Theory
 ```
-pasta examples/decision_theory/dummy.lp -dt
+pastasolver examples/decision_theory/dummy.lp -dt
 ```
-For normalization, you should use `-dtn` insted of `-dt`.
+For normalization, you should use `-dtn` instead of `-dt`.
 
 ### Handling Inconsistent Programs
 The credal semantics requires that every world has at least one answer set.

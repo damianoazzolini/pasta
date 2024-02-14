@@ -6,7 +6,7 @@ import importlib.util
 
 import utils_for_tests
 
-from pasta.pasta_solver import Pasta
+from pastasolver.pasta_solver import Pasta
 
 # t_utils = __import__('test_utils')
 

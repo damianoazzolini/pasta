@@ -2,7 +2,7 @@ import unittest
 
 import utils_for_tests
 
-from pasta.pasta_solver import Pasta
+from pastasolver.pasta_solver import Pasta
 
 class TestClassAbduction(unittest.TestCase):
 

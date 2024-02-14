@@ -11,8 +11,9 @@ from typing import Any
 
 from .utils import is_number
 
-def simplify_chunk(eq: str, chunk_size : int = 100) -> str:
-    # simplify 100 sums at the time
+def simplify_chunk(eq: str, chunk_size : int = 1_000_000) -> str:
+    return eq
+    # simplify chunk_size sums at the time
     span = int(eq.count('+') / chunk_size)
     if span == 0:
         return str(sympify(eq))
@@ -76,41 +77,43 @@ class Problem:
 
 
 def compute_optimal_probability(
-        initial_equation : str,
+        initial_equation : 'str | tuple[str,str]',
         optimizable_facts: 'dict[str, tuple[float, float]]',
         probability_threshold : float, # p(q) > probability_threshold
         epsilon : float = -1,
         method : str = "SLSQP",
-        chunk_size : int = 100
+        chunk_size : int = 1_000_000,
+        credal_facts : bool = False
     ):
     '''
     Compute the optimal value to associate to probabilistic facts.
     By now, I only allow constraints on the probability value of the
     query.
     '''
-    # 1: simplify the equation
-    # print(initial_equation.count('+'))
-    # print(initial_equation)
-    # sys.exit()
-    # symplified = sympify(initial_equation)
-    symplified = simplify_chunk(initial_equation + f"- {probability_threshold}", chunk_size)
-    # print(symplified)
-    # print(optimizable_facts)
+
+    simplified_equation_lp = ""
+    simplified_equation_up = ""
+    simplified_equation = ""
+
+    if isinstance(initial_equation, tuple): # credal facts
+        simplified_equation_lp = simplify_chunk(initial_equation[0] + f"- {probability_threshold}", chunk_size)
+        simplified_equation_up = simplify_chunk(initial_equation[1] + f"- {probability_threshold}", chunk_size)
+        for eq_s in [simplified_equation_lp,simplified_equation_up]:
+            print(f"number of sums: {str(eq_s).count('+')}")
+            print(f"number of prods: {str(eq_s).count('*')}")
+    else:
+        simplified_equation = simplify_chunk(initial_equation + f"- {probability_threshold}", chunk_size)
+        print(f"number of sums: {simplified_equation.count('+')}")
+        print(f"number of prods: {simplified_equation.count('*')}")
     # 1.1: if is a number, return it
-    # if is_number(str(symplified)):
-    #     return symplified
+    # if is_number(str(simplified_equation)):
+    #     return simplified_equation
     opt_facts_names = list(optimizable_facts.keys())
     
-    # the target is to minimize the sum of the prob of the
-    # optimizable facts
-    target_equation = "+".join(opt_facts_names)
-    
-    # target_equation = "+".join([f"P({x})" for x in optimizable_facts.keys()])
-    
-    # print(target_equation)
-    
-    # problem_to_solve = Problem(symplified, optimizable_facts.keys())
-    problem_to_solve = Problem(target_equation, opt_facts_names)
+    # the target is to minimize the sum of the prob of the optimizable facts
+    if not credal_facts:
+        target_equation = "+".join(opt_facts_names)
+        problem_to_solve = Problem(target_equation, opt_facts_names)
 
     # 2: generate the bounds
     bounds : 'list[tuple[float,float]]' = []
@@ -125,27 +128,20 @@ def compute_optimal_probability(
             bounds_constraints_cobyla.append(f"{v[1]} - {k}")
     
     initial_guesses : 'list[float]' = [0.5]*len(optimizable_facts)
-    
-    query_constraint = Problem(
-        symplified,
-        opt_facts_names
-    )
-
-    # constraints : 'list[NonlinearConstraint]' = [
-    #     NonlinearConstraint(
-    #         query_constraint.eval_fn,
-    #         probability_threshold,
-    #         1,
-    #         query_constraint.jac_fn
-    #     )
-    # ]
     constraints : 'list[dict[str,Any]]' = []
     
-    constraints.append({
-        'type' : 'ineq',
-        'fun' : query_constraint.eval_fn,
-        'jac' : query_constraint.jac_fn    
-    })
+    if isinstance(initial_equation, tuple): # credal facts
+        pass
+    else:
+        query_constraint = Problem(
+            simplified_equation,
+            opt_facts_names
+        )
+        constraints.append({
+            'type' : 'ineq',
+            'fun' : query_constraint.eval_fn,
+            'jac' : query_constraint.jac_fn    
+        })
     
     for el in bounds_constraints_cobyla:
         current_constraint = Problem(el, opt_facts_names)
@@ -183,21 +179,57 @@ def compute_optimal_probability(
                 'jac' : current_constraint_10.jac_fn    
             })
     
+    res = []
+
     if method == "SLSQP":
-        res = minimize(
-            problem_to_solve.eval_fn,
-            initial_guesses,
-            bounds=bounds,
-            jac=problem_to_solve.jac_fn,
-            method=method,
-            constraints=constraints
-        )
+        if credal_facts:
+            for idx, prob_eq in enumerate([simplified_equation_lp,simplified_equation_up]):
+                if idx == 0:
+                    problem_to_solve = Problem(prob_eq, opt_facts_names)
+                else:
+                    problem_to_solve = Problem(f"-({prob_eq})", opt_facts_names)
+
+                res_v = minimize(
+                    problem_to_solve.eval_fn,
+                    initial_guesses,
+                    bounds=bounds,
+                    jac=problem_to_solve.jac_fn,
+                    method=method
+                )
+
+                res.append(res_v)
+        else: # optimizable task
+            res = minimize(
+                problem_to_solve.eval_fn,
+                initial_guesses,
+                bounds=bounds,
+                jac=problem_to_solve.jac_fn,
+                method=method,
+                constraints=constraints
+            )
     else:
-        res = minimize(
-            problem_to_solve.eval_fn,
-            initial_guesses,
-            method=method,
-            constraints=constraints
-        )
-    print(res)
+        if credal_facts:
+            for idx, prob_eq in enumerate([simplified_equation_lp,simplified_equation_up]):
+                if idx == 0:
+                    problem_to_solve = Problem(prob_eq, opt_facts_names)
+                else:
+                    problem_to_solve = Problem(f"-({prob_eq})", opt_facts_names)
+                
+                res_v = minimize(
+                    problem_to_solve.eval_fn,
+                    initial_guesses,
+                    method=method,
+                    constraints=constraints
+                )
+                res.append(res_v)
+
+
+        else: # optimizable task
+            res = minimize(
+                problem_to_solve.eval_fn,
+                initial_guesses,
+                method=method,
+                constraints=constraints
+            )
+
     return res

@@ -71,6 +71,12 @@ def parse_args_wrapper():
         action="store_true"
     )
     command_parser.add_argument(
+        "--approximate-hybrid",
+        "-approxh",
+        help="Compute approximate probability by sampling continuous distributions",
+        action="store_true"
+    )
+    command_parser.add_argument(
         "--samples",
         help="Number of samples, default 1000",
         type=int,
@@ -170,13 +176,13 @@ def parse_args_wrapper():
     )
     command_parser.add_argument(
         "--alpha",
-        help="Constant for approximate inferece with XOR constraints. Default = 0.004",
+        help="Constant for approximate inference with XOR constraints. Default = 0.004",
         type=float,
         default=0.004
     )
     command_parser.add_argument(
         "--delta",
-        help="Accuracy for approximate inferece with XOR constraints. Default = 2",
+        help="Accuracy for approximate inference with XOR constraints. Default = 2",
         type=float,
         default=2
     )
@@ -279,6 +285,12 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
+        "-cf",
+        help="Consider optimizable facts as credal facts.",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
         "--reducible",
         help="Reduce the probabilistic answer set program.",
         action="store_true",
@@ -312,7 +324,7 @@ def parse_args_wrapper():
         "--threshold",
         help="Threshold \\tau for the optimizable task (q > \\tau, default -1)\
         and constrained abduction.",
-        default=-1
+        default=-0
     )
     command_parser.add_argument(
         "--epsilon",
@@ -328,9 +340,9 @@ def parse_args_wrapper():
     )
     command_parser.add_argument(
         "--chunk",
-        help="Split the symbolic equation in chunks with this size (default 100).",
+        help="Split the symbolic equation in chunks with this size (default 1M).",
         type = int,
-        default=100
+        default=1_000_000
     )
 
 
