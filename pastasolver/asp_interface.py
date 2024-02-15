@@ -622,14 +622,6 @@ class AspInterface:
         return compute_conditional_lp_up(n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe, self.n_samples)
 
 
-    # def sample_query_hybrid(self) -> 'tuple[float, float]':
-    #     '''
-    #     Samples the query by directly sampling continuous facts.
-    #     '''
-    #     sampled : 'dict[str,list[int]]' = {}
-
-
-
     def sample_query(self, dummy : int = True) -> 'tuple[float, float]':
         '''
         Samples the query self.n_samples times.

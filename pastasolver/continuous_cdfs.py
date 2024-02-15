@@ -123,7 +123,11 @@ def evaluate_sample(sample : float, fact : str) -> bool:
     # after is the floating point part
     # example: a_below_0_5 == a < 0.5
     f = fact.split('_') # ["a", "below", "0", "5"]
-    val = float(f[2] + '.' + f[3])
+    if len(f) == 3:
+        val = float(f[2])
+    else:
+        val = float(f[2] + '.' + f[3])
+
     comparison_type = f[1]
     if comparison_type == "above":
         return sample > val

@@ -422,7 +422,6 @@ class PastaParser:
                 line = line.replace(' ','') # remove the spaces
                 line = line.replace('**not**','not ')
                 args_cp = extract_arguments_comparison_predicates(line)
-                # print(args_cp)
                 # replace between(a,L,U) with below(a,U) and above(a,L)
                 # and outside(a,L,U) with below(a,L) and above(a,U)
                 # [above, below, between, outside]
@@ -475,17 +474,29 @@ class PastaParser:
             for fact in self.intervals:
                 # create external names
                 for el in self.intervals[fact]:
-                    v = f"{fact}_{el.comparison_type}_{str(el.bound1).replace('.','_')}"
-                    o = f"{el.comparison_type}({fact},{el.bound1}"
-                    if el.bound2 != -math.inf:
-                        v += f"_{str(el.bound2).replace('.','_')}"
-                        o += f"{el.bound2})"
-                    else:
-                        o += ")"
+                    if el.comparison_type == "above" or el.comparison_type == "below":
+                        v = f"{fact}_{el.comparison_type}_{str(el.bound1).replace('.','_')}"
+                        o = f"{el.comparison_type}({fact},{el.bound1})"
+                        external_names.append(v)
+                        original_names.append(o)
+                        self.add_probabilistic_fact(v, 0.5)
+                    elif el.comparison_type == "between" or el.comparison_type == "outside":
+                        # this since between and outside are converted into above and below in a 
+                        # previous step
+                        ct0 = "above" if el.comparison_type == "between" else "below"
+                        ct1 = "below" if el.comparison_type == "between" else "above"
 
-                    external_names.append(v)
-                    original_names.append(o)
-                    self.add_probabilistic_fact(v, 0.5)
+                        v0 = f"{fact}_{ct0}_{str(el.bound1).replace('.','_')}"
+                        o0 = f"{ct0}({fact},{el.bound1})"
+                        v1 = f"{fact}_{ct1}_{str(el.bound2).replace('.','_')}"
+                        o1 = f"{ct1}({fact},{el.bound2})"
+
+                        external_names.append(v0)
+                        external_names.append(v1)
+                        original_names.append(o0)
+                        original_names.append(o1)
+                        self.add_probabilistic_fact(v0, 0.5)
+                        self.add_probabilistic_fact(v1, 0.5)
 
             # replace each occurrence of comparison predicates with the external facts
             for original, external in zip(original_names,external_names):
