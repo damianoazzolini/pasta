@@ -486,9 +486,9 @@ class PastaParser:
                         ct0 = "above" if el.comparison_type == "between" else "below"
                         ct1 = "below" if el.comparison_type == "between" else "above"
 
-                        v0 = f"{fact}_{ct0}_{str(el.bound1).replace('.','_')}"
+                        v0 = f"{fact}_{ct0}_{str(el.bound1).replace('.','_').replace('-','minus')}"
                         o0 = f"{ct0}({fact},{el.bound1})"
-                        v1 = f"{fact}_{ct1}_{str(el.bound2).replace('.','_')}"
+                        v1 = f"{fact}_{ct1}_{str(el.bound2).replace('.','_').replace('-','minus')}"
                         o1 = f"{ct1}({fact},{el.bound2})"
 
                         external_names.append(v0)

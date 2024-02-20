@@ -122,7 +122,9 @@ def evaluate_sample(sample : float, fact : str) -> bool:
     # before is the integer part
     # after is the floating point part
     # example: a_below_0_5 == a < 0.5
-    f = fact.split('_') # ["a", "below", "0", "5"]
+    # replace 'minus' with - since 'minus' is inserted to process the program
+    # in previous steps (parsing)
+    f = fact.replace("minus","-").split('_') # ["a", "below", "0", "5"]
     if len(f) == 3:
         val = float(f[2])
     else:
