@@ -577,12 +577,7 @@ class PastaParser:
 
         while i < len(lines):
             lines[i] = lines[i].replace('\n', '')
-            if lines[i].startswith("#program('"):
-                i = i + 1
-                while(not (lines[i].startswith("')."))):
-                    program = program + lines[i]
-                    i = i + 1
-            elif lines[i].startswith("#learnable("):
+            if lines[i].startswith("#learnable("):
                 # convert the continuous probabilistic facts
                 #learnable(a,gaussian). -> a:gaussian(0,1).
                 to_split = ""
@@ -645,6 +640,7 @@ class PastaParser:
                 test_ids = list(map(int, ll[1].replace('\n', '')[:-2].split(',')))
                 i = i + 1
             else:
+                program = program + lines[i] + "\n"
                 i = i + 1
 
         for id in train_ids:
