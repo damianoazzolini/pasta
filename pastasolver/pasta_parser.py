@@ -576,7 +576,7 @@ class PastaParser:
         # offset = 0
 
         while i < len(lines):
-            lines[i] = lines[i].replace('\n', '')
+            lines[i] = lines[i].replace('\n', '').replace(" ","")
             if lines[i].startswith("#learnable("):
                 # convert the continuous probabilistic facts
                 #learnable(a,gaussian). -> a:gaussian(0,1).
