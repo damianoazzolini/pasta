@@ -1,5 +1,7 @@
 # PASTA: Probabilistic Answer Set programming for STAtistical probabilities
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.11653976.svg)](https://doi.org/10.5281/zenodo.11653976)
+
 This software allows to perform inference in probabilistic answer set programs under the credal semantics (PASPs) and with statistical statements.
 Currently it supports:
 - exact inference
