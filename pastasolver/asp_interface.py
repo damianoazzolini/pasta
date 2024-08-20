@@ -773,14 +773,14 @@ class AspInterface:
         '''
         Loops over the utility list and find the best assignment.
         '''
-        lowest_val : float = math.inf
+        lower_val : float = -math.inf
         lowest_comb : 'list[str]' = []
-        highest_val : float = -math.inf
+        higher_val : float = -math.inf
         highest_comb : 'list[str]' = []
         # lower -> 0, upper -> 1, unsat 3
         for el in computed_utilities_list:
-            if computed_utilities_list[el][1] > highest_val:
-                highest_val = computed_utilities_list[el][1]
+            if computed_utilities_list[el][1] > higher_val:
+                higher_val = computed_utilities_list[el][1]
                 highest_comb = []
                 for c, decision in zip(el,self.decision_atoms_list):
                     if int(c) == 1:
@@ -788,8 +788,8 @@ class AspInterface:
                     else:
                         highest_comb.append(f"not {decision}")
             
-            if computed_utilities_list[el][0] < lowest_val:
-                lowest_val = computed_utilities_list[el][0]
+            if computed_utilities_list[el][0] > lower_val:
+                lower_val = computed_utilities_list[el][0]
                 lowest_comb = []
                 for c, decision in zip(el,self.decision_atoms_list):
                     if int(c) == 1:
@@ -797,7 +797,7 @@ class AspInterface:
                     else:
                         lowest_comb.append(f"not {decision}")
 
-        return lowest_val, lowest_comb, highest_val, highest_comb
+        return lower_val, lowest_comb, higher_val, highest_comb
 
 
     def _evaluate_strategy_dtopt(
