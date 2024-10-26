@@ -14,6 +14,7 @@ class TestClassApproximateInference(unittest.TestCase):
         args.rejection = parameters.rejection
         args.mh = parameters.mh
         args.gibbs = parameters.gibbs
+        args.approximate_hybrid = False
 
         lp, up = pasta_solver.approximate_solve(args)
 

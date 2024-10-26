@@ -694,8 +694,7 @@ class ModelsHandler():
         max_prob : float = 0.0
         w_id_list : 'list[str]' = []
 
-        for el in current_worlds_dict:
-            w = current_worlds_dict[el]
+        for el, w in current_worlds_dict.items():
             if w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
                 if w.prob == max_prob:
                     max_prob = w.prob
@@ -727,8 +726,7 @@ class ModelsHandler():
         else:
             # group by map variables
             map_worlds : 'dict[str,World]' = {}
-            for el in self.worlds_dict:
-                w = self.worlds_dict[el]
+            for el, w in self.worlds_dict.items():
                 if w.model_query_count > 0:
                     # keep both lower and upper
                     sub_w = ModelsHandler.get_sub_world(el, map_id_list)

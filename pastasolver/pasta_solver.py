@@ -596,9 +596,6 @@ class Pasta:
         self.interface.compute_probabilities()
         max_prob, map_state = self.interface.model_handler.get_map_solution(
             self.parser.map_id_list, self.consider_lower_prob)
-        if self.interface.normalizing_factor >= 1:
-            max_prob = 1
-            # print_warning("No worlds have > 1 answer sets")
 
         if self.normalize_prob and self.interface.normalizing_factor != 0:
             max_prob = max_prob / (1 - self.interface.normalizing_factor)

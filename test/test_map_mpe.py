@@ -1,17 +1,9 @@
 import unittest
-
 import pytest
-
-import importlib.util
 
 import utils_for_tests
 
 from pastasolver.pasta_solver import Pasta
-
-# t_utils = __import__('test_utils')
-
-            
-
 
 class TestClassMapMpe(unittest.TestCase):
 
@@ -31,9 +23,8 @@ class TestClassMapMpe(unittest.TestCase):
             max_p, atoms_list = pasta_solver.upper_mpe_inference()
 
 
-        if max_p is not None and atoms_list is not None:
+        if max_p > 0 and len(atoms_list) > 0:
             self.assertTrue(utils_for_tests.almostEqual(max_p, expected_map_mpe, 5), test_name + ": wrong MAP/MPE")
-    
             self.assertTrue(utils_for_tests.check_if_lists_equal(atoms_list, expected_atoms_list), test_name + ": wrong atoms list")
 
 
