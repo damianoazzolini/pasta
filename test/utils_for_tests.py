@@ -36,7 +36,7 @@ def check_if_lists_equal(list_1 : 'list[str]', list_2 : 'list[str]') -> bool:
         # print("Error, Lists are not equal")
         return False
 
-class TestArguments:
+class ArgumentsTest:
     def __init__(self,
         test_name : str,
         filename : str,

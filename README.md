@@ -7,7 +7,7 @@ Currently it supports:
 - exact inference
 - approximate inference via sampling
 - abduction
-- map inference
+- MAP/MPE inference
 - parameter learning
 - lifted inference
 - decision theory
@@ -23,7 +23,7 @@ or
 pip install git+https://github.com/damianoazzolini/pasta
 ```
 
-You can also use Docker ([image on Dockerhub](https://hub.docker.com/r/damianodamianodamiano/pasta)) to test the application:
+You can also use Docker ([image on Dockerhub](https://hub.docker.com/r/damianodamianodamiano/pasta)) to test the application (it is not always updated):
 ```
 docker container run -it damianodamianodamiano/pasta bash
 ```
@@ -165,12 +165,15 @@ See `examples/conditionals/bird_4_cond.lp` for an example.
 Note: be super careful when using rules with disjunction in the head.
 You should replace them with choice rules.
 
+## Issues
+Open an issue.
+
 ## Description and How to Cite
 The system and the various types of inferences are currently described in:
 - Exact inference and statistical staments: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`
 - Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
-- MAP inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Map inference in probabilistic answer set programs. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 413--426, Cham, 2023. Springer International Publishing.`
+- MAP/MPE inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Map inference in probabilistic answer set programs. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 413--426, Cham, 2023. Springer International Publishing.`
 - Approximate inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Approximate inference in probabilistic answer set programming for statistical probabilities. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 33--46, Cham, 2023. Springer International Publishing.` 
-- Lifted inference: under review
-- Parameter learning: in press
-- Decision theory (preliminary): in press
+- Lifted inference: `Damiano Azzolini and Fabrizio Riguzzi. Lifted inference for statistical statements in probabilistic answer set programming. International Journal of Approximate Reasoning, 163:109040, 2023.`
+- Parameter learning: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Learning the parameters of probabilistic answer set programs. In Stephen H. Muggleton and Alireza Tamaddoni-Nezhad, editors, Inductive Logic Programming - ILP 2022, volume 14363 of Lecture Notes in Computer Science, pages 1--14, Cham, 2024. Springer Nature Switzerland.`
+- Decision theory: in press

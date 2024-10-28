@@ -1,14 +1,14 @@
 # How to run tests
 To run all tests:
 ```
-python3 test.py
+pytest
 ```
 
 To test a specific module:
 ```
-python3 test_module_name.py
+pytest <test_module_name>
 # for example
-python3 test_utilities.py
+pytest test_exact_inference.py
 ```
 
 Note: python3.5 is required (for type hint for arguments of functions and testing).
