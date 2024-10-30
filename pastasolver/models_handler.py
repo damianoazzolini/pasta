@@ -693,9 +693,10 @@ class ModelsHandler():
         '''
         max_prob : float = 0.0
         w_id_list : 'list[str]' = []
-
+        
         for el, w in current_worlds_dict.items():
-            if w.model_query_count > 0 and (w.model_not_query_count == 0 if lower else True):
+            if (lower and w.model_query_count > 0 and w.model_not_query_count == 0) or (not lower and w.model_query_count > 0):
+                # print("ok")
                 if w.prob == max_prob:
                     max_prob = w.prob
                     w_id_list.append(el)

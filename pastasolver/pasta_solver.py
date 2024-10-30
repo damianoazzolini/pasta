@@ -348,8 +348,8 @@ class Pasta:
 
         asp_program = self.parser.get_asp_program(self.lpmln)
 
-        if not self.consider_lower_prob and self.query != "":
-            asp_program.append(f":- not {self.query}.")
+        # if not self.consider_lower_prob and self.query != "":
+        #     asp_program.append(f":- not {self.query}.")
 
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
@@ -593,6 +593,7 @@ class Pasta:
             print_error_and_exit("Specify at least one map fact.")
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
             print_warning("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
+        # self.consider_lower_prob = True
         self.interface.compute_probabilities()
         max_prob, map_state = self.interface.model_handler.get_map_solution(
             self.parser.map_id_list, self.consider_lower_prob)
@@ -688,7 +689,7 @@ def main():
         args.minimal = False
         args.stop_if_inconsistent = False
         args.normalize = False
-    if ((args.minimal and args.stop_if_inconsistent) or args.upper) and (not args.dtn and not args.dt and not args.dtopt):
+    if ((args.minimal and args.stop_if_inconsistent) or args.upper) and (not args.dtn and not args.dt and not args.dtopt and not args.map):
         print_warning("The program is assumed to be consistent.")
         args.stop_if_inconsistent = False
     if args.stop_if_inconsistent:
@@ -700,23 +701,23 @@ def main():
         print_warning("The lower utility may be greater than the upper utility for some strategies.")
 
 
-    pasta_solver = Pasta(args.filename,
-                         args.query,
-                         args.evidence,
-                         args.verbose,
-                         args.pedantic,
-                         args.samples,
-                         not args.upper,
-                         args.minimal,
-                         args.normalize,
-                         args.stop_if_inconsistent,
-                         args.one,
-                         args.xor,
-                         100,
-                         args.dtn,
-                         args.lpmln,
-                         args.processes,
-                         args.aspmc
+    pasta_solver = Pasta(filename=args.filename,
+                         query=args.query,
+                         evidence=args.evidence,
+                         verbose=args.verbose,
+                         pedantic=args.pedantic,
+                         samples=args.samples,
+                         consider_lower_prob=not args.upper,
+                         minimal=args.minimal,
+                         normalize_prob=args.normalize,
+                         stop_if_inconsistent=args.stop_if_inconsistent,
+                         one=args.one,
+                         xor=args.xor,
+                         k=100,
+                         naive_dt=args.dtn,
+                         lpmln=args.lpmln,
+                         processes=args.processes,
+                         aspmc=args.aspmc
                         )
 
     if args.convert:
@@ -751,7 +752,7 @@ def main():
     elif args.pl:
         pasta_solver.parameter_learning()
     elif args.map:
-        if args.upper or args.solver:
+        if args.solver:
             pasta_solver.for_asp_solver = True
             max_p, atoms_list_res = pasta_solver.upper_mpe_inference()
         else:

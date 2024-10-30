@@ -3,7 +3,7 @@ import pytest
 
 from pastasolver.pasta_solver import Pasta
 
-from .utils_for_tests import ArgumentsTest, almostEqual
+from .utils_for_tests import ArgumentsTest, almost_equal
 
 
 @pytest.mark.parametrize("parameters", [
@@ -32,5 +32,5 @@ def test_approximate_inference(parameters : ArgumentsTest):
 
     lp, up = pasta_solver.approximate_solve(args)
 
-    assert almostEqual(lp, parameters.expected_lp), f"{parameters.test_name}: wrong lower probability - E: {parameters.expected_lp}, F: {lp}"
-    assert almostEqual(up, parameters.expected_up), f"{parameters.test_name}: wrong upper probability - E: {parameters.expected_up}, F: {up}"
+    assert almost_equal(lp, parameters.expected_lp), f"{parameters.test_name}: wrong lower probability - E: {parameters.expected_lp}, F: {lp}"
+    assert almost_equal(up, parameters.expected_up), f"{parameters.test_name}: wrong upper probability - E: {parameters.expected_up}, F: {up}"

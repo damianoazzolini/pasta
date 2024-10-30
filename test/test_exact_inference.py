@@ -1,6 +1,6 @@
 import pytest
 
-from .utils_for_tests import almostEqual
+from .utils_for_tests import almost_equal
 
 from pastasolver.pasta_solver import Pasta
 
@@ -34,8 +34,8 @@ def test_exact_inference(
     pasta_solver = Pasta(filename, query, evidence, normalize_prob = normalize)
     lp, up = pasta_solver.inference()
 
-    assert almostEqual(lp,expected_lp,5), test_name + ": wrong lower probability"
-    assert almostEqual(up,expected_up,5), test_name + ": wrong upper probability"
+    assert almost_equal(lp,expected_lp), f"{test_name}: wrong lower probability - E: {expected_lp}, F: {lp}"
+    assert almost_equal(up,expected_up), f"{test_name}: wrong upper probability - E: {expected_up}, F: {up}"
 
 
 def test_certain_fact_a1_exit():

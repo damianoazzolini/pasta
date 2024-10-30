@@ -1,6 +1,6 @@
 # import unittest
 import pytest
-from .utils_for_tests import ArgumentsTest, almostEqual
+from .utils_for_tests import ArgumentsTest, almost_equal
 
 from pastasolver.pasta_solver import Pasta
 
@@ -16,5 +16,5 @@ def test_hybrid(parameters : ArgumentsTest):
     pasta_solver = Pasta(parameters.filename, parameters.query, parameters.evidence, normalize_prob=parameters.normalize)
     lp, up = pasta_solver.inference()
 
-    assert almostEqual(lp, parameters.expected_lp), f"{parameters.test_name}: wrong lower probability - E: {parameters.expected_lp}, F: {lp}"
-    assert almostEqual(up, parameters.expected_up), f"{parameters.test_name}: wrong upper probability - E: {parameters.expected_up}, F: {up}"
+    assert almost_equal(lp, parameters.expected_lp), f"{parameters.test_name}: wrong lower probability - E: {parameters.expected_lp}, F: {lp}"
+    assert almost_equal(up, parameters.expected_up), f"{parameters.test_name}: wrong upper probability - E: {parameters.expected_up}, F: {up}"

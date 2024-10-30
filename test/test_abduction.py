@@ -1,5 +1,5 @@
 # import utils_for_tests
-from .utils_for_tests import almostEqual, check_if_lists_equal
+from .utils_for_tests import almost_equal, check_if_lists_equal
 
 from pastasolver.pasta_solver import Pasta
 
@@ -16,8 +16,8 @@ def wrap_test_abduction(
     pasta_solver = Pasta(filename, query, evidence)
     lp, up, abd = pasta_solver.abduction()
 
-    assert almostEqual(lp, expected_lp, 5), test_name + ": wrong lower probability"
-    assert almostEqual(up, expected_up, 5), test_name + ": wrong upper probability"
+    assert almost_equal(lp, expected_lp), test_name + ": wrong lower probability"
+    assert almost_equal(up, expected_up), test_name + ": wrong upper probability"
     assert check_if_lists_equal(abd, expected_abd), f"{test_name}: wrong abduction. Found {abd} expected {expected_abd}"
 
 def test_bird_4_abd_prob():

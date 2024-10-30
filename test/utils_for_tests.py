@@ -1,4 +1,4 @@
-def almostEqual(target : float, computed : float, tolerance : float = 0.015) -> bool:
+def almost_equal(target : float, computed : float, tolerance : float = 0.015) -> bool:
     return (abs(target - computed) <= tolerance) and (computed >= 0) and (computed <= 1)
 
 
