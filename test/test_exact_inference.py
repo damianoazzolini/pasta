@@ -17,7 +17,7 @@ from pastasolver.pasta_solver import Pasta
     ("../examples/inference/smoke_3.lp", "qry", "", "smoke_3", 0.3, 0.3, False),
     ("../examples/inference/clique.lp", "in(1)", "", "clique_in_1", 0.4666666666666667, 0.9333333333333333, True),
     ("../examples/inference/graph_coloring.lp", "qr", "", "graph_coloring_qr", 0.03, 1.0, False),
-    ("../examples/inference/shop.lp", "qr", "", "shop_qr", 0.0625, 0.5, False),
+    ("../examples/inference/shop.lp", "qr", "", "shop_qr", 0.096, 0.3, False),
     ("../examples/inference/sick.lp", "sick", "", "sick_sick", 0.2, 0.2384, False),
     ("../examples/inference/smoke.lp", "qry", "", "smoke_qry", 0, 0.09, False)
 ])

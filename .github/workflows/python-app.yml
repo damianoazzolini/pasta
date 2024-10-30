@@ -33,7 +33,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        cd test && pytest
+        cd test && pytest -v
 
     - name: Docker login
       uses: docker/login-action@v3

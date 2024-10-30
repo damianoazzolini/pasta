@@ -22,7 +22,7 @@ from .utils_for_tests import ArgumentsTest, almost_equal
     ArgumentsTest("viral_marketing_5_buy_5", "../examples/inference/viral_marketing_5.lp", "buy(5)", 0.2734, 0.29)
 ])
 def test_approximate_inference(parameters : ArgumentsTest):
-    pasta_solver = Pasta(parameters.filename, parameters.query, samples = 5000)
+    pasta_solver = Pasta(parameters.filename, parameters.query, samples = 10_000)
 
     args = argparse.Namespace()
     args.rejection = parameters.rejection
