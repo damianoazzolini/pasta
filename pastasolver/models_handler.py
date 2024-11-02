@@ -694,6 +694,7 @@ class ModelsHandler():
         max_prob : float = 0.0
         w_id_list : 'list[str]' = []
         
+        print(current_worlds_dict)
         for el, w in current_worlds_dict.items():
             if (lower and w.model_query_count > 0 and w.model_not_query_count == 0) or (not lower and w.model_query_count > 0):
                 # print("ok")
@@ -722,27 +723,45 @@ class ModelsHandler():
         Analyzes the worlds obtained by the inference procedure and group
         them by map queries
         '''
+        # pastasolver examples/map/simple_map_disj.pl --map --query="win": lower ed upper dovrebbero coincidere ma no
         if len(self.prob_facts_dict) == len(map_id_list):  # MPE: only map variables
             max_prob, atoms_list = self.get_highest_prob_and_w_id_map(self.worlds_dict, map_id_list, lower)
         else:
             # group by map variables
-            map_worlds : 'dict[str,World]' = {}
+            # map_worlds : 'dict[str,World]' = {}
+            # maps the map world to the lower and upper probability obtained by
+            # the probabilistic worlds
+            map_worlds_prob : 'dict[str,list[float]]' = {}
             for el, w in self.worlds_dict.items():
                 if w.model_query_count > 0:
                     # keep both lower and upper
                     sub_w = ModelsHandler.get_sub_world(el, map_id_list)
-                    if sub_w in map_worlds:
-                        map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
-                        map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
-                        map_worlds[sub_w].prob = map_worlds[sub_w].prob + w.prob  # add the probability
-                    else:
-                        map_worlds[sub_w] = World(w.prob)
-                        map_worlds[sub_w].model_query_count = map_worlds[sub_w].model_query_count + w.model_query_count
-                        map_worlds[sub_w].model_not_query_count = map_worlds[sub_w].model_not_query_count + w.model_not_query_count
+                    if sub_w not in map_worlds_prob:
+                        map_worlds_prob[sub_w] = [0,0]
+                    if w.model_not_query_count == 0:
+                        map_worlds_prob[sub_w][0] += w.prob
+                    map_worlds_prob[sub_w][1] += w.prob # always increase the UP
 
             # get the sub-world with maximum probability
-            max_prob, atoms_list = self.get_highest_prob_and_w_id_map(map_worlds, map_id_list, lower)
-
+            max_prob : float = 0.0
+            w_id_list : 'list[str]' = []
+            target_pos = 0 if lower else 1
+            
+            for el, map_w in map_worlds_prob.items():
+                if map_w[target_pos] == max_prob:
+                    max_prob = map_w[target_pos]
+                    w_id_list.append(el)
+                elif map_w[target_pos] > max_prob:
+                    max_prob = map_w[target_pos]
+                    w_id_list = []
+                    w_id_list.append(el)
+            
+            if max_prob == 0.0:
+                return 0.0, []
+            
+            l_map_worlds = map(lambda w_id : self.get_map_word_from_id(w_id, False, map_id_list), w_id_list)
+            atoms_list = list(l_map_worlds)
+        
         return max_prob, atoms_list
 
 
