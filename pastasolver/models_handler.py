@@ -675,11 +675,7 @@ class ModelsHandler():
         map_id_list = [0,2]
         result = 00 (extracts the values in position 0 and 2 of super_w)
         '''
-        sub_w : str = ""
-        for el in map_id_list:
-            sub_w = sub_w + super_w[el]
-
-        return sub_w
+        return ''.join([super_w[i] for i in map_id_list])
 
 
     def get_highest_prob_and_w_id_map(
