@@ -690,7 +690,6 @@ class ModelsHandler():
         max_prob : float = 0.0
         w_id_list : 'list[str]' = []
         
-        print(current_worlds_dict)
         for el, w in current_worlds_dict.items():
             if (lower and w.model_query_count > 0 and w.model_not_query_count == 0) or (not lower and w.model_query_count > 0):
                 # print("ok")
