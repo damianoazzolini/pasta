@@ -87,12 +87,13 @@ def generate_second_type_programs(args : argparse.Namespace):
         if args.mpe:
             print(f"map {get_random_float()}::a{i}.")
     
-    print("qr0 ; nqr0:- a0.")
+    prefix_pf = "" if random.random() > 0.5 else "not"
+    print(f"qr0 ; nqr0:- {prefix_pf} a0.")
     for i in range(1,args.n):
         prefix = "" if random.random() > 0.5 else "n"
         prefix_pf = "" if random.random() > 0.5 else "not"
         if i % 2 == 0:
-            print(f"qr{i} ; nqr{i} :- {prefix}qr{i-1}, {prefix_pf} a{i}.")
+            print(f"qr{i} ; nqr{i} :- qr{i-1}, {prefix_pf} a{i}.")
         else:
             print(f"qr{i} :- {prefix}qr{i-1}, {prefix_pf} a{i}.")
 
@@ -116,9 +117,19 @@ def generate_third_type_programs(args : argparse.Namespace):
         if args.mpe:
             print(f"map {get_random_float()}::a{i}.")
     
-    
-    for i in range(0,args.n):
-        h = [f"qr{i}" for i in range(0,args.n) if random.random() > 0.5]
+    # random heads    
+    # for i in range(0,args.n):
+    #     h = [f"qr{i}" for i in range(0,args.n) if random.random() > 0.5]
+    #     if len(h) == 0:
+    #         # flip to have at least one true
+    #         idx = random.randint(0,args.n-1)
+    #         h = [f"qr{idx}"]
+    #     hh = ";".join(h)
+    #     prefix_pf = "" if random.random() > 0.5 else "not"
+    #     print(f"{hh} :- {prefix_pf} a{i}.")
+    # print("qr0:- a0.")
+    for i in range(0, args.n):
+        h = [f"qr{i}" for i in range(0,i+1)]
         hh = ";".join(h)
         prefix_pf = "" if random.random() > 0.5 else "not"
         print(f"{hh} :- {prefix_pf} a{i}.")
@@ -126,8 +137,8 @@ def generate_third_type_programs(args : argparse.Namespace):
     for i in range(0,args.n):
         # h = [f"qr{i}" for i in range(0,args.n) if random.random() > 0.5]
         # hh = ",".join(h)
-        if random.random() > 0.5:
-            print(f"qr:- qr{i}.")
+        # if random.random() > 0.5:
+        print(f"qr:- qr{i}.")
     # b = ','.join([f"qr{i}" for i in range(0, args.n)])
     # print(f"qr:- {b}.")
     
