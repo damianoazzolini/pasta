@@ -60,10 +60,12 @@ def generate_first_type_programs(args : argparse.Namespace):
         if args.mpe:
             print(f"map {get_random_float()}::a{i}.")
     
-    for i in range(0,args.n - 1,2):
+    for i in range(0,args.n):
         prefix = "" if random.random() > 0.5 else "not"
-        print(f"qr{i} ; nqr{i} :- {prefix} a{i}.")
-        print(f"qr{i} :- {prefix} a{i+1}.")
+        if i % 2 == 0:
+            print(f"qr{i} ; nqr{i} :- {prefix} a{i}.")
+        else:
+            print(f"qr{i-1} :- {prefix} a{i}.")
 
     # for i in range(0,args.n,2):
     #     print(f"qr:- qr{i}.")
