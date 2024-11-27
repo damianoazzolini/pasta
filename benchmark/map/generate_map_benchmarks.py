@@ -10,14 +10,12 @@ def parse_args():
         # epilog="Example: ",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    
-    
 
     command_parser.add_argument(
         "program",
         help="Type of programs to generate.",
         type=str,
-        choices=["1","2", "3"]
+        choices=["1","2", "3", "4"]
     )
 
     command_parser.add_argument(
@@ -107,10 +105,10 @@ def generate_second_type_programs(args : argparse.Namespace):
 
 def generate_third_type_programs(args : argparse.Namespace):
     """
-    # generate rules, where the negation is random, as well as 
-    the number of heads
-    qr1;qr4;qr5;qr7;qr8 :-  a0.
-    qr0;qr3;qr7;qr8;qr9 :-  a1.
+    # programs of the form
+    qr0 :- not a0.
+    qr0;qr1 :- not a1.
+    qr0;qr1;qr2 :-  a2.
     ... 
     """
     for i in range(args.n):
@@ -143,6 +141,34 @@ def generate_third_type_programs(args : argparse.Namespace):
     # print(f"qr:- {b}.")
     
     # print("% query: qr")
+    
+def generate_fourth_type_programs(args : argparse.Namespace):
+    """
+    Generate programs of the form
+    qr ; nqr :- a0, not a1, not a2, ...
+    qr :- a1, not a3, ...
+    """
+    
+    def generate_body():
+        b : 'list[str]' = []
+        for i in range(0, args.n):
+            prefix = "" if random.random() > 0.5 else "not"
+            at = f"{prefix} a{i}"
+            if random.random() > 0.5:
+                b.append(at)
+            
+        return ','.join(b)
+        
+    
+    for i in range(args.n):
+        if args.mpe:
+            print(f"map {get_random_float()}::a{i}.")
+    
+    bb = generate_body()
+    print(f"qr ; nqr :- {bb}.")
+    bb = generate_body()
+    print(f"qr :- {bb}.")
+    
 
 def main():
     args = parse_args()
@@ -156,6 +182,8 @@ def main():
         generate_second_type_programs(args)
     elif args.program == "3":
         generate_third_type_programs(args)
+    elif args.program == "4":
+        generate_fourth_type_programs(args)
 
 if __name__ == "__main__":
     main()
