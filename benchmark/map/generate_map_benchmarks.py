@@ -1,7 +1,6 @@
 import argparse
 import copy
 import random
-import sys
 
 def parse_args():
     """
@@ -14,9 +13,10 @@ def parse_args():
     )
 
     command_parser.add_argument(
-        "program",
+        "--program",
         help="Type of programs to generate.",
         type=str,
+        required=True,
         choices=["1","2", "3", "4"]
     )
 
@@ -25,12 +25,6 @@ def parse_args():
         help="Number of probabilistic facts",
         type=int,
         required=True
-    )
-
-    command_parser.add_argument(
-        "--mpe",
-        help="For MPE (all query atoms)",
-        action="store_true"
     )
     
     command_parser.add_argument(
@@ -53,6 +47,13 @@ def parse_args():
         help="Generate aspmc version with shifted negation",
         action="store_true"
     )
+    
+    command_parser.add_argument(
+        "--prob",
+        help="Set the probability value (default random)",
+        type=float,
+        default=-1
+    )
 
     command_parser.add_argument(
         "--seed",
@@ -72,21 +73,24 @@ def get_random_float() -> float:
 def print_query_atoms(args : argparse.Namespace):
     """
     Prints query atoms and probabilistic facts.
+    Convoluted way but keeps the same probaiblity among different
+    runs with different map values.
     """
+    prob_atoms : 'list[float]' = []
+    for _ in range(args.n):
+        prob = args.prob if (args.prob > 0 and args.prob < 1) else get_random_float()
+        prob_atoms.append(prob)
+        
     selected_query_atoms = []
     if args.map >= 0:
         n_map = int(args.n * args.map)
         selected_query_atoms = random.sample(range(args.n), n_map)
 
-    for i in range(args.n):
-        if args.mpe:
-            print(f"map {get_random_float()}::a{i}.")
+    for idx, p in enumerate(prob_atoms):
+        if idx in selected_query_atoms:
+            print(f"map {p}::a{idx}.")
         else:
-            if i in selected_query_atoms:
-                print(f"map {get_random_float()}::a{i}.")
-            else:
-                print(f"{get_random_float()}::a{i}.")
-
+            print(f"{p}::a{idx}.")
 
 def generate_first_type_programs(args : argparse.Namespace):
     """
@@ -250,10 +254,6 @@ def main():
     """
     args = parse_args()
     print(f"% {args}")
-    
-    if not args.mpe and args.map == -1:
-        print("Select either map or mpe.")
-        sys.exit()
     
     random.seed(args.seed)
 
