@@ -56,7 +56,8 @@ def generate_first_type_programs(args : argparse.Namespace):
     """
     for i in range(args.n):
         if args.mpe:
-            print(f"map {get_random_float()}::a{i}.")
+            # print(f"map {get_random_float()}::a{i}.")
+            print(f"{get_random_float()}::a{i}.")
     
     for i in range(0,args.n):
         prefix = "" if random.random() > 0.5 else "not"
@@ -67,7 +68,7 @@ def generate_first_type_programs(args : argparse.Namespace):
 
     # for i in range(0,args.n,2):
     #     print(f"qr:- qr{i}.")
-    b = ','.join([f"qr{i}" for i in range(0, args.n, 2)])
+    b = ','.join([f"qr{i}" for i in range(0, args.n - args.n % 2, 2)])
     print(f"qr:- {b}.")
     
     print("% query: qr")
