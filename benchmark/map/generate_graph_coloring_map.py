@@ -61,8 +61,8 @@ def main():
     Main body.
     """
     args = parse_args()
-    if args.n < 6:
-        print("n must be at least 6.")
+    if args.n < 7:
+        print("n must be at least 7.")
         sys.exit()
     
     if args.map < 0 or args.map > 1:
@@ -97,35 +97,38 @@ green(6).
     
     already_in = [[1, 2], [1, 3], [2, 5], [2, 6], [3, 4], [4, 5], [5, 6]]
 
-    # generate the probabilistic facts
-    for _ in range(0, args.n - 6 + 1):
-        n0 = random.randint(1, args.n)
-        n1 = random.randint(1, args.n)
-        l = [n0, n1]
-        l.sort()
-
-        if l in already_in:
-            n0 = n1
-
-        while (n1 == n0):
-            n1 = random.randint(1, args.n)
-            l = [n0, n1]
-            l.sort()
-            if l in already_in:
-                n1 = n0
-
-        already_in.append(l)
-
     # write the probabilistic facts
     prob_atoms : 'list[float]' = []
-    for _ in range(args.n + 2):
+    for _ in range(args.n):
         prob = args.prob if (args.prob > 0 and args.prob < 1) else get_random_float()
         prob_atoms.append(prob)
-
+    
     selected_query_atoms = []
     if args.map >= 0:
-        n_map = int((args.n + 2) * args.map)
-        selected_query_atoms = random.sample(range(args.n + 2), n_map)
+        n_map = int(args.n * args.map)
+        selected_query_atoms = random.sample(range(args.n), n_map)
+
+    # generate the probabilistic facts
+    for idx in range(0, args.n - 7):
+        n0 = 0
+        n1 = n0
+        while n0 == n1:
+            n0 = random.randint(1, args.n)
+            n1 = idx + 7
+            l = [n0, n1]
+            l.sort()
+
+        # if l in already_in:
+        #     n0 = n1
+
+        # while (n1 == n0):
+        #     n1 = random.randint(1, args.n)
+        #     l = [n0, n1]
+        #     l.sort()
+        #     if l in already_in:
+        #         n1 = n0
+
+        already_in.append(l)
 
     for idx, l in enumerate(already_in):
         if idx in selected_query_atoms:
