@@ -1,5 +1,7 @@
 import argparse
+import copy
 import random
+import sys
 
 def parse_args():
     """
@@ -30,6 +32,27 @@ def parse_args():
         help="For MPE (all query atoms)",
         action="store_true"
     )
+    
+    command_parser.add_argument(
+        "--map",
+        help="Percentage of query atoms",
+        type=float,
+        default=-1
+    )
+
+    command_parser.add_argument(
+        "--disj",
+        help="Disjunction symbol",
+        type=str,
+        default=";",
+        choices=[";","|"]
+    )
+
+    command_parser.add_argument(
+        "--aspmc",
+        help="Generate aspmc version with shifted negation",
+        action="store_true"
+    )
 
     command_parser.add_argument(
         "--seed",
@@ -41,8 +64,28 @@ def parse_args():
     return command_parser.parse_args()
 
 def get_random_float() -> float:
-    # truncate at 3 decimals
+    """
+    Get random float truncated at 3 decimals.
+    """
     return float(str(random.random())[:5])
+
+def print_query_atoms(args : argparse.Namespace):
+    """
+    Prints query atoms and probabilistic facts.
+    """
+    selected_query_atoms = []
+    if args.map >= 0:
+        n_map = int(args.n * args.map)
+        selected_query_atoms = random.sample(range(args.n), n_map)
+
+    for i in range(args.n):
+        if args.mpe:
+            print(f"map {get_random_float()}::a{i}.")
+        else:
+            if i in selected_query_atoms:
+                print(f"map {get_random_float()}::a{i}.")
+            else:
+                print(f"{get_random_float()}::a{i}.")
 
 
 def generate_first_type_programs(args : argparse.Namespace):
@@ -54,15 +97,20 @@ def generate_first_type_programs(args : argparse.Namespace):
     qr2 :-  a3.
     ... 
     """
-    for i in range(args.n):
-        if args.mpe:
-            # print(f"map {get_random_float()}::a{i}.")
-            print(f"{get_random_float()}::a{i}.")
-    
+
+    print_query_atoms(args)
+
     for i in range(0,args.n):
-        prefix = "" if random.random() > 0.5 else "not"
+        if args.aspmc:
+            prefix = "" if random.random() > 0.5 else "\+" # type: ignore
+        else:
+            prefix = "" if random.random() > 0.5 else "not"
         if i % 2 == 0:
-            print(f"qr{i} ; nqr{i} :- {prefix} a{i}.")
+            if args.aspmc:
+                print(f"qr{i} :- {prefix} a{i}, \+ nqr{i}.") # type: ignore
+                print(f"nqr{i} :- {prefix} a{i}, \+ qr{i}.") # type: ignore
+            else:
+                print(f"qr{i} {args.disj} nqr{i} :- {prefix} a{i}.")
         else:
             print(f"qr{i-1} :- {prefix} a{i}.")
 
@@ -82,19 +130,28 @@ def generate_second_type_programs(args : argparse.Namespace):
     qr2 ; nqr2 :- nqr1, not a2.
     ... 
     """
-    for i in range(args.n):
-        if args.mpe:
-            print(f"map {get_random_float()}::a{i}.")
+    print_query_atoms(args)
     
-    prefix_pf = "" if random.random() > 0.5 else "not"
-    print(f"qr0 ; nqr0:- {prefix_pf} a0.")
+    if args.aspmc:
+        prefix_pf = "" if random.random() > 0.5 else "\+" # type: ignore
+    else:
+        prefix_pf = "" if random.random() > 0.5 else "not"
+    
+    print(f"qr0 {args.disj} nqr0:- {prefix_pf} a0.")
     for i in range(1,args.n):
         prefix = "" if random.random() > 0.5 else "n"
         prefix_pf = "" if random.random() > 0.5 else "not"
         if i % 2 == 0:
-            print(f"qr{i} ; nqr{i} :- qr{i-1}, {prefix_pf} a{i}.")
+            if args.aspmc:
+                print(f"qr{i} :- qr{i-1}, {prefix_pf} a{i}, \+ nqr{i}.") # type: ignore
+                print(f"nqr{i} :- qr{i-1}, {prefix_pf} a{i}, \+ qr{i}.") # type: ignore
+            else:
+                print(f"qr{i} {args.disj} nqr{i} :- qr{i-1}, {prefix_pf} a{i}.")
         else:
-            print(f"qr{i} :- {prefix}qr{i-1}, {prefix_pf} a{i}.")
+            if i == 1:
+                print(f"qr{i} :- nqr{i-1}, {prefix_pf} a{i}.")
+            else:
+                print(f"qr{i} :- {prefix}qr{i-1}, {prefix_pf} a{i}.")
 
     for i in range(0,args.n):
         print(f"qr:- qr{i}.")
@@ -112,9 +169,7 @@ def generate_third_type_programs(args : argparse.Namespace):
     qr0;qr1;qr2 :-  a2.
     ... 
     """
-    for i in range(args.n):
-        if args.mpe:
-            print(f"map {get_random_float()}::a{i}.")
+    print_query_atoms(args)
     
     # random heads    
     # for i in range(0,args.n):
@@ -129,9 +184,22 @@ def generate_third_type_programs(args : argparse.Namespace):
     # print("qr0:- a0.")
     for i in range(0, args.n):
         h = [f"qr{i}" for i in range(0,i+1)]
-        hh = ";".join(h)
-        prefix_pf = "" if random.random() > 0.5 else "not"
-        print(f"{hh} :- {prefix_pf} a{i}.")
+        
+        if args.aspmc:
+            prefix_pf = "" if random.random() > 0.5 else "\+" # type: ignore
+            # shift the negation
+            for idx, head in enumerate(h):
+                h1 = copy.deepcopy(h)
+                h1.pop(idx)
+                if len(h1) > 0:
+                    body = ",".join([f"\+ {at}" for at in h1]) # type:ignore
+                    print(f"{head} :- {prefix_pf} a{i}, {body}.")
+                else:
+                    print(f"{head} :- {prefix_pf} a{i}.")
+        else:
+            hh = f"{args.disj}".join(h)
+            prefix_pf = "" if random.random() > 0.5 else "not"
+            print(f"{hh} :- {prefix_pf} a{i}.")
         
     for i in range(0,args.n):
         # h = [f"qr{i}" for i in range(0,args.n) if random.random() > 0.5]
@@ -153,27 +221,39 @@ def generate_fourth_type_programs(args : argparse.Namespace):
     def generate_body():
         b : 'list[str]' = []
         for i in range(0, args.n):
-            prefix = "" if random.random() > 0.5 else "not"
+            if args.aspmc:
+                prefix = "" if random.random() > 0.5 else "\+" # type: ignore
+            else:
+                prefix = "" if random.random() > 0.5 else "not"
             at = f"{prefix} a{i}"
             if random.random() > 0.5:
                 b.append(at)
             
         return ','.join(b)
         
-    
-    for i in range(args.n):
-        if args.mpe:
-            print(f"map {get_random_float()}::a{i}.")
+    ###### body
+    print_query_atoms(args)
     
     bb = generate_body()
-    print(f"qr ; nqr :- {bb}.")
+    if args.aspmc:
+        print(f"qr :- {bb}, \+ nqr.") # type: ignore
+        print(f"nqr :- {bb}, \+ qr.") # type: ignore
+    else:
+        print(f"qr {args.disj} nqr :- {bb}.")
     bb = generate_body()
     print(f"qr :- {bb}.")
     
 
 def main():
+    """
+    Main function.
+    """
     args = parse_args()
     print(f"% {args}")
+    
+    if not args.mpe and args.map == -1:
+        print("Select either map or mpe.")
+        sys.exit()
     
     random.seed(args.seed)
 
