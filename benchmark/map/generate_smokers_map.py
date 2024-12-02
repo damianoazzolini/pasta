@@ -61,6 +61,7 @@ def main():
     Main body.
     """
     args = parse_args()
+    print(f"% {args}")
     if args.n < 1:
         print("n must be at least 2.")
         sys.exit()
@@ -84,7 +85,7 @@ asthma(X):- asthma_rule(X).
     
     if args.aspmc:
         print("smokes(X) :- asthma(X), \+ nsmokes(X).")
-        print("nsmokes(X) ; nsmoke(X) :- asthma(X), \+ smokes(X).")
+        print("nsmokes(X) :- asthma(X), \+ smokes(X).")
     else:
         print("smokes(X) ; nsmokes(X) :- asthma(X).")
 
@@ -113,14 +114,20 @@ asthma(X):- asthma_rule(X).
 
     for prob, f, idx in zip(prob_atoms,expanded_names,range(0,n_prob_f)):
         if idx in selected_query_atoms:
-            prefix = "map "
+            if args.aspmc:
+                print(f"{prob}::{f}.")
+                print(f"query({f}).")
+            else:
+                print(f"map {prob}::{f}.")
         else:
-            prefix = ""
+            print(f"{prob}::{f}.")
 
-        print(f"{prefix}{prob}::{f}.")
     
     for i in range(1, args.n + 1):
         print(f"qr:- smokes({i}).")
+    
+    if args.aspmc:
+        print("evidence(qr).")
 
 if __name__ == "__main__":
     main()

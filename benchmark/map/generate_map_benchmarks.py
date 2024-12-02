@@ -88,9 +88,16 @@ def print_query_atoms(args : argparse.Namespace):
 
     for idx, p in enumerate(prob_atoms):
         if idx in selected_query_atoms:
-            print(f"map {p}::a{idx}.")
+            if args.aspmc:
+                print(f"{p}::a{idx}.")
+                print(f"query(a{idx}).")
+            else:
+                print(f"map {p}::a{idx}.")
         else:
             print(f"{p}::a{idx}.")
+    
+    if args.aspmc:
+        print("evidence(qr).")
 
 def generate_first_type_programs(args : argparse.Namespace):
     """

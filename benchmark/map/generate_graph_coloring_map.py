@@ -132,15 +132,21 @@ green(6).
 
     for idx, l in enumerate(already_in):
         if idx in selected_query_atoms:
-            prefix = "map "
+            if args.aspmc:
+                print(f"{prob_atoms[idx]}::edge({l[0]},{l[1]}).")
+                print(f"query(edge({l[0]},{l[1]})).")
+            else:
+                print(f"map {prob_atoms[idx]}::edge({l[0]},{l[1]}).")
         else:
-            prefix = ""
+            print(f"{prob_atoms[idx]}::edge({l[0]},{l[1]}).")
 
-        print(f"{prefix}{prob_atoms[idx]}::edge({l[0]},{l[1]}).")
 
     flat_list = [item for sublist in already_in for item in sublist]
     for j in range(1, max(flat_list) + 1):
         print(f"node({j}).")
+    
+    if args.aspmc:
+        print("evidence(qr).")
 
 
 if __name__ == "__main__":

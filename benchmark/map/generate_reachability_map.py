@@ -33,6 +33,12 @@ def parse_args():
         type=float,
         default=-1
     )
+    
+    command_parser.add_argument(
+        "--aspmc",
+        help="Generate aspmc version with shifted negation",
+        action="store_true"
+    )
 
     command_parser.add_argument(
         "--seed",
@@ -68,16 +74,23 @@ def print_query_atoms(args : argparse.Namespace):
 
     for idx, p in enumerate(prob_atoms):
         if idx in selected_query_atoms:
-            print(f"map {p}::node({idx}).")
+            if args.aspmc:
+                print(f"{p}::node({idx}).")
+                print(f"query(node({idx})).")
+            else:
+                print(f"map {p}::node({idx}).")
         else:
             print(f"{p}::node({idx}).")
 
+    if args.aspmc:
+        print("evidence(qr).")
 
 def main():
     """
     Main.
     """
     args = parse_args()
+    print(f"% {args}")
     random.seed(args.seed)
     
     print("reaches(X,Y) :- edge(X,Y), node(X), node(Y).")
