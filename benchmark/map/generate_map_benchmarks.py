@@ -156,7 +156,10 @@ def generate_second_type_programs(args : argparse.Namespace):
     
     for i in range(1,args.n):
         prefix = "" if random.random() > 0.5 else "n"
-        prefix_pf = "" if random.random() > 0.5 else "not"
+        if args.aspmc:
+            prefix_pf = "" if random.random() > 0.5 else "\+" # type: ignore
+        else:
+            prefix_pf = "" if random.random() > 0.5 else "not"
         if i % 2 == 0:
             if args.aspmc:
                 print(f"qr{i} :- qr{i-1}, {prefix_pf} a{i}, \+ nqr{i}.") # type: ignore
