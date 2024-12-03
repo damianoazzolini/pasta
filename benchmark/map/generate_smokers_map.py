@@ -45,6 +45,14 @@ def parse_args():
         type=int,
         default=42
     )
+    
+    command_parser.add_argument(
+        "--disj",
+        help="Disjunction symbol",
+        type=str,
+        default=";",
+        choices=[";","|"]
+    )
 
     return command_parser.parse_args()
 
@@ -87,7 +95,7 @@ asthma(X):- asthma_rule(X).
         print("smokes(X) :- asthma(X), \+ nsmokes(X).")
         print("nsmokes(X) :- asthma(X), \+ smokes(X).")
     else:
-        print("smokes(X) ; nsmokes(X) :- asthma(X).")
+        print(f"smokes(X) {args.disj} nsmokes(X) :- asthma(X).")
 
     n_prob_f = (5 * args.n) - 1
 
