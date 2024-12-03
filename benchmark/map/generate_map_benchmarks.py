@@ -148,7 +148,12 @@ def generate_second_type_programs(args : argparse.Namespace):
     else:
         prefix_pf = "" if random.random() > 0.5 else "not"
     
-    print(f"qr0 {args.disj} nqr0:- {prefix_pf} a0.")
+    if args.aspmc:
+        print(f"qr0:- {prefix_pf} a0, \+ nqr0.") # type: ignore
+        print(f"nqr0:- {prefix_pf} a0, \+ qr0.") # type: ignore
+    else:
+        print(f"qr0 {args.disj} nqr0:- {prefix_pf} a0.")
+    
     for i in range(1,args.n):
         prefix = "" if random.random() > 0.5 else "n"
         prefix_pf = "" if random.random() > 0.5 else "not"
