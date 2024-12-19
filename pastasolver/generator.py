@@ -147,7 +147,8 @@ class Generator:
 
         # disjunctive rules are not ok, I need to use choice rules
         # disjunct = cond[0] + " ; not_" + cond[0] + " :- " + cond[1] + "."
-        disjunct = f"0{{ {cond[0]} }}1 :- {cond[1]}."
+        # disjunct = f"0{{ {cond[0]} }}1 :- {cond[1]}."
+        disjunct = f"{cond[0]} ; not_{cond[0]} :- {cond[1]}."
         # here I consider only one term in the left part
         # f(a,b) | ... not f(a,b), f(b,c) | ...
         constr = ":- #count{" + ','.join(variables) + ":" + cond[1] + "} = H, #count{"+\
