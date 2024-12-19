@@ -74,7 +74,7 @@ def print_query_atoms(args : argparse.Namespace, g : 'networkx.Graph'):
     prob_atoms : 'list[float]' = []
     for _ in range(len(g.edges)):
         prob = args.prob if (args.prob > 0 and args.prob < 1) else get_random_float()
-        while prob < 0.001:
+        while prob < 0.001 or prob > 0.999:
             prob = get_random_float()
         prob_atoms.append(prob)
 
@@ -114,6 +114,8 @@ def print_query_atoms(args : argparse.Namespace, g : 'networkx.Graph'):
     elif args.solver == "ASP":
         print(":- not qr.")
         print(":~ log(W,A). [-W,A]") 
+    elif args.solver == "cplint":
+        print(":- end_lpad.")
 
 def main():
     """
@@ -122,6 +124,12 @@ def main():
     args = parse_args()
     print(f"% {args}")
     random.seed(args.seed)
+
+    if args.solver == "cplint":
+        print(":- use_module(library(pita)).")
+        print(":- pita.")
+        print(":- begin_lpad.")
+
     
     print("reaches(X,Y) :- edge(X,Y), node(X), node(Y).")
     print("reaches(X,Y) :- edge(X,Z), reaches(Z,Y), node(X), node(Y), node(Z).")
