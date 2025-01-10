@@ -103,13 +103,13 @@ def sum_string_list(bl: 'list[str]') -> 'list[int]':
     return list(map(lambda n : sum(int(x) for x in n), zip(*bl)))
 
 
-def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int) -> None:
+def print_map_state(prob : float, atoms_list : 'list[list[str]]', n_map_vars : int, is_upper : bool) -> None:
     '''
     Prints the MAP/MPE state.
     '''
     map_op = len(atoms_list) > 0 and len(atoms_list[0]) == n_map_vars
-    map_or_mpe = "MPE" if map_op else "MAP"
-    print(f"{map_or_mpe}: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
+    map_or_mpe = ("Upper " if is_upper else "Lower ") + ("MPE" if map_op else "MAP")
+    print(f"{map_or_mpe} probability: {prob}\n{map_or_mpe} states: {len(atoms_list)}")
     for i, el in enumerate(atoms_list):
         print(f"State {i}: {el}")
 

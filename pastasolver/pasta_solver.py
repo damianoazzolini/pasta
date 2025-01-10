@@ -757,7 +757,7 @@ def main():
             max_p, atoms_list_res = pasta_solver.upper_mpe_inference()
         else:
             max_p, atoms_list_res = pasta_solver.map_inference()
-        print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict))
+        print_map_state(max_p, atoms_list_res, len(pasta_solver.interface.prob_facts_dict),args.upper)
     elif (args.dt or args.dtn) and args.approximate:
         if args.dt:
             print_error_and_exit("Approximate should be used with the -dtn flag.")
