@@ -6,6 +6,7 @@ import random
 import time
 
 from . import utils
+from .arguments import Arguments
 from .continuous_cdfs import take_sample, evaluate_sample
 from .generator import ComparisonPredicate
 from .models_handler import ModelsHandler

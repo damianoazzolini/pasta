@@ -11,7 +11,7 @@ from .utils import *
 from . import generator
 # from . import learning_utilities
 from .learning_utilities import ParameterLearner
-from .arguments import parse_args_wrapper
+from .arguments import parse_args_wrapper, Arguments
 
 
 def check_lp_up(lp : float, up : float) -> None:
@@ -27,47 +27,9 @@ class Pasta:
     '''
     Main class of the PASTA solver
     '''
-    def __init__(
-        self,
-        filename : str,
-        query : str,
-        evidence : str = "",
-        verbose : bool = False,
-        pedantic : bool = False,
-        samples : int = 1000,
-        consider_lower_prob : bool = True,
-        minimal : bool = False,
-        normalize_prob : bool = False,
-        stop_if_inconsistent : bool = True,
-        one : bool = False,
-        xor : bool = False,
-        k : int = 100,
-        naive_dt : bool = False,
-        lpmln : bool = False,
-        processes : int = 1,
-        aspmc : bool = False
-        ) -> None:
-        self.filename = filename
-        self.query = query
-        self.evidence = evidence
-        self.verbose = verbose
-        self.pedantic = pedantic
-        if pedantic is True:
-            self.verbose = True
-        self.samples = samples
-        # lower or upper probability bound for MAP/Abduction, default lower
-        self.consider_lower_prob = consider_lower_prob
-        self.minimal = minimal
-        self.normalize_prob = normalize_prob
-        self.stop_if_inconsistent = stop_if_inconsistent
-        self.for_asp_solver = False
-        self.one = one
-        self.xor = xor
-        self.k_credal : int = k
-        self.naive_dt : bool = naive_dt
-        self.lpmln : bool = lpmln
-        self.processes : int = processes
-        self.aspmc : bool = aspmc
+    def __init__(self, args : Arguments) -> None:
+        self.args = args
+        
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -76,11 +38,11 @@ class Pasta:
         '''
         Returns the program string to use into the aspmc solver
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence)
+        self.parser = PastaParser(self.args.filename, self.args.query, self.args.evidence)
         f = self.parser.get_file_handler(from_string)
         program_str = f.readlines()
         f.close()
-        program_str.append(f"query({self.query}).")
+        program_str.append(f"query({self.args.query}).")
         program_str = '\n'.join(program_str)
         return program_str
 
@@ -89,7 +51,7 @@ class Pasta:
         '''
         Parameter learning
         '''
-        self.parser = PastaParser(self.filename)
+        self.parser = PastaParser(self.args.filename)
         self.parser.query = "placeholder"
         # self.parser.parse(from_string)
         # print(self.parser.get_asp_program())
@@ -104,8 +66,8 @@ class Pasta:
             prob_facts_dict=prob_facts_dict,
             offset=offset,
             upper=not self.consider_lower_prob,
-            aspmc=self.aspmc,
-            verbose=self.verbose
+            aspmc=self.args.aspmc,
+            verbose=self.args.verbosity
         )
         interpretations_to_worlds, learned_probs = parameter_learner.learn_parameters(
             
