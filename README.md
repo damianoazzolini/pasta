@@ -38,12 +38,17 @@ pastasolver --help
 to see the available options.
 
 ### Exact inference
-The probability of a query in a PASP is given by a range $P(q) = [\underline{P}(q),\overline{P}(q)]$ where $\underline{P}(q) = \sum_{w_i \mid |AS(w_i)| > 0 \ \land \ m \in AS(w_i), \ m \models q} P(w_i)$
+The probability of a query in a PASP under the credal semantics is given by a range 
+$$P(q) = [\underline{P}(q),\overline{P}(q)]$$
+where 
+$$\underline{P}(q) = \sum_{w_i \mid \ m \in AS(w_i), \ m \models q} P(w_i)$$
 and
-$\overline{P}(q) = \sum_{w_i \mid \exists m \in AS(w_i), \ m \models q} P(w_i)$
+$$\overline{P}(q) = \sum_{w_i \mid \exists m \in AS(w_i), \ m \models q} P(w_i)$$
 where $P(w)$ is the probability of the world $w$ computed as $P(w) = \prod_{i \mid f_i = \top} \Pi_i \cdot \prod_{i \mid f_i = \bot} (1 - \Pi_i)$
 and $AS(w)$ is the set of answer sets for a world $w$.
-The current algorithm adopts projected answer set enumeration to solve the task.
+Note that the credal semantics requires that the program has at least one answer set per world, and the solver will throw an error if this is not the case.
+You can disable this with `--no-stop-if-inconsistent`.
+The algorithm adopts projected answer set enumeration to solve the task.
 
 Example:
 ```
@@ -170,10 +175,11 @@ Open an issue.
 
 ## Description and How to Cite
 The system and the various types of inferences are currently described in:
-- Exact inference and statistical staments: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`
+- Exact inference and statistical statements: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Statistical statements in probabilistic logic programming. In Georg Gottlob, Daniela Inclezan, and Marco Maratea, editors, Logic Programming and Nonmonotonic Reasoning, pages 43--55, Cham, 2022. Springer International Publishing.`
+- Inference with discrete and continuous random variables (hybrid programs): `Azzolini Damiano and Riguzzi Fabrizio. Probabilistic Answer Set Programming with Discrete and Continuous Random Variables. Theory and Practice of Logic Programming. 2025;25(1):1-32. doi:10.1017/S1471068424000437`
 - Abduction (preliminary): `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Abduction in (probabilistic) answer set programming. In Roberta Calegari, Giovanni Ciatto, and Andrea Omicini, editors, Proceedings of the 36th Italian Conference on Computational Logic, volume 3204 of CEUR Workshop Proceedings, pages 90--103, Aachen, Germany, 2022. Sun SITE Central Europe.`
 - MAP/MPE inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Map inference in probabilistic answer set programs. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 413--426, Cham, 2023. Springer International Publishing.`
 - Approximate inference: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Approximate inference in probabilistic answer set programming for statistical probabilities. In Agostino Dovier, Angelo Montanari, and Andrea Orlandini, editors, AIxIA 2022 -- Advances in Artificial Intelligence, pages 33--46, Cham, 2023. Springer International Publishing.` 
 - Lifted inference: `Damiano Azzolini and Fabrizio Riguzzi. Lifted inference for statistical statements in probabilistic answer set programming. International Journal of Approximate Reasoning, 163:109040, 2023.`
 - Parameter learning: `Damiano Azzolini, Elena Bellodi, and Fabrizio Riguzzi. Learning the parameters of probabilistic answer set programs. In Stephen H. Muggleton and Alireza Tamaddoni-Nezhad, editors, Inductive Logic Programming - ILP 2022, volume 14363 of Lecture Notes in Computer Science, pages 1--14, Cham, 2024. Springer Nature Switzerland.`
-- Decision theory: in press
+- Decision theory: `Azzolini Damiano, Bellodi Elena, Kiesel Rafael, Riguzzi Fabrizio. Solving Decision Theory Problems with Probabilistic Answer Set Programming. Theory and Practice of Logic Programming. 2025;25(1):33-63. doi:10.1017/S1471068424000474`
