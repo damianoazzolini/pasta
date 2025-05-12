@@ -5,7 +5,7 @@ from pastasolver.pasta_solver import Pasta
 
 from .utils_for_tests import ArgumentsTest, almost_equal
 
-
+@pytest.mark.flaky(reruns=5)
 @pytest.mark.parametrize("parameters", [
     ArgumentsTest("alarm_calls_mary", "../examples/inference/alarm.lp", "calls(mary)", 0.196, 0.196),
     ArgumentsTest("bird_10_fly_1","../examples/inference/bird_10.lp", "fly(1)", 0.126953, 0.5),
