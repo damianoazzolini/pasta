@@ -207,7 +207,7 @@ class AspInterface:
 
         print(f"Total number of worlds that contribute to the probability: {lp_count + up_count}")
         if not self.evidence:
-            print(f"Only LP: {lp_count}, Only UP: {up_count}")
+            print(f"LP and UP: {lp_count}, Only UP: {up_count}")
     
     def _handle_missing_worlds(self) -> float:
         """
