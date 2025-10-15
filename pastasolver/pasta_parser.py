@@ -253,11 +253,13 @@ class PastaParser:
                     for hh in h.split(';'):
                         heads.append(hh.replace(' ',''))
 
-        # check for clauses with a prob fact in the head
-        for pf in self.probabilistic_facts.keys():
-            for h in heads:
-                if get_functor(h) == get_functor(pf):
-                    utils.print_error_and_exit(f"Cannot use the probabilistic fact {pf} as head of a rule.")
+        # # check for clauses with a prob fact in the head
+        # for pf in self.probabilistic_facts.keys():
+        #     print(heads)
+        #     for h in heads:
+        #         if get_functor(h) == get_functor(pf):
+        #             print(get_functor(h), get_functor(pf))
+        #             utils.print_error_and_exit(f"Cannot use the probabilistic fact {pf} as head of a rule.")
 
         # check for clauses with q or nq or 3 or ne in the head
         for h in heads:
