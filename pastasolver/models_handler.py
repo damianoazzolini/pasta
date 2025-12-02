@@ -295,13 +295,13 @@ class ModelsHandler():
         id_str = "0" * len(self.prob_facts_dict)
         probability = 1
         for term in line_list:
-            if term == "q":
+            if term == utils.QUERY_TRUE_ATOM:
                 model_query = True
-            elif term == "nq":
+            elif term == utils.QUERY_FALSE_ATOM:
                 model_query = False
-            elif term == "e":
+            elif term == utils.QUERY_EVIDENCE_TRUE_ATOM:
                 model_evidence = True
-            elif term == "ne":
+            elif term == utils.QUERY_EVIDENCE_FALSE_ATOM:
                 model_evidence = False
             else:
                 position, true_or_false, prob = self.extract_pos_and_prob(term)
@@ -349,9 +349,9 @@ class ModelsHandler():
 
         probability = 1
         for term in line_list:
-            if term == "q":
+            if term == utils.QUERY_TRUE_ATOM:
                 model_query = True
-            elif term == "nq":
+            elif term == utils.QUERY_FALSE_ATOM:
                 model_query = False
             elif term.startswith('abd_') or term.startswith('not_abd_'):
                 position, true_or_false = self.extract_pos(term, self.abducibles_list)

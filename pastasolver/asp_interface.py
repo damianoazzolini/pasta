@@ -673,7 +673,7 @@ class AspInterface:
                 lower_count = 0
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
-                        if str(m) == "q":  # type: ignore
+                        if str(m) == utils.QUERY_TRUE_ATOM:  # type: ignore
                             upper_count = upper_count + 1
                         else:
                             lower_count = lower_count + 1
@@ -1072,10 +1072,10 @@ class AspInterface:
             for query in self.utilities_dict:
                 if self.verbose:
                     print(f"Query: {query}")
-                self.asp_program.append(f"q:- {query}.")
-                self.asp_program.append("#show q/0.")
-                self.asp_program.append(f"nq:- not {query}.")
-                self.asp_program.append("#show nq/0.")
+                self.asp_program.append(f"{utils.QUERY_TRUE_ATOM}:- {query}.")
+                self.asp_program.append(f"#show {utils.QUERY_TRUE_ATOM}/0.")
+                self.asp_program.append(f"{utils.QUERY_FALSE_ATOM}:- not {query}.")
+                self.asp_program.append(f"#show {utils.QUERY_FALSE_ATOM}/0.")
 
                 self.compute_probabilities()
                 # lp = self.lower_probability_query
@@ -1207,10 +1207,10 @@ class AspInterface:
             current_utility_l: float = 0
             current_utility_u: float = 0
             for query in self.utilities_dict:
-                self.asp_program.append(f"q:- {query}.")
-                self.asp_program.append("#show q/0.")
-                self.asp_program.append(f"nq:- not {query}.")
-                self.asp_program.append("#show nq/0.")
+                self.asp_program.append(f"{utils.QUERY_TRUE_ATOM}:- {query}.")
+                self.asp_program.append(f"#show {utils.QUERY_TRUE_ATOM}/0.")
+                self.asp_program.append(f"{utils.QUERY_FALSE_ATOM}:- not {query}.")
+                self.asp_program.append(f"#show {utils.QUERY_FALSE_ATOM}/0.")
 
                 lp, up = self.sample_query()
 
@@ -1587,7 +1587,7 @@ class AspInterface:
         for exp in previously_computed:
             s = ":- "
             for el in exp:
-                if el != "q" and not el.startswith('not_abd'):
+                if el != utils.QUERY_TRUE_ATOM and not el.startswith('not_abd'):
                     s = s + el + ","
             s = s[:-1] + '.'
             ctl.add('base', [], s)

@@ -260,13 +260,9 @@ class PastaParser:
         #         if get_functor(h) == get_functor(pf):
         #             print(get_functor(h), get_functor(pf))
         #             utils.print_error_and_exit(f"Cannot use the probabilistic fact {pf} as head of a rule.")
+        if any(atom in self.lines_prob for atom in utils.RESERVED_ATOMS):
+            utils.print_error_and_exit(f"{utils.RESERVED_ATOMS} are reserved atom.")
 
-        # check for clauses with q or nq or 3 or ne in the head
-        for h in heads:
-            if h in ("q", "nq", "e", "ne"):
-                utils.print_error_and_exit(
-                    f"Cannot use {h} as head of a rule.")
-                
 
     def parse_program(self,
                       approximate_version : bool = False,
@@ -718,10 +714,20 @@ class PastaParser:
         Returns a string that represent the answer set program obtained by converting the PASP
         '''
         if self.query and not lpmln:
-            self.lines_prob.extend([f"q:- {self.query}.","#show q/0.",f"nq:- not {self.query}.","#show nq/0."])
+            self.lines_prob.extend([
+                f"{utils.QUERY_TRUE_ATOM}:- {self.query}.",
+                f"#show {utils.QUERY_TRUE_ATOM}/0.",
+                f"{utils.QUERY_FALSE_ATOM}:- not {self.query}.",
+                f"#show {utils.QUERY_FALSE_ATOM}/0."
+            ])
 
             if self.evidence:
-                self.lines_prob.extend([f"e:- {self.evidence}.","#show e/0.",f"ne:- not {self.evidence}.","#show ne/0."])
+                self.lines_prob.extend([
+                    f"{utils.EVIDENCE_TRUE_ATOM}:- {self.evidence}.",
+                    f"#show {utils.EVIDENCE_TRUE_ATOM}/0.",
+                    f"{utils.EVIDENCE_FALSE_ATOM}:- not {self.evidence}.",
+                    f"#show {utils.EVIDENCE_FALSE_ATOM}/0."
+                ])
 
         return list(set(self.lines_prob))
 
@@ -738,15 +744,15 @@ class PastaParser:
             need to be computed
         '''
         if self.evidence == "":
-            self.lines_prob.append(f"q:- {self.query}.")
-            self.lines_prob.append("#show q/0.")
-            self.lines_prob.append(f"nq:- not {self.query}.")
-            self.lines_prob.append("#show nq/0.")
+            self.lines_prob.append(f"{utils.QUERY_TRUE_ATOM}:- {self.query}.")
+            self.lines_prob.append(f"#show {utils.QUERY_TRUE_ATOM}/0.")
+            self.lines_prob.append(f"{utils.QUERY_FALSE_ATOM}:- not {self.query}.")
+            self.lines_prob.append(f"#show {utils.QUERY_FALSE_ATOM}/0.")
         else:
-            self.lines_prob.append(f"qe:- {self.query}, {self.evidence}.")
-            self.lines_prob.append("#show qe/0.")
-            self.lines_prob.append(f"nqe:- not {self.query}, {self.evidence}.")
-            self.lines_prob.append("#show nqe/0.")
+            self.lines_prob.append(f"{utils.QUERY_EVIDENCE_TRUE_ATOM}:- {self.query}, {self.evidence}.")
+            self.lines_prob.append(f"#show {utils.QUERY_EVIDENCE_TRUE_ATOM}/0.")
+            self.lines_prob.append(f"{utils.QUERY_EVIDENCE_FALSE_ATOM}:- not {self.query}, {self.evidence}.")
+            self.lines_prob.append(f"#show {utils.QUERY_EVIDENCE_FALSE_ATOM}/0.")
 
         return list(set(self.lines_prob))
 

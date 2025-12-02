@@ -7,6 +7,19 @@ YELLOW = '\33[93m'
 RED = '\033[91m'
 END = '\033[0m'
 
+QUERY_TRUE_ATOM = "myqueryatomtrue"
+QUERY_FALSE_ATOM = "myqueryatomfalse"
+EVIDENCE_TRUE_ATOM = "myevidenceatomtrue"
+EVIDENCE_FALSE_ATOM = "myevidenceatomfalse"
+QUERY_EVIDENCE_TRUE_ATOM = "myqueryevidenceatomtrue"
+QUERY_EVIDENCE_FALSE_ATOM = "myqueryevidenceatomfalse"
+
+RESERVED_ATOMS = [
+    QUERY_TRUE_ATOM,
+    QUERY_FALSE_ATOM,
+    EVIDENCE_TRUE_ATOM,
+    EVIDENCE_FALSE_ATOM
+]
 
 def print_error_and_exit(message : str):
     '''
