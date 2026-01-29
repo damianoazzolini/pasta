@@ -130,6 +130,12 @@ def parse_args_wrapper():
         default=False
     )
     command_parser.add_argument(
+        "--for-asp-solver",
+        help="Use ASP solver for MPE inference",
+        action="store_true",
+        default=False
+    )
+    command_parser.add_argument(
         "--upper",
         help="Select upper probability as target",
         action="store_true",

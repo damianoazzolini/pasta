@@ -2,6 +2,7 @@ import pytest
 
 from .utils_for_tests import almost_equal, check_if_lists_equal
 
+from pastasolver.arguments import parse_args_wrapper
 from pastasolver.pasta_solver import Pasta
 
 
@@ -45,7 +46,12 @@ def test_map_mpe(
     upper : bool
     ):
 
-    pasta_solver = Pasta(filename, query, consider_lower_prob=not upper)
+    args = parse_args_wrapper()
+    args.filename = filename
+    args.query = query
+    args.upper = upper
+
+    pasta_solver = Pasta(filename, query, args)
     max_p, atoms_list = pasta_solver.map_inference()
 
     print(max_p, expected_map_mpe)

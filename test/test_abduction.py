@@ -2,18 +2,24 @@
 from .utils_for_tests import almost_equal, check_if_lists_equal
 
 from pastasolver.pasta_solver import Pasta
+from pastasolver.arguments import parse_args_wrapper
 
 
 def wrap_test_abduction(
-                        filename: str,
-                        query: str,
-                        evidence: str,
-                        test_name: str,
-                        expected_lp: float,
-                        expected_up: float,
-                        expected_abd: 'list[list[str]]'):
+        filename: str,
+        query: str,
+        evidence: str,
+        test_name: str,
+        expected_lp: float,
+        expected_up: float,
+        expected_abd: 'list[list[str]]'
+    ):
 
-    pasta_solver = Pasta(filename, query, evidence)
+    args = parse_args_wrapper()
+    args.filename = filename
+    args.query = query
+    args.evidence = evidence
+    pasta_solver = Pasta(filename, query, args)
     lp, up, abd = pasta_solver.abduction()
 
     assert almost_equal(lp, expected_lp), test_name + ": wrong lower probability"

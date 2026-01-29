@@ -2,7 +2,7 @@ import argparse
 import pytest
 
 from pastasolver.pasta_solver import Pasta
-
+from pastasolver.arguments import parse_args_wrapper
 from .utils_for_tests import ArgumentsTest, almost_equal
 
 @pytest.mark.flaky(reruns=5)
@@ -22,13 +22,15 @@ from .utils_for_tests import ArgumentsTest, almost_equal
     ArgumentsTest("viral_marketing_5_buy_5", "../examples/inference/viral_marketing_5.lp", "buy(5)", 0.2734, 0.29)
 ])
 def test_approximate_inference(parameters : ArgumentsTest):
-    pasta_solver = Pasta(parameters.filename, parameters.query, samples = 10_000)
-
-    args = argparse.Namespace()
+    args = parse_args_wrapper()
+    args.filename = parameters.filename
+    args.query = parameters.query
     args.rejection = parameters.rejection
     args.mh = parameters.mh
     args.gibbs = parameters.gibbs
     args.approximate_hybrid = False
+    
+    pasta_solver = Pasta(parameters.filename, parameters.query, args)
 
     lp, up = pasta_solver.approximate_solve(args)
 

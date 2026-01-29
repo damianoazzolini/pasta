@@ -28,46 +28,33 @@ class Pasta:
     Main class of the PASTA solver
     '''
     def __init__(
-        self,
-        filename : str,
-        query : str,
-        evidence : str = "",
-        verbose : bool = False,
-        pedantic : bool = False,
-        samples : int = 1000,
-        consider_lower_prob : bool = True,
-        minimal : bool = False,
-        normalize_prob : bool = False,
-        stop_if_inconsistent : bool = True,
-        one : bool = False,
-        xor : bool = False,
-        k : int = 100,
-        naive_dt : bool = False,
-        lpmln : bool = False,
-        processes : int = 1,
-        aspmc : bool = False
+            self,
+            filename : str,
+            query : str,
+            arguments : argparse.Namespace
         ) -> None:
         self.filename = filename
         self.query = query
-        self.evidence = evidence
-        self.verbose = verbose
-        self.pedantic = pedantic
-        if pedantic is True:
-            self.verbose = True
-        self.samples = samples
-        # lower or upper probability bound for MAP/Abduction, default lower
-        self.consider_lower_prob = consider_lower_prob
-        self.minimal = minimal
-        self.normalize_prob = normalize_prob
-        self.stop_if_inconsistent = stop_if_inconsistent
-        self.for_asp_solver = False
-        self.one = one
-        self.xor = xor
-        self.k_credal : int = k
-        self.naive_dt : bool = naive_dt
-        self.lpmln : bool = lpmln
-        self.processes : int = processes
-        self.aspmc : bool = aspmc
+        self.arguments = arguments
+
+        # self.verbose = verbose
+        # self.pedantic = pedantic
+        # if pedantic is True:
+        #     self.verbose = True
+        # self.samples = samples
+        # # lower or upper probability bound for MAP/Abduction, default lower
+        # self.consider_lower_prob = consider_lower_prob
+        # self.minimal = minimal
+        # self.normalize_prob = normalize_prob
+        # self.stop_if_inconsistent = stop_if_inconsistent
+        # self.for_asp_solver = False
+        # self.one = one
+        # self.xor = xor
+        # self.k_credal : int = k
+        # self.naive_dt : bool = naive_dt
+        # self.lpmln : bool = lpmln
+        # self.processes : int = processes
+        # self.aspmc : bool = aspmc
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -76,7 +63,7 @@ class Pasta:
         '''
         Returns the program string to use into the aspmc solver
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence)
+        self.parser = PastaParser(self.filename, self.query, self.arguments.evidence)
         f = self.parser.get_file_handler(from_string)
         program_str = f.readlines()
         f.close()
@@ -103,9 +90,9 @@ class Pasta:
             program=program,
             prob_facts_dict=prob_facts_dict,
             offset=offset,
-            upper=not self.consider_lower_prob,
-            aspmc=self.aspmc,
-            verbose=self.verbose
+            upper=self.arguments.upper,
+            aspmc=self.arguments.aspmc,
+            verbose=self.arguments.verbose
         )
         interpretations_to_worlds, learned_probs = parameter_learner.learn_parameters(
             
@@ -181,7 +168,7 @@ class Pasta:
         '''
         Approximate inference (upper probability) using XOR constraints
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence, for_asp_solver=True)
+        self.parser = PastaParser(self.filename, self.query, self.arguments.evidence, for_asp_solver=True)
         self.consider_lower_prob = False
         self.for_asp_solver = True
 
@@ -190,8 +177,8 @@ class Pasta:
 
         # n = math.ceil(math.log2(2**n_vars)) # useless
         n = n_vars
-        delta = arguments.delta # higher this value, less accurate will be the result
-        alpha = arguments.alpha # < 0.0042 from the paper
+        delta = self.arguments.delta # higher this value, less accurate will be the result
+        alpha = self.arguments.alpha # < 0.0042 from the paper
         epsilon = 10e-5
         r = n/delta if n != delta else 1 + epsilon
         t = math.ceil(math.log(r)/alpha)
@@ -255,22 +242,22 @@ class Pasta:
         '''
         Setup the variables for sampling
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence)
+        self.parser = PastaParser(self.filename, self.query, self.arguments.evidence)
         self.parser.parse(from_string, approximate_version=True, keep_hybrid=keep_hybrid)
         asp_program = self.parser.get_asp_program_approx()
 
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
             asp_program,
-            self.evidence,
+            self.arguments.evidence,
             [],
             self.parser.abducibles,
-            self.verbose,
-            self.pedantic,
-            self.samples,
-            stop_if_inconsistent=self.stop_if_inconsistent,
-            normalize_prob=self.normalize_prob,
-            upper = not self.consider_lower_prob,
+            self.arguments.verbose,
+            self.arguments.pedantic,
+            self.arguments.samples,
+            stop_if_inconsistent=self.arguments.stop_if_inconsistent,
+            normalize_prob=self.arguments.normalize,
+            upper = self.arguments.upper,
             continuous_facts=self.parser.continuous_facts if keep_hybrid else {}
         )
 
@@ -297,39 +284,39 @@ class Pasta:
         '''
         Inference through sampling
         '''
-        self.setup_sampling(from_string, keep_hybrid=arguments.approximate_hybrid)
+        self.setup_sampling(from_string, keep_hybrid=self.arguments.approximate_hybrid)
 
-        if self.processes > 16:
+        if self.arguments.processes > 16:
             print_error_and_exit("Too many processes, max 16 for safety.")
 
         results : 'list[tuple[float,float]]' = []
         # set the number of samples per process
-        self.interface.n_samples = int(self.samples / self.processes)
+        self.interface.n_samples = int(self.arguments.samples / self.arguments.processes)
 
-        if self.pedantic:
-            print(f"Spawning {self.processes} processes")
-        with multiprocessing.Pool(processes=self.processes) as pool:
-            if self.evidence == "" and (arguments.rejection is False and arguments.mh is False and arguments.gibbs is False):
-                for i in pool.imap_unordered(self.interface.sample_query, [1]*self.processes):
+        if self.arguments.pedantic:
+            print(f"Spawning {self.arguments.processes} processes")
+        with multiprocessing.Pool(processes=self.arguments.processes) as pool:
+            if self.arguments.evidence == "" and (self.arguments.rejection is False and self.arguments.mh is False and self.arguments.gibbs is False):
+                for i in pool.imap_unordered(self.interface.sample_query, [1]*self.arguments.processes):
                     results.append(i)
                 # i = self.interface.sample_query()
                 # results.append(i)
-            elif self.evidence != "":
-                if arguments.rejection:
-                    for i in pool.imap_unordered(self.interface.rejection_sampling, [1]*self.processes):
+            elif self.arguments.evidence != "":
+                if self.arguments.rejection:
+                    for i in pool.imap_unordered(self.interface.rejection_sampling, [1]*self.arguments.processes):
                         results.append(i)
-                elif arguments.mh:
-                    for i in pool.imap_unordered(self.interface.mh_sampling, [1]*self.processes):
+                elif self.arguments.mh:
+                    for i in pool.imap_unordered(self.interface.mh_sampling, [1]*self.arguments.processes):
                         results.append(i)
-                elif arguments.gibbs:
-                    for i in pool.imap_unordered(self.interface.gibbs_sampling, [arguments.block]*self.processes):
+                elif self.arguments.gibbs:
+                    for i in pool.imap_unordered(self.interface.gibbs_sampling, [self.arguments.block]*self.arguments.processes):
                         results.append(i)
                 else:
                     print_error_and_exit("Specify a sampling method")
             else:
                 print_error_and_exit("Missing evidence")
 
-        if self.pedantic:
+        if self.arguments.pedantic:
             print(f"Results: {results}")
         return statistics.mean([result[0] for result in results]), statistics.mean([result[1] for result in results])
 
@@ -338,15 +325,23 @@ class Pasta:
         '''
         Setup clingo interface
         '''
-        self.parser = PastaParser(self.filename, self.query, self.evidence, self.for_asp_solver, self.naive_dt, self.lpmln)
+        self.parser = PastaParser(
+            self.filename,
+            self.query,
+            self.arguments.evidence,
+            self.arguments.for_asp_solver,
+            self.arguments.dtn,
+            self.arguments.lpmln
+        )
+        # sys.exit()
         self.parser.parse(from_string, approx)
 
-        if self.minimal is False:
+        if self.arguments.minimal is False:
             content_find_minimal_set = []
         else:
             content_find_minimal_set = self.parser.get_content_to_compute_minimal_set_facts()
 
-        asp_program = self.parser.get_asp_program(self.lpmln)
+        asp_program = self.parser.get_asp_program(self.arguments.lpmln)
 
         # if not self.consider_lower_prob and self.query != "":
         #     asp_program.append(f":- not {self.query}.")
@@ -354,36 +349,36 @@ class Pasta:
         self.interface = AspInterface(
             self.parser.probabilistic_facts,
             asp_program,
-            self.evidence,
+            self.arguments.evidence,
             content_find_minimal_set,
             abducibles_list=self.parser.abducibles,
-            verbose=self.verbose,
-            pedantic=self.pedantic,
-            stop_if_inconsistent=self.stop_if_inconsistent,
-            normalize_prob=self.normalize_prob,
-            xor=self.xor,
+            verbose=self.arguments.verbose,
+            pedantic=self.arguments.pedantic,
+            stop_if_inconsistent=self.arguments.stop_if_inconsistent,
+            normalize_prob=self.arguments.normalize,
+            xor=self.arguments.xor,
             decision_atoms_list=self.parser.decision_facts,
             utilities_dict=self.parser.fact_utility,
-            upper=not self.consider_lower_prob,
+            upper=self.arguments.upper,
             n_probabilistic_ics= self.parser.n_probabilistic_ics,
-            k_credal = self.k_credal,
+            k_credal = 100,
             # constraints=self.parser.constraints_list,
             # objective_function=self.parser.objective_function,
             optimizable_facts=self.parser.optimizable_facts,
             reducible_facts=self.parser.reducible_facts
         )
 
-        if self.minimal:
+        if self.arguments.minimal:
             self.interface.compute_minimal_set_facts()
 
-        if self.pedantic and self.minimal:
+        if self.arguments.pedantic and self.arguments.minimal:
             print("--- Minimal set of probabilistic facts ---")
             print(self.interface.cautious_consequences)
             print("---")
 
-        if self.pedantic:
+        if self.arguments.pedantic:
             self.interface.print_asp_program()
-            if self.minimal:
+            if self.arguments.minimal:
                 print("--- Program to find minimal sets ---")
                 print(*content_find_minimal_set, sep='\n')
                 print("---")
@@ -591,14 +586,14 @@ class Pasta:
         self.setup_interface(from_string)
         if len(self.parser.map_id_list) == 0:
             print_error_and_exit("Specify at least one map fact.")
-        if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and not self.consider_lower_prob and not self.stop_if_inconsistent and not self.normalize_prob:
+        if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict) and self.arguments.upper and not self.arguments.stop_if_inconsistent and not self.arguments.normalize:
             print_warning("Brave (upper) MPE can be solved in a faster way using the --solver flag.")
         # self.consider_lower_prob = True
         self.interface.compute_probabilities()
         max_prob, map_state = self.interface.model_handler.get_map_solution(
-            self.parser.map_id_list, self.consider_lower_prob)
+            self.parser.map_id_list, not self.arguments.upper)
 
-        if self.normalize_prob and self.interface.normalizing_factor != 0:
+        if self.arguments.normalize and self.interface.normalizing_factor != 0:
             max_prob = max_prob / (1 - self.interface.normalizing_factor)
 
         return max_prob, map_state
@@ -645,7 +640,7 @@ class Pasta:
         '''
         self.setup_interface(from_string)
         if len(self.parser.map_id_list) == len(self.interface.prob_facts_dict):
-            map_state, unsat = self.interface.compute_mpe_asp_solver(self.one)
+            map_state, unsat = self.interface.compute_mpe_asp_solver(self.arguments.one)
             if unsat:
                 probability = -1
                 map_state_parsed = [["UNSAT"]]
@@ -701,24 +696,7 @@ def main():
         print_warning("The lower utility may be greater than the upper utility for some strategies.")
 
 
-    pasta_solver = Pasta(filename=args.filename,
-                         query=args.query,
-                         evidence=args.evidence,
-                         verbose=args.verbose,
-                         pedantic=args.pedantic,
-                         samples=args.samples,
-                         consider_lower_prob=not args.upper,
-                         minimal=args.minimal,
-                         normalize_prob=args.normalize,
-                         stop_if_inconsistent=args.stop_if_inconsistent,
-                         one=args.one,
-                         xor=args.xor,
-                         k=100,
-                         naive_dt=args.dtn,
-                         lpmln=args.lpmln,
-                         processes=args.processes,
-                         aspmc=args.aspmc
-                        )
+    pasta_solver = Pasta(args.filename, args.query, args)
 
     if args.convert:
         pasta_solver.convert()
