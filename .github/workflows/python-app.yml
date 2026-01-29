@@ -33,7 +33,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        cd test && pytest -v
+        cd test && pytest -v test_exact_inference.py && pytest -v test_map_mpe.py && pytest -v test_approximate_inference.py && pytest -v test_abduction.py && pytest -v test_lifted.py && pytest -v test_hybrid.py && pytest -v test_pasta_parser.py
 
     # - name: Docker login
     #   uses: docker/login-action@v3
