@@ -37,24 +37,6 @@ class Pasta:
         self.query = query
         self.arguments = arguments
 
-        # self.verbose = verbose
-        # self.pedantic = pedantic
-        # if pedantic is True:
-        #     self.verbose = True
-        # self.samples = samples
-        # # lower or upper probability bound for MAP/Abduction, default lower
-        # self.consider_lower_prob = consider_lower_prob
-        # self.minimal = minimal
-        # self.normalize_prob = normalize_prob
-        # self.stop_if_inconsistent = stop_if_inconsistent
-        # self.for_asp_solver = False
-        # self.one = one
-        # self.xor = xor
-        # self.k_credal : int = k
-        # self.naive_dt : bool = naive_dt
-        # self.lpmln : bool = lpmln
-        # self.processes : int = processes
-        # self.aspmc : bool = aspmc
         self.interface : AspInterface
         self.parser : PastaParser
 
@@ -429,13 +411,13 @@ class Pasta:
             return self.interface.decision_theory_naive_method(no_mix)
 
 
-    def decision_theory_improved(self, from_string: str = "") -> 'tuple[list[float],list[str]]':
+    def decision_theory_improved(self, from_string: str = "", maximize_upper: bool = True) -> 'tuple[list[float],list[str]]':
         '''
         Decision theory solver by computing the projected
         solutions.
         '''
         self.setup_interface(from_string)
-        return self.interface.decision_theory_project()
+        return self.interface.decision_theory_project(maximize_upper=maximize_upper)
 
 
     def abduction(self,
@@ -753,7 +735,7 @@ def main():
     elif args.dt:
         if args.normalize:
             print_error_and_exit("Normalization should be used with the -dtn flag.")
-        best_util, utility_atoms = pasta_solver.decision_theory_improved()
+        best_util, utility_atoms = pasta_solver.decision_theory_improved(maximize_upper=args.upper)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.test is not None:
         pasta_solver.test_consistency(args.test == 1)

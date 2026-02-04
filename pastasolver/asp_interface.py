@@ -606,7 +606,7 @@ class AspInterface:
         '''
         # each element has the structure
         # [n_lower_qe, n_upper_qe, n_lower_nqe, n_upper_nqe]
-        sampled = {}
+        sampled : 'dict[str,list[int]]' = {}
 
         ctl = self.init_clingo_ctl(["0", "--project"])
 
@@ -746,8 +746,8 @@ class AspInterface:
             self,
             computed_utilities_list: 'dict[str,tuple[float,float,float]]',
             lower : bool = False,
-            highest = True
-        ) -> 'tuple[tuple[float,float,float],list[str]]':
+            highest : bool = True
+        ) -> 'tuple[list[float],list[str]]':
         '''
         Loops over the utility list and find the best assignment.
         '''
@@ -776,8 +776,8 @@ class AspInterface:
             self,
             computed_utilities_list: 'dict[str,tuple[float,float,float]]',
             lower : bool = False,
-            highest = True
-        ) -> 'tuple[tuple[float,float,float],list[str]]':
+            highest : bool = True
+        ) -> 'tuple[float, list[str], float, list[str]]':
         '''
         Loops over the utility list and find the best assignment.
         '''
@@ -1122,7 +1122,7 @@ class AspInterface:
  
 
 
-    def decision_theory_project(self) -> 'tuple[list[float],list[str]]':
+    def decision_theory_project(self, maximize_upper: bool = True) -> 'tuple[list[float],list[str]]':
         '''
         Decision theory by computing the projective solutions.
         '''
@@ -1136,7 +1136,7 @@ class AspInterface:
                 # n_models = n_models + 1
             handle.get()  # type: ignore
 
-        selected_strategy, self.utility = self.model_handler.compute_best_strategy()
+        selected_strategy, self.utility = self.model_handler.compute_best_strategy(maximize_upper)
         for i in range(0,len(selected_strategy)):
             self.decision_atoms_selected.append(self.decision_atoms_list[i] if int(selected_strategy[i]) == 1 else f"not {self.decision_atoms_list[i]}")
             self.decision_atoms_selected
@@ -1793,7 +1793,7 @@ class AspInterface:
         if self.verbose:
             print(f"Optimization time: {elapsed_time} s")
         
-        sel = {}
+        sel : 'dict[str,int]' = {}
         if found:
             # print("Solution found")
             for name, sl in zip(self.reducible_facts.keys(),selected):

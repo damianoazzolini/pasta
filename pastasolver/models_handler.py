@@ -523,7 +523,7 @@ class ModelsHandler():
         self.manage_worlds_dict_decision(id_strategy, id_world, prob_world, id_utilities)
 
 
-    def compute_best_strategy(self, to_maximize : str = "upper") -> 'tuple[str,list[float]]':
+    def compute_best_strategy(self, maximize_upper : bool = True) -> 'tuple[str,list[float]]':
         '''
         Computes the best strategy for decision theory.
         '''
@@ -558,11 +558,11 @@ class ModelsHandler():
 
         # print(decisions_utilities)
         for ut in decisions_utilities:
-            if to_maximize == "lower":
+            if not maximize_upper:
                 if bounds_best_strategy[0] < decisions_utilities[ut][0] or ((bounds_best_strategy[0] == decisions_utilities[ut][0]) and (bounds_best_strategy[1] < decisions_utilities[ut][1])):
                     best_strategy = ut
                     bounds_best_strategy = decisions_utilities[ut]
-            elif to_maximize == "upper":
+            else:
                 if bounds_best_strategy[1] < decisions_utilities[ut][1] or ((bounds_best_strategy[1] == decisions_utilities[ut][1]) and (bounds_best_strategy[0] < decisions_utilities[ut][0])):
                     best_strategy = ut
                     bounds_best_strategy = decisions_utilities[ut]
