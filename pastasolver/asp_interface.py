@@ -304,15 +304,12 @@ class AspInterface:
         Assumes that every world has at least one answer set.
         '''
         ctl = self.init_clingo_ctl(["-Wnone","--opt-mode=opt","--models=0", "--output-debug=none"])
-        opt : str = " "
-        unsat : bool = True
+        opt = ""
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
-                unsat = False
                 opt = str(m)  # type: ignore
-            handle.get()   # type: ignore
-
-        return opt, unsat
+            handle.get()  # type: ignore
+        return opt, not opt
 
 
     def sample_world(self, randomly : bool = False) -> 'tuple[dict[str,bool],str]':
@@ -337,20 +334,11 @@ class AspInterface:
                 # before is the integer part
                 # after is the floating point part
                 sample_true = evaluate_sample(samples_continuous[possibly_continuous_fact], key)
-                if sample_true:
-                    w_id[key] = True
-                    w_id_key = w_id_key + "T"
-                else:
-                    w_id[key] = False
-                    w_id_key = w_id_key + "F"
             else:
                 comp = 0.5 if randomly else self.prob_facts_dict[key]
-                if random.random() < comp:
-                    w_id[key] = True
-                    w_id_key = w_id_key + "T"
-                else:
-                    w_id[key] = False
-                    w_id_key = w_id_key + "F"
+                sample_true = random.random() < comp
+            w_id[key] = sample_true
+            w_id_key += "T" if sample_true else "F"
 
         return w_id, w_id_key
 
@@ -359,16 +347,8 @@ class AspInterface:
         '''
         Resamples a fact. Used in Gibbs sampling.
         '''
-        key : str = ""
-        for k in self.prob_facts_dict:
-            key = k
-            i = i - 1
-            if i < 0:
-                break
-
-        if random.random() < self.prob_facts_dict[key]:
-            return 'T', key
-        return 'F', key
+        key = list(self.prob_facts_dict.keys())[i]
+        return ('T' if random.random() < self.prob_facts_dict[key] else 'F', key)
 
 
     @staticmethod
@@ -390,15 +370,11 @@ class AspInterface:
         # I can have: qe or qe_false, nqe or nqe_false
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
-                m1 = str(m).split(' ')  # type: ignore
-                if 'qe' in m1:
-                    qe_count = qe_count + 1
-                else:
-                    qe_false_count = qe_false_count + 1
-                if 'nqe' in m1:
-                    nqe_count = nqe_count + 1
-                else:
-                    nqe_false_count = nqe_false_count + 1
+                m_str = str(m)  # type: ignore
+                qe_count += 'qe' in m_str
+                qe_false_count += 'qe' not in m_str
+                nqe_count += 'nqe' in m_str
+                nqe_false_count += 'nqe' not in m_str
 
         return qe_count, qe_false_count, nqe_count, nqe_false_count
 
@@ -417,8 +393,8 @@ class AspInterface:
 
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
-                m1 = str(m).split(' ')  # type: ignore
-                if 'qe' in m1 or 'nqe' in m1:
+                m_str = str(m)  # type: ignore
+                if 'qe' in m_str or 'nqe' in m_str:
                     return True
 
         return False
