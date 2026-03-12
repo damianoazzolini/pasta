@@ -237,17 +237,23 @@ class AspInterface:
         
         if self.stop_if_inconsistent and not self.normalize_prob and len(self.prob_facts_dict) > 0:
             res = ""
+            total_mass_lost = 0
             for el in missing:
                 s = "0"*(len(self.prob_facts_dict) - len(bin(el)[2:])) + bin(el)[2:]
                 i = 0
                 res = res + s + "{ "
+                current_prob = 1
                 for el in self.prob_facts_dict:
                     if s[i] == '1':
                         res += el + " "
+                        current_prob = current_prob * self.prob_facts_dict[el]
+                    else:
+                        current_prob = current_prob * (1 - self.prob_facts_dict[el])
                     i = i + 1
-                res += "}\n"
+                res = res + "} " + f"{current_prob}\n"
+                total_mass_lost += current_prob
             if self.pedantic:
-                utils.print_error_and_exit(f"Found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}.")
+                utils.print_error_and_exit(f"Found {len(missing)} worlds without answer sets: {missing}\n{res[:-1]}\n{total_mass_lost} probability mass lost.")
             else:
                 utils.print_error_and_exit(f"Found {2**len(self.prob_facts_dict) - len(self.model_handler.worlds_dict)} worlds without answer sets.")
 
