@@ -232,7 +232,24 @@ class Generator:
             head = el.split('::')[1].replace(' ','')
             if head.endswith('.'):
                 head = head[:-1]
-            prob = float(el.split('::')[0])
+            # the prob can be a number or a fraction
+            # if fraction, it is of the form a/b and must be evaluated
+            prob_str = el.split('::')[0].replace(' ','')
+            prob = -1
+            if '/' in prob_str:
+                prob_str = prob_str.split('/')
+                if len(prob_str) != 2:
+                    print_error_and_exit(f"Syntax error in probability {prob_str} in line {line}")
+                try:
+                    prob = float(prob_str[0]) / float(prob_str[1])
+                except:
+                    print_error_and_exit(f"Syntax error in probability {prob_str} in line {line}")
+            else:
+                try:
+                    prob = float(prob_str)
+                except:
+                    print_error_and_exit(f"Syntax error in probability {prob_str} in line {line}")
+            # prob = float(el.split('::')[0])
             acc_prob += prob
             if acc_prob > 1:
                 print_error_and_exit(f"Probability exceeding 1 in disjunction {line}")
@@ -248,9 +265,11 @@ class Generator:
             cp = 1
             for p in prob_list:
                 cp *= (1-p)
+            
             if index < len(line) - 1:
                 new_facts.append(f"{prob/cp}::{name}{index}.")
-            prob_list.append(prob)
+            
+            prob_list.append(prob/cp)
         return new_facts, new_clauses
     
     
