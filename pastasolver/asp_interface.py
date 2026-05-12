@@ -744,7 +744,7 @@ class AspInterface:
             if highest and ((computed_utilities_list[el][index] > best[index]) or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0]))) or not highest and ((computed_utilities_list[el][index] < best[index]) or ((computed_utilities_list[el][index] == best[index]) and (computed_utilities_list[el][1 if lower else 0] == best[1 if lower else 0]))):
                 best[index] = computed_utilities_list[el][index]
                 best[1 if lower else 0] = computed_utilities_list[el][1 if lower else 0]
-                best[2] = computed_utilities_list[el][2]
+                best[2] = computed_utilities_list[el][2] if len(computed_utilities_list[el]) > 2 else 0
                 best_comb = []
                 for c, decision in zip(el,self.decision_atoms_list):
                     if int(c) == 1:
@@ -862,7 +862,7 @@ class AspInterface:
                 print(f"\tworld [{w_str}] probability {world_probability}")
             # print(as_list)
             # compute the lower and upper bounds
-            if len(as_list) >= 1 and as_list[0] != ['']:
+            if (len(as_list) >= 1 and as_list[0] != ['']) or len(as_list) > 1:
                 rewards_list_inner : list[float] = []
                 for answer_set in as_list:
                     # r : float = 1 # for product
