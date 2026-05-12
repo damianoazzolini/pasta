@@ -396,7 +396,7 @@ class Pasta:
             opt : bool = False,
             approximate : bool = False,
             samples : int = 1000
-        ) -> 'tuple[tuple[float,float,float],list[str]]':
+        ) -> 'tuple[float, list[str], float, list[str], float, list[str]]':
         '''
         Naive implementation of decision theory, i.e., by enumerating
         all the strategies and by picking the best one.
@@ -728,10 +728,11 @@ def main():
             iterations=args.iterations)
         print(f"Utility: {best_util}\nChoice: {utility_atoms}")
     elif args.dtn or args.dtopt:
-        lowest_val, lowest_comb, highest_val, highest_comb = pasta_solver.decision_theory_naive(
+        lowest_val, lowest_comb, highest_val, highest_comb, average_val, average_comb = pasta_solver.decision_theory_naive(
             no_mix=args.no_mix, opt=args.dtopt, approximate=args.approximate, samples=args.samples)
         print(f"Lowest utility: {lowest_val}\nChoice: {lowest_comb}")
         print(f"Highest utility: {highest_val}\nChoice: {highest_comb}")
+        print(f"Average utility (smProbLog): {average_val}\nChoice: {average_comb}")
     elif args.dt:
         if args.normalize:
             print_error_and_exit("Normalization should be used with the -dtn flag.")
