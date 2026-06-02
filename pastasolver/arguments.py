@@ -24,7 +24,7 @@ PASTA_DESCRIPTION = \
     "PASTA: Probabilistic Answer Set programming for STAtistical probabilities"
 
 
-def parse_args_wrapper():
+def get_command_parser():
     '''
     Wrapper for arguments parsing.
     '''
@@ -351,4 +351,8 @@ def parse_args_wrapper():
     )
 
 
-    return command_parser.parse_args()
+    return command_parser
+
+
+def parse_args_wrapper():
+    return get_command_parser().parse_args()

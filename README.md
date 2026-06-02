@@ -104,10 +104,11 @@ You can normalize the probability with the flag `--normalize`.
 ### Use PASTA as a Library
 You can also use it as a library
 ```
-from pasta.pasta_solver import Pasta
+from pastasolver.pasta_solver import Pasta
 
 filename = "examples/inference/bird_4.lp"
 query = "fly(1)"
+
 solver = Pasta(filename, query)
 lp, up = solver.inference()
 

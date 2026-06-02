@@ -11,7 +11,7 @@ from .utils import *
 from . import generator
 # from . import learning_utilities
 from .learning_utilities import ParameterLearner
-from .arguments import parse_args_wrapper
+from .arguments import parse_args_wrapper, get_command_parser
 
 
 def check_lp_up(lp : float, up : float) -> None:
@@ -31,10 +31,15 @@ class Pasta:
             self,
             filename : str,
             query : str,
-            arguments : argparse.Namespace
+            arguments : 'argparse.Namespace | None' = None
         ) -> None:
         self.filename = filename
         self.query = query
+        
+        if arguments is None:
+            command_parser = get_command_parser()
+            arguments = command_parser.parse_args([filename])
+
         self.arguments = arguments
 
         self.interface : AspInterface
