@@ -27,9 +27,9 @@ def endline_symbol(char1: str) -> bool:
 
 def check_consistent_prob_fact(line_in: str, lpmln: bool = False) -> 'tuple[float, str]':
     if lpmln:
-        r = r"[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
+        r = r"[0-9]+::[a-z_][a-zA-Z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
     else:
-        r = r"0\.[0-9]+::[a-z_][a-z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
+        r = r"0\.[0-9]+::[a-z_][a-zA-Z_0-9]*(\([a-z_0-9]*(,[a-z_0-9]*)*\))*\."
     
     # TODO: this is marked as incorrect
     # Error: Probabilistic fact ->0.3::shops(a(0)).<- ill formed
@@ -353,9 +353,18 @@ class PastaParser:
             elif line.startswith("map"):
                 # add the MAP fact as probabilistic
                 fact = line.split('map')[1]
-                probability, fact = check_consistent_prob_fact(fact)
-                self.map_id_list.append(len(self.probabilistic_facts))
-                self.add_probabilistic_fact(fact,probability)
+                if ';' in fact:
+                    new_facts, new_clauses = Generator.generate_facts_from_disjunction(fact)
+                    self.lines_prob.extend(new_clauses)
+                    for f in new_facts:
+                        probability, fact = check_consistent_prob_fact(f)
+                        print(probability, fact)
+                        self.map_id_list.append(len(self.probabilistic_facts))
+                        self.add_probabilistic_fact(fact, probability)
+                else:
+                    probability, fact = check_consistent_prob_fact(fact)
+                    self.map_id_list.append(len(self.probabilistic_facts))
+                    self.add_probabilistic_fact(fact, probability)
             elif line.startswith("decision") or line.startswith("?::"):
                 if line.startswith("decision"):
                     to_s = "decision"
