@@ -756,18 +756,25 @@ class AspInterface:
     
     def extract_best_utility_opt(
             self,
-            computed_utilities_list: 'dict[str,tuple[float,float,float]]',
-            lower : bool = False,
-            highest : bool = True
-        ) -> 'tuple[float, list[str], float, list[str]]':
+            computed_utilities_list: 'dict[str,tuple[float,float,float,float]]'
+        ) -> 'tuple[float, list[str], float, list[str], float, list[str]]':
         '''
         Loops over the utility list and find the best assignment.
+        Returns 
+        - the lower utility
+        - the corresponding combinations of decisions
+        - the upper utility
+        - the corresponding combination of decisions
+        - the average utility (smProbLog)
+        - the corresponding combination of decisions
         '''
         lower_val : float = -math.inf
         lowest_comb : 'list[str]' = []
         higher_val : float = -math.inf
         highest_comb : 'list[str]' = []
-        # lower -> 0, upper -> 1, unsat 3
+        average_val : float = -math.inf
+        average_comb : 'list[str]' = []
+        # lower -> 0, upper -> 1, sm -> 2, unsat -> 3
         for el in computed_utilities_list:
             if computed_utilities_list[el][1] > higher_val:
                 higher_val = computed_utilities_list[el][1]
@@ -786,17 +793,30 @@ class AspInterface:
                         lowest_comb.append(decision)
                     else:
                         lowest_comb.append(f"not {decision}")
+            
+            if computed_utilities_list[el][2] > average_val:
+                average_val = computed_utilities_list[el][2]
+                average_comb = []
+                for c, decision in zip(el,self.decision_atoms_list):
+                    if int(c) == 1:
+                        average_comb.append(decision)
+                    else:
+                        average_comb.append(f"not {decision}")
 
-        return lower_val, lowest_comb, higher_val, highest_comb
+        return lower_val, lowest_comb, higher_val, highest_comb, average_val, average_comb
 
 
     def _evaluate_strategy_dtopt(
             self,
             bin_value : str
-        ) -> 'tuple[float,float,float]':
+        ) -> 'tuple[float,float,float,float]':
         '''
         Evaluates a strategy: it computes all the words and extract the
-        min and max utility.
+        min and max utility. It returns:
+        - the lower bound of the utility
+        - the upper bound of the utility
+        - the expected utility (if there are multiple answer sets, it averages them, a là smProbLog)
+        - the probability of the unsat worlds
         '''
         # bin_value = bin(strategy)[2:].zfill(len(self.decision_atoms_list))
         st = ""
@@ -818,6 +838,7 @@ class AspInterface:
         w_list : 'list[str]' = list(self.prob_facts_dict.keys())
         lr = 0
         ur = 0
+        sm_reward = 0
         p_unsat = 0 # probability of the UNSAT worlds
         for w in all_worlds:
             original_prg_constr = self.asp_program.copy()
@@ -875,15 +896,17 @@ class AspInterface:
 
                 lr_obt = min(rewards_list_inner) * world_probability
                 ur_obt = max(rewards_list_inner) * world_probability
+                sm_opt = (sum(rewards_list_inner) / len(rewards_list_inner)) * world_probability
                 
                 if self.pedantic:
                     print(f"Rewards obtained for world [{w_str}]")
                     for as_el,as_rew in zip(as_list,rewards_list_inner):
                         print(f"\t{as_el} -> {as_rew}")
-                    print(f"Optimal reward: ({lr_obt},{ur_obt})")
+                    print(f"Optimal reward: ({lr_obt},{ur_obt},{sm_opt})")
 
                 lr += lr_obt
                 ur += ur_obt
+                sm_reward += sm_opt
                 # lb, ub = compute_utility_bounds(as_list, world_probability, self.utilities_dict)
             elif len(as_list) == 0:
                 # no answer sets
@@ -897,9 +920,9 @@ class AspInterface:
             self.asp_program = original_prg_constr.copy()
         
         if self.verbose:
-            print(f"Strategy: [{st}], Utility: [{lr, ur, p_unsat}]")
+            print(f"Strategy: [{st}], Utility: [{lr, ur, sm_reward, p_unsat}]")
 
-        return lr, ur, p_unsat
+        return lr, ur, sm_reward, p_unsat
 
 
     def decision_theory_opt(
@@ -907,7 +930,7 @@ class AspInterface:
             approximate : bool = False,
             samples : int = 1000,
             to_maximize : str = "upper"
-        ) -> 'tuple[tuple[float,float,float],list[str]]':
+        ) -> 'tuple[float, list[str], float, list[str], float, list[str]]':
         '''
         Solves decision theory with optimization approaches.
         '''
@@ -929,7 +952,10 @@ class AspInterface:
             return ''.join(st)
         
         ######### BODY
-        computed_utilities_dict : 'dict[str,tuple[float,float,float]]' = {}
+        # the dict contains:
+        # key: the strategy in binary form, e.g., 101 means that the first and the third decision atoms are true, while the second is false
+        # value: a tuple with the lower bound, the upper bound, the sm reward, and the probability of the unsat worlds for that strategy
+        computed_utilities_dict : 'dict[str,tuple[float,float,float,float]]' = {}
 
         if len(self.decision_atoms_list) == 0:
             utils.print_error_and_exit("Specify at least one decision atom.")
@@ -941,18 +967,19 @@ class AspInterface:
             # exact: enumerates all the strategies
             for strategy in decision_facts_combinations:
                 bin_value = bin(strategy)[2:].zfill(len(self.decision_atoms_list))
-                lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_value)
-                computed_utilities_dict[bin_value] = (lr,ur,p_unsat)
+                lr, ur, sm_r, p_unsat = self._evaluate_strategy_dtopt(bin_value)
+                computed_utilities_dict[bin_value] = (lr,ur,sm_r,p_unsat)
                 # restore the program, since it is modified in evaluate strategy
                 self.asp_program = original_prg.copy()
             
             return self.extract_best_utility_opt(computed_utilities_dict)
         else:
+            # TO FIX
             current_strategy = random.randint(0, 2**len(self.decision_atoms_list) - 1)
             bin_value_current_strategy = bin(current_strategy)[2:].zfill(len(self.decision_atoms_list))
-            lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_value_current_strategy)
-            # print(f"add: {bin_value_current_strategy} -> {(lr, ur, p_unsat)}")
-            computed_utilities_dict[bin_value_current_strategy] = (lr, ur, p_unsat)
+            lr, ur, sm_r, p_unsat = self._evaluate_strategy_dtopt(bin_value_current_strategy)
+            # print(f"add: {bin_value_current_strategy} -> {(lr, ur, sm_r, p_unsat)}")
+            computed_utilities_dict[bin_value_current_strategy] = (lr, ur, sm_r, p_unsat)
             # cleanup - crucial
             self.asp_program = original_prg.copy()
             
@@ -967,7 +994,7 @@ class AspInterface:
                 bin_selected_strategy = flip_bit(bin_value_current_strategy, one=False)
                 # print(bin_selected_strategy)
                 if not(bin_selected_strategy in computed_utilities_dict):
-                    lr, ur, p_unsat = self._evaluate_strategy_dtopt(bin_selected_strategy)
+                    lr, ur, sm_r, p_unsat = self._evaluate_strategy_dtopt(bin_selected_strategy)
 
                     if to_maximize == "upper":
                         current_value = ur
@@ -980,8 +1007,8 @@ class AspInterface:
                         bin_value_current_strategy = bin_selected_strategy
                         if self.verbose:
                             print(f"Improved at iteration {i}")
-                    # print(f"add: {bin_selected_strategy} -> {(lr, ur, p_unsat)}")
-                    computed_utilities_dict[bin_selected_strategy] = (lr, ur, p_unsat)
+                    # print(f"add: {bin_selected_strategy} -> {(lr, ur, sm_r, p_unsat)}")
+                    computed_utilities_dict[bin_selected_strategy] = (lr, ur, sm_r, p_unsat)
                     # check whether all the strategies have been evaluated
                     if len(computed_utilities_dict) == 2**len(self.decision_atoms_list):
                         print(f"Evaluated all {2**len(self.decision_atoms_list)} possible strategies")
